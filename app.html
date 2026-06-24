@@ -232,6 +232,35 @@ header h1 {
   vertical-align: middle;
 }
 [data-theme="dark"] .mode-badge { background: rgba(143,179,57,0.16); color: var(--accent); }
+/* ===== Ladder (King of the Court) ===== */
+.ladder-start{text-align:center;}
+.ladder-start-title{font-size:1.1rem;font-weight:900;margin-bottom:8px;}
+.ladder-start-desc{font-size:0.84rem;font-weight:500;color:var(--muted);line-height:1.6;margin-bottom:14px;}
+.ladder-start-stats{display:flex;justify-content:center;gap:22px;margin-bottom:12px;font-size:0.82rem;color:var(--muted);}
+.ladder-start-stats strong{font-size:1.2rem;color:var(--ink);display:block;font-weight:800;}
+.ladder-start-plan{font-size:0.82rem;font-weight:500;color:var(--ink2);line-height:1.5;margin-bottom:16px;}
+.ladder-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;background:var(--army);color:#fff;border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);}
+.ladder-round{font-size:1rem;font-weight:800;letter-spacing:0.02em;}
+.ladder-bar-actions{display:flex;gap:8px;}
+.ladder-bar-actions .btn-outline{border-color:rgba(255,255,255,0.4);color:#fff;}
+.ladder-court .court-name-static{font-size:1.3rem;font-weight:800;letter-spacing:0.03em;flex:1;}
+.ladder-rank{font-size:0.7rem;font-weight:800;letter-spacing:0.04em;background:rgba(0,0,0,0.22);padding:3px 10px;border-radius:20px;}
+.ladder-court.reported{outline:2px solid var(--accent);outline-offset:-2px;}
+.ladder-team{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:10px 12px;}
+.ladder-team.win{background:rgba(212,160,23,0.14);}
+.ladder-team-seat{font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);width:18px;flex-shrink:0;}
+.ladder-team-names{font-size:1.05rem;font-weight:700;color:var(--ink);flex:1;min-width:0;word-break:break-word;}
+.ladder-win{flex-shrink:0;}
+.ladder-score-row{display:flex;align-items:center;justify-content:center;gap:12px;margin:8px 0;}
+.ladder-bench{margin-top:14px;}
+.ladder-bench-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:0.9rem;font-weight:600;}
+.ladder-bench-item:last-child{border-bottom:none;}
+.ladder-bench-rank{width:22px;height:22px;border-radius:50%;background:var(--army-pale);color:var(--army);font-size:0.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+[data-theme="dark"] .ladder-bench-rank{background:rgba(143,179,57,0.16);color:var(--accent);}
+.ladder-bench-empty{font-size:0.82rem;font-weight:500;color:var(--muted);}
+.ladder-sitting{margin-top:14px;}
+.ladder-sit-name{display:inline-block;background:var(--surface2);border-radius:20px;padding:4px 12px;font-size:0.8rem;font-weight:600;margin:0 6px 6px 0;}
+.ladder-sit-hint{font-size:0.74rem;font-weight:500;color:var(--muted);margin-top:6px;}
 
 /* ===== INPUTS ===== */
 input[type="text"],
@@ -1076,6 +1105,7 @@ let swapContext = null;
 let sessionStartTime = null;
 let sessionName = '';
 let sessionMode = { format: 'doubles', matchmaking: 'waittime' };
+let ladder = null; // King of the Court state: { started, round, bench:[[pid,...],...] }
 let sessionOwnerId = '';
 let sessionOwnerName = '';
 let sessionCreatedAt = null;
@@ -1149,6 +1179,7 @@ function saveState() {
     globalRound, playerIdCounter, courtIdCounter, mqIdCounter,
     sessionStartTime, sessionName,
     name: sessionName,
+    ladder: ladder ? cleanLadder(ladder) : null,
     sessionEnded, sessionEndTime,
     status: sessionEnded ? 'ended' : 'active'
   };
@@ -1180,6 +1211,23 @@ function normCourts(val) {
     team1: normArr(c.team1),
     team2: normArr(c.team2),
   }));
+}
+
+// Ladder (King of the Court) — bench is an array of teams (each team an array of player ids)
+function normLadder(val) {
+  if (!val || typeof val !== 'object') return null;
+  return {
+    started: !!val.started,
+    round: val.round || 1,
+    bench: normArr(val.bench).map(t => normArr(t)),
+  };
+}
+function cleanLadder(l) {
+  return {
+    started: !!l.started,
+    round: l.round || 1,
+    bench: l.bench && l.bench.length ? l.bench.map(t => cleanForFirebase(t)) : {_empty:true},
+  };
 }
 
 // Deep-normalize matchQueue
@@ -1221,6 +1269,7 @@ window._fbApplyRemote = function(s) {
   sessionStartTime  = s.sessionStartTime  || null;
   sessionName       = s.sessionName || s.name || '';
   sessionMode       = (s.mode && typeof s.mode === 'object') ? { format: s.mode.format || 'doubles', matchmaking: s.mode.matchmaking || 'waittime' } : { format: 'doubles', matchmaking: 'waittime' };
+  ladder            = s.ladder ? normLadder(s.ladder) : null;
   sessionOwnerId    = s.ownerId     || '';
   sessionOwnerName  = s.ownerName   || '';
   sessionCreatedAt  = s.createdAt   || null;
@@ -1581,6 +1630,7 @@ function renameCourtDef(courtId,newName) {
   saveState();
 }
 function generateMatchForCourt(courtId) {
+  if(mm()==='ladder'){ showToast('Ladder mode — use Save Result and Advance Round.'); return; }
   rebuildMatchQueue();
   if(!matchQueue.length){showToast(`Need at least ${matchSize()} waiting players.`);return;}
   const def=courtDefs.find(d=>d.id===courtId);
@@ -1626,6 +1676,140 @@ function submitScore(courtId) {
   rebuildMatchQueue();
   renderCourts(); renderRankings(); renderGameHistory(); renderQueue(); saveState();
   showToast('Score saved!');
+}
+
+// ===== LADDER (King of the Court) — partners stay together =====
+// Live matches are kept in the standard `courts` slots (team1 = top seat, team2 = bottom
+// seat) so the public view renders them with no special-casing. `ladder` holds the bench
+// + round. Each round every court plays; winners move up one court, losers down one;
+// the bottom court's loser rotates to the back of the bench and the bench front rotates in.
+function teamLabel(team){ return (team||[]).map(id=>getPlayer(id)?.name||'?').join(' & '); }
+function ladderActiveCourts(){
+  // courts that are part of the ladder, ordered by court rank (courtDefs order)
+  return courtDefs.map(d=>courts.find(c=>c.id===d.id)).filter(Boolean);
+}
+function ladderAllReported(){
+  const a=ladderActiveCourts();
+  return a.length>0 && a.every(c=>c.submitted && c.score1!==c.score2);
+}
+function startLadder(){
+  const present=presentPlayers();
+  const ts=teamSize();
+  if(courtDefs.length<1){ showToast('Add at least one court first.'); return; }
+  if(present.length < ts*2){ showToast(`Need at least ${ts*2} present players to start.`); return; }
+  // Form fixed teams from present players; leftover (< a full team) sits out this seeding.
+  const pool=shuffle(present.map(p=>p.id));
+  const teams=[];
+  for(let i=0;i+ts<=pool.length;i+=ts) teams.push(pool.slice(i,i+ts));
+  const activeCount=Math.min(courtDefs.length, Math.floor(teams.length/2));
+  if(activeCount<1){ showToast('Not enough players to fill a court.'); return; }
+  const now=Date.now();
+  courts=[];
+  for(let i=0;i<activeCount;i++){
+    const def=courtDefs[i];
+    courts.push({id:def.id,name:def.name,team1:teams[2*i],team2:teams[2*i+1],score1:'',score2:'',submitted:false,round:1,startedAt:now});
+  }
+  ladder={started:true, round:1, bench:teams.slice(2*activeCount)};
+  matchQueue=[]; globalRound=1;
+  if(!courtTimerInterval) courtTimerInterval=setInterval(tickCourtTimers,1000);
+  renderCourts(); renderQueue(); renderRankings(); saveState();
+  showToast('Ladder started — King of the Court!');
+}
+function resetLadder(){
+  if(!confirm('Reset the ladder? This re-seeds teams and starts at Round 1. Game history is kept.')) return;
+  ladder=null; courts=[]; matchQueue=[];
+  startLadder();
+}
+function saveLadderResult(courtId){
+  const c=courts.find(ct=>ct.id===courtId); if(!c) return;
+  const s1=parseInt(document.getElementById(`score1_${courtId}`)?.value);
+  const s2=parseInt(document.getElementById(`score2_${courtId}`)?.value);
+  if(isNaN(s1)||isNaN(s2)){ showToast('Enter both scores first.'); return; }
+  if(s1===s2){ showToast('King of the Court needs a winner — no ties.'); return; }
+  const already=c.submitted;
+  c.score1=s1; c.score2=s2; c.submitted=true;
+  if(!already){
+    // record stats + history once per court per round
+    const all=[...c.team1,...c.team2];
+    all.forEach(id=>{const p=getPlayer(id);if(p){p.gamesPlayed++;p.lastPlayedRound=ladder.round;}});
+    const winTeam=s1>s2?c.team1:c.team2, loseTeam=s1>s2?c.team2:c.team1;
+    const winScore=Math.max(s1,s2), loseScore=Math.min(s1,s2);
+    winTeam.forEach(id=>{const p=getPlayer(id);if(p){p.wins++;p.points+=winScore;p.pointsAgainst+=loseScore;}});
+    loseTeam.forEach(id=>{const p=getPlayer(id);if(p){p.losses++;p.points+=loseScore;p.pointsAgainst+=winScore;}});
+    gameHistory.unshift({round:ladder.round,court:c.id,courtName:c.name||`Court ${c.id}`,team1:c.team1.map(id=>getPlayer(id)?.name||'?'),team2:c.team2.map(id=>getPlayer(id)?.name||'?'),score1:s1,score2:s2});
+  }
+  renderCourts(); renderRankings(); renderGameHistory(); saveState();
+  showToast('Result saved.');
+}
+function advanceLadderRound(){
+  const active=ladderActiveCourts();
+  if(!ladderAllReported()){ showToast('Save a decisive result on every court first.'); return; }
+  const n=active.length;
+  const winners=[], losers=[];
+  active.forEach(c=>{ const aWon=c.score1>c.score2; winners.push(aWon?c.team1:c.team2); losers.push(aWon?c.team2:c.team1); });
+  const benchQ=[...(ladder.bench||[])];
+  const hasBench=benchQ.length>0;
+  const a=new Array(n), b=new Array(n);
+  for(let i=0;i<n;i++){
+    a[i] = (i===0) ? winners[0] : losers[i-1];
+    if(i<=n-2) b[i]=winners[i+1];
+  }
+  // bottom court (i=n-1): a already = losers[n-2] (or winners[0] if n===1 handled below)
+  if(n===1){ a[0]=winners[0]; b[0]= hasBench ? benchQ[0] : losers[0]; }
+  else { b[n-1]= hasBench ? benchQ[0] : losers[n-1]; }
+  const newBench = hasBench ? benchQ.slice(1).concat([losers[n-1]]) : [];
+  const now=Date.now();
+  active.forEach((c,i)=>{ c.team1=a[i]; c.team2=b[i]; c.score1=''; c.score2=''; c.submitted=false; c.round=ladder.round+1; c.startedAt=now; });
+  ladder.round++; ladder.bench=newBench; globalRound=ladder.round;
+  renderCourts(); renderQueue(); renderRankings(); saveState();
+  showToast(`Round ${ladder.round} — winners moved up!`);
+}
+function renderLadder(){
+  const el=document.getElementById('courtList');
+  if(!ladder || !ladder.started){
+    const present=presentPlayers().length, ts=teamSize();
+    const teams=Math.floor(present/ts), courtsN=courtDefs.length;
+    const active=Math.min(courtsN, Math.floor(teams/2));
+    const onCourt=active*2, bench=teams-onCourt, sitting=present-teams*ts;
+    const canStart = courtsN>=1 && present>=ts*2 && active>=1;
+    el.innerHTML=`<div class="card ladder-start">
+      <div class="ladder-start-title">🏆 King of the Court</div>
+      <p class="ladder-start-desc">Every court plays each round. Winners move up a court, losers move down; the bottom court's loser rotates to the bench, and the bench front rotates in. Partners stay together all session.</p>
+      <div class="ladder-start-stats"><div><strong>${present}</strong> present</div><div><strong>${courtsN}</strong> court${courtsN!==1?'s':''}</div><div><strong>${teams}</strong> teams</div></div>
+      <p class="ladder-start-plan">${canStart?`Will seed <strong>${active}</strong> court${active!==1?'s':''} (${onCourt} teams), <strong>${Math.max(0,bench)}</strong> on the bench${sitting>0?`, <strong>${sitting}</strong> sitting out`:''}.`:`Add at least one court and ${ts*2} present players to start.`}</p>
+      <button class="btn btn-accent btn-full" ${canStart?'':'disabled'} onclick="startLadder()">Start Ladder</button>
+    </div>`;
+    return;
+  }
+  const active=ladderActiveCourts();
+  const allDone=ladderAllReported();
+  let html=`<div class="ladder-bar"><div class="ladder-round">Round ${ladder.round}</div><div class="ladder-bar-actions"><button class="btn btn-outline btn-sm" onclick="resetLadder()">Reset</button><button class="btn btn-accent btn-sm" ${allDone?'':'disabled'} onclick="advanceLadderRound()">Advance Round →</button></div></div>`;
+  html+='<div class="court-grid-layout">';
+  active.forEach((c,i)=>{
+    const rank = i===0 ? '#1 · Top' : (i===active.length-1 ? `#${i+1} · Bottom` : `#${i+1}`);
+    const aWon=c.submitted&&c.score1>c.score2, bWon=c.submitted&&c.score2>c.score1;
+    const v=x=>(x!==''&&x!=null)?x:'';
+    html+=`<div class="court-card ladder-court ${c.submitted?'reported':''}">
+      <div class="court-header"><span class="court-name-static">${c.name}</span><span class="ladder-rank">${rank}</span>${c.submitted?'<span class="court-round">✓ reported</span>':''}</div>
+      <div class="court-body">
+        <div class="ladder-team ${aWon?'win':''}"><span class="ladder-team-seat">A</span><span class="ladder-team-names">${teamLabel(c.team1)}</span>${aWon?'<span class="ladder-win">🏆</span>':''}</div>
+        <div class="ladder-score-row"><input class="score-input" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}"><div class="score-sep">–</div><input class="score-input" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}"></div>
+        <div class="ladder-team ${bWon?'win':''}"><span class="ladder-team-seat">B</span><span class="ladder-team-names">${teamLabel(c.team2)}</span>${bWon?'<span class="ladder-win">🏆</span>':''}</div>
+        <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  const bench=ladder.bench||[];
+  html+=`<div class="card ladder-bench"><div class="card-title">Bench <span style="font-weight:600;text-transform:none;letter-spacing:0;">(rotates in at the bottom court)</span></div>`;
+  html += bench.length ? bench.map((t,i)=>`<div class="ladder-bench-item"><span class="ladder-bench-rank">${i+1}</span><span>${teamLabel(t)}</span></div>`).join('') : `<div class="ladder-bench-empty">No teams waiting — everyone's on a court.</div>`;
+  html+=`</div>`;
+  const placed=new Set();
+  active.forEach(c=>[...c.team1,...c.team2].forEach(id=>placed.add(id)));
+  bench.forEach(t=>t.forEach(id=>placed.add(id)));
+  const sitting=presentPlayers().filter(p=>!placed.has(p.id));
+  if(sitting.length) html+=`<div class="card ladder-sitting"><div class="card-title">Sitting out (no partner)</div>${sitting.map(p=>`<span class="ladder-sit-name">${p.name}</span>`).join('')}<div class="ladder-sit-hint">Tap Reset to re-seed and bring them in.</div></div>`;
+  el.innerHTML=html;
 }
 
 // ===== SWAP =====
@@ -1717,6 +1901,7 @@ function nextUpHtml() {
 }
 function renderCourts() {
   const mb=document.getElementById('modeBadge'); if(mb) mb.textContent=modeLabel();
+  if(mm()==='ladder'){ renderLadder(); return; }
   const el=document.getElementById('courtList');
   if(!courtDefs.length){el.innerHTML='<div class="empty-state"><div class="icon">🏸</div>No courts yet. Add one above.</div>';return;}
   const cards=courtDefs.map(def=>{
@@ -1792,6 +1977,14 @@ function renderQueue() {
   const el=document.getElementById('queueList');
   const present=presentPlayers();
   if(!present.length){el.innerHTML='<div class="empty-state"><div class="icon">⏳</div>No present players yet.</div>';return;}
+  if(mm()==='ladder'){
+    if(!ladder||!ladder.started){el.innerHTML='<div class="empty-state"><div class="icon">🏆</div>Start the ladder on the Courts tab.</div>';return;}
+    const bench=ladder.bench||[];
+    el.innerHTML = bench.length
+      ? `<p style="font-size:0.82rem;font-weight:500;color:var(--muted);margin-bottom:14px;">Teams on the bench rotate onto the bottom court each round.</p>`+bench.map((t,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><span class="queue-name">${teamLabel(t)}</span></div>`).join('')
+      : '<div class="empty-state"><div class="icon">🏆</div>No teams on the bench — everyone is on a court.</div>';
+    return;
+  }
   const freeWaiting=getFreeWaiting();
   let html='';
   if(matchQueue.length){
