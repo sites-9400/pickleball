@@ -246,8 +246,10 @@ header h1 {
 .ladder-court .court-name-static{font-size:1.3rem;font-weight:800;letter-spacing:0.03em;flex:1;}
 .ladder-rank{font-size:0.7rem;font-weight:800;letter-spacing:0.04em;background:rgba(0,0,0,0.22);padding:3px 10px;border-radius:20px;}
 .ladder-court.reported{outline:2px solid var(--accent);outline-offset:-2px;}
-.ladder-team{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:10px 12px;}
+.ladder-team{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:6px;}
 .ladder-team.win{background:rgba(212,160,23,0.14);}
+.ladder-score-hint{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;}
+.ladder-court .score-section-label{margin-top:6px;}
 .ladder-team-seat{font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);width:18px;flex-shrink:0;}
 .ladder-team-names{font-size:1.05rem;font-weight:700;color:var(--ink);flex:1;min-width:0;word-break:break-word;}
 .ladder-win{flex-shrink:0;}
@@ -1793,8 +1795,9 @@ function renderLadder(){
       <div class="court-header"><span class="court-name-static">${c.name}</span><span class="ladder-rank">${rank}</span>${c.submitted?'<span class="court-round">✓ reported</span>':''}</div>
       <div class="court-body">
         <div class="ladder-team ${aWon?'win':''}"><span class="ladder-team-seat">A</span><span class="ladder-team-names">${teamLabel(c.team1)}</span>${aWon?'<span class="ladder-win">🏆</span>':''}</div>
-        <div class="ladder-score-row"><input class="score-input" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}"><div class="score-sep">–</div><input class="score-input" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}"></div>
         <div class="ladder-team ${bWon?'win':''}"><span class="ladder-team-seat">B</span><span class="ladder-team-names">${teamLabel(c.team2)}</span>${bWon?'<span class="ladder-win">🏆</span>':''}</div>
+        <div class="score-section-label">Enter Score <span class="ladder-score-hint">(A – B)</span></div>
+        <div class="ladder-score-row"><input class="score-input" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}"><div class="score-sep">–</div><input class="score-input" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}"></div>
         <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
       </div>
     </div>`;
