@@ -263,6 +263,20 @@ header h1 {
 .ladder-sitting{margin-top:14px;}
 .ladder-sit-name{display:inline-block;background:var(--surface2);border-radius:20px;padding:4px 12px;font-size:0.8rem;font-weight:600;margin:0 6px 6px 0;}
 .ladder-sit-hint{font-size:0.74rem;font-weight:500;color:var(--muted);margin-top:6px;}
+/* ===== Manual match picker ===== */
+.manual-preview{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:12px;}
+.manual-team{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.manual-team-tag{font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);}
+.manual-team-names{font-size:0.9rem;font-weight:700;color:var(--ink);word-break:break-word;}
+.manual-vs{font-size:0.7rem;font-weight:900;color:var(--muted);flex-shrink:0;}
+.manual-options{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow-y:auto;}
+.manual-chip{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface2);border:1.5px solid transparent;border-radius:8px;padding:8px 12px;font-family:var(--font);cursor:pointer;transition:border-color 0.12s,background 0.12s;}
+.manual-chip:hover{border-color:var(--line);}
+.manual-chip.on{background:var(--army-pale);border-color:var(--army);}
+[data-theme="dark"] .manual-chip.on{background:rgba(143,179,57,0.16);border-color:var(--accent);}
+.manual-chip-av{width:28px;height:28px;border-radius:50%;color:#fff;font-size:0.66rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.manual-chip-name{flex:1;min-width:0;font-size:0.9rem;font-weight:600;color:var(--ink);}
+.manual-chip-slot{width:22px;height:22px;border-radius:50%;background:var(--army);color:#fff;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 
 /* ===== INPUTS ===== */
 input[type="text"],
@@ -1074,6 +1088,18 @@ input:focus, textarea:focus { border-color: var(--army); }
   </div>
 </div>
 
+<!-- MANUAL MATCH PICKER MODAL -->
+<div class="modal-overlay hidden" id="manualOverlay" onclick="closeManualModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="manualTitle">Pick Match</div>
+    <div class="modal-sub" id="manualSub">Tap to fill Team A, then Team B</div>
+    <div id="manualPreview" class="manual-preview"></div>
+    <div id="manualOptions" class="manual-options"></div>
+    <button class="btn btn-accent btn-full" id="manualStartBtn" style="margin-top:12px" onclick="confirmManualPick()" disabled>Start Match</button>
+    <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="closeManualModal()">Cancel</button>
+  </div>
+</div>
+
 <!-- END SESSION MODAL -->
 <div class="modal-overlay hidden" id="endOverlay" onclick="closeEndModal(event)">
   <div class="end-modal">
@@ -1815,6 +1841,65 @@ function renderLadder(){
   el.innerHTML=html;
 }
 
+// ===== MANUAL MATCH PICK =====
+let manualPick = { courtId: null, selected: [] };
+function freeForManual(){
+  const onCourt=new Set();
+  courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>onCourt.add(id)));
+  return presentPlayers().filter(p=>!onCourt.has(p.id));
+}
+function openManualPick(courtId){
+  manualPick={courtId, selected:[]};
+  const def=courtDefs.find(d=>d.id===courtId);
+  document.getElementById('manualTitle').textContent=`Pick match — ${def?.name||'Court'}`;
+  document.getElementById('manualSub').textContent=`Tap to fill Team A (${teamSize()}), then Team B (${teamSize()})`;
+  renderManualPick();
+  document.getElementById('manualOverlay').classList.remove('hidden');
+}
+function closeManualModal(e){
+  if(e && e.target!==document.getElementById('manualOverlay')) return;
+  document.getElementById('manualOverlay').classList.add('hidden');
+  manualPick={courtId:null, selected:[]};
+}
+function toggleManualPlayer(id){
+  const i=manualPick.selected.indexOf(id);
+  if(i>=0) manualPick.selected.splice(i,1);
+  else if(manualPick.selected.length<matchSize()) manualPick.selected.push(id);
+  else { showToast(`Already picked ${matchSize()} players.`); return; }
+  renderManualPick();
+}
+function renderManualPick(){
+  const ts=teamSize(), need=matchSize(), sel=manualPick.selected;
+  const aNames=sel.slice(0,ts).map(id=>getPlayer(id)?.name||'?');
+  const bNames=sel.slice(ts,need).map(id=>getPlayer(id)?.name||'?');
+  document.getElementById('manualPreview').innerHTML=
+    `<div class="manual-team"><span class="manual-team-tag">Team A</span><span class="manual-team-names">${aNames.length?aNames.join(' & '):'—'}</span></div>`+
+    `<div class="manual-vs">VS</div>`+
+    `<div class="manual-team"><span class="manual-team-tag">Team B</span><span class="manual-team-names">${bNames.length?bNames.join(' & '):'—'}</span></div>`;
+  const avail=freeForManual();
+  document.getElementById('manualOptions').innerHTML = avail.length
+    ? avail.map(p=>{ const idx=sel.indexOf(p.id); const on=idx>=0;
+        return `<button class="manual-chip ${on?'on':''}" onclick="toggleManualPlayer(${p.id})"><span class="manual-chip-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span><span class="manual-chip-name">${p.name}</span>${on?`<span class="manual-chip-slot">${idx<ts?'A':'B'}</span>`:''}</button>`;
+      }).join('')
+    : '<div style="color:var(--muted);font-size:0.85rem;font-weight:500;text-align:center;padding:14px;">No available players right now.</div>';
+  const btn=document.getElementById('manualStartBtn');
+  btn.disabled = sel.length!==need;
+  btn.textContent = sel.length<need ? `Pick ${need-sel.length} more` : 'Start Match';
+}
+function confirmManualPick(){
+  const ts=teamSize(), need=matchSize(), sel=manualPick.selected, courtId=manualPick.courtId;
+  if(sel.length!==need) return;
+  const def=courtDefs.find(d=>d.id===courtId);
+  const now=Date.now(); globalRound++;
+  const slot={id:courtId,name:def?.name||`Court ${courtId}`,team1:sel.slice(0,ts),team2:sel.slice(ts,need),score1:'',score2:'',submitted:false,round:globalRound,startedAt:now};
+  const idx=courts.findIndex(c=>c.id===courtId);
+  if(idx>=0) courts[idx]=slot; else courts.push(slot);
+  if(!courtTimerInterval) courtTimerInterval=setInterval(tickCourtTimers,1000);
+  closeManualModal();
+  renderCourts(); renderQueue(); saveState();
+  showToast(`${def?.name||'Court'} — match started!`);
+}
+
 // ===== SWAP =====
 function openSwapModal(courtId,team,playerIndex) {
   const c=courts.find(ct=>ct.id===courtId);
@@ -1920,7 +2005,9 @@ function renderCourts() {
     if(!c){
       return `<div class="court-idle-card">${header}<div class="court-body" style="text-align:center;padding:20px 16px;">
         <div style="color:var(--muted);font-size:0.85rem;font-weight:500;margin-bottom:14px;">No match assigned yet</div>
-        ${matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} waiting players</div>`}
+        ${mm()==='manual'
+          ? (freeForManual().length>=matchSize()?`<button class="btn btn-accent" onclick="openManualPick(${def.id})">⚡ Pick Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} free players</div>`)
+          : (matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} waiting players</div>`)}
       </div></div>`;
     }
     const t1=c.team1.map(id=>getPlayer(id));
@@ -1936,7 +2023,9 @@ function renderCourts() {
           <div style="font-size:0.8rem;font-weight:500;color:var(--muted);margin-top:4px;">${t1names.join(' & ')} vs ${t2names.join(' & ')}</div>
           ${winner?`<span class="badge badge-green" style="margin-top:8px">🏆 ${winner}</span>`:`<span class="badge" style="background:var(--surface2);margin-top:8px;color:var(--muted);">Tie</span>`}
         </div>
-        ${matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`}
+        ${mm()==='manual'
+          ? (freeForManual().length>=matchSize()?`<button class="next-match-btn" onclick="openManualPick(${def.id})">⚡ Pick Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Need ${matchSize()} free players</div>`)
+          : (matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`)}
       </div>${nextUpHtml()}</div>`;
     }
     const teamHtml=(tp,tk,label)=>`<div class="team"><div class="team-label">${label}</div>${tp.map((p,i)=>`
