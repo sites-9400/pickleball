@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickleball — Live View</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--army:#4A5C2F;--army-light:#637A3D;--accent:#8FB339;--red:#C0392B;--gold:#D4A017;--font:'Montserrat',sans-serif;}
+[data-theme="dark"]{--bg:#13150E;--surface:#1E2115;--surface2:#262B18;--ink:#EEF0E8;--muted:#8A9470;--line:#2E3320;}
+[data-theme="light"]{--bg:#F5F6F0;--surface:#FFFFFF;--surface2:#F0F2EA;--ink:#1C1F14;--muted:#6B7254;--line:#D8DDD0;}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:100vh;padding-bottom:40px;letter-spacing:0.01em;transition:background 0.2s,color 0.2s;}
+header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,0.4);}
+.logo{width:36px;height:36px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.header-text{flex:1;}
+.header-text h1{font-size:1.05rem;font-weight:800;letter-spacing:0.02em;}
+.header-text p{font-size:0.72rem;font-weight:500;opacity:0.75;margin-top:1px;letter-spacing:0.02em;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#8FB339;flex-shrink:0;animation:blink 2s infinite;}
+.live-dot.offline{background:#C0392B;animation:none;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.session-clock-view{font-weight:800;font-size:1rem;letter-spacing:0.06em;background:rgba(0,0,0,0.2);padding:4px 12px;border-radius:20px;}
+.theme-toggle{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 10px;color:white;font-size:1rem;cursor:pointer;flex-shrink:0;}
+.view-qr{position:fixed;right:14px;bottom:14px;z-index:30;display:none;flex-direction:column;align-items:flex-end;gap:8px;}
+.view-qr-btn{background:var(--army);color:#fff;border:none;border-radius:20px;padding:8px 14px;font-family:var(--font);font-size:0.78rem;font-weight:800;letter-spacing:0.04em;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.22);}
+.view-qr-panel{display:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;box-shadow:0 6px 20px rgba(0,0,0,0.22);flex-direction:column;align-items:center;gap:6px;}
+.view-qr.open .view-qr-panel{display:flex;}
+.view-qr-panel .qr-box{background:#fff;border-radius:6px;padding:6px;line-height:0;}
+.view-qr-label{color:var(--muted);font-size:0.55rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;text-align:center;max-width:128px;line-height:1.3;}
+@media(max-width:720px){.view-qr{display:none!important;}}
+.container{max-width:1080px;margin:0 auto;padding:0 16px;}
+.section-header{font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin:20px 0 10px;}
+.court-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,520px));gap:14px;justify-content:center;}
+.court-view{background:var(--surface);border-radius:12px;overflow:hidden;border:1.5px solid var(--line);}
+.court-view-header{background:var(--army);color:white;padding:10px 16px;display:flex;align-items:center;gap:10px;}
+.court-view-name{font-size:1.3rem;font-weight:800;letter-spacing:0.03em;flex:1;}
+.court-view-timer{font-weight:800;font-size:0.9rem;letter-spacing:0.08em;background:rgba(0,0,0,0.22);padding:3px 12px;border-radius:20px;}
+.court-view-timer.warn{background:rgba(212,160,23,0.4);color:#FFE066;}
+.court-view-round{font-size:0.7rem;font-weight:600;opacity:0.7;letter-spacing:0.04em;}
+.court-view-body{padding:14px 16px;}
+.match-view{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;}
+.team-view{background:var(--surface2);border-radius:8px;padding:10px;text-align:center;min-width:0;}
+.team-view-label{font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;}
+.player-chip{display:flex;align-items:center;gap:6px;justify-content:center;margin:3px 0;min-width:0;}
+.player-bullet-v{width:7px;height:7px;border-radius:50%;background:var(--army-light);flex-shrink:0;}
+.player-chip-avatar{width:24px;height:24px;border-radius:50%;color:white;font-size:0.62rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.player-chip-name{font-size:1.02rem;font-weight:600;color:var(--ink);min-width:0;overflow-wrap:break-word;}
+.vs-view{font-size:0.85rem;font-weight:900;color:var(--muted);letter-spacing:0.06em;text-align:center;}
+.court-idle-view{background:var(--surface);border-radius:12px;overflow:hidden;border:1.5px dashed var(--line);}
+.court-idle-body{padding:16px;text-align:center;color:var(--muted);font-size:0.82rem;font-weight:500;letter-spacing:0.01em;}
+.queue-view-list{display:flex;flex-direction:column;gap:6px;}
+.queue-view-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--line);}
+.queue-view-rank{font-weight:800;font-size:0.82rem;color:var(--muted);width:22px;text-align:center;flex-shrink:0;}
+.queue-view-name{flex:1;font-weight:600;font-size:0.88rem;}
+.queue-view-badge{font-size:0.68rem;font-weight:800;letter-spacing:0.04em;padding:3px 9px;border-radius:20px;}
+.badge-on{background:rgba(74,92,47,0.3);color:#8FB339;border:1px solid rgba(143,179,57,0.3);}
+.rank-view-table{width:100%;border-collapse:collapse;}
+.rank-view-table th{font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--line);white-space:nowrap;}
+.rank-view-table th:first-child,.rank-view-table th:nth-child(2){text-align:left;}
+.rank-view-table td{padding:9px 8px;font-size:0.88rem;font-weight:500;border-bottom:1px solid var(--line);text-align:right;}
+.rank-view-table td:first-child,.rank-view-table td:nth-child(2){text-align:left;}
+.rank-view-table tr:last-child td{border-bottom:none;}
+.history-view-item{padding:11px 0;border-bottom:1px solid var(--line);}
+.history-view-item:last-child{border-bottom:none;}
+.history-view-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.history-view-meta{font-size:0.72rem;font-weight:600;color:var(--muted);letter-spacing:0.02em;}
+.history-view-score{font-weight:800;font-size:1rem;letter-spacing:0.02em;}
+.history-view-players{color:var(--muted);font-size:0.82rem;font-weight:500;margin-top:3px;letter-spacing:0.01em;}
+.history-badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:0.64rem;font-weight:800;letter-spacing:0.04em;margin-top:5px;}
+.history-badge.win{background:rgba(212,160,23,0.15);color:var(--gold);}
+.history-badge.tie{background:var(--surface2);color:var(--muted);}
+.history-search{width:100%;box-sizing:border-box;margin-bottom:10px;padding:9px 13px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-family:var(--font);font-size:0.85rem;font-weight:500;outline:none;}
+.history-search:focus{border-color:var(--army-light);}
+.history-search::placeholder{color:var(--muted);}
+.rank-medal{font-weight:800;font-size:0.88rem;color:var(--muted);}
+.rank-1 .rank-medal{color:#B8900D;}
+.rank-2 .rank-medal{color:#7A8070;}
+.rank-3 .rank-medal{color:#8B6040;}
+.player-tag-view{display:inline-flex;align-items:center;gap:7px;font-weight:700;}
+.mini-av{width:24px;height:24px;border-radius:50%;color:white;font-size:0.62rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.score-diff-v{font-weight:700;font-size:0.85rem;}
+.score-diff-v.pos{color:#8FB339;}
+.score-diff-v.neg{color:var(--red);}
+.score-diff-v.zero{color:var(--muted);}
+.mq-card-v{background:var(--surface);border-radius:10px;border:1.5px solid var(--line);overflow:hidden;margin-bottom:8px;}
+.mq-card-v.next{border-color:#8FB339;}
+.mq-header-v{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--line);}
+.mq-label-v{font-size:0.65rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;}
+.mq-badge-v{font-size:0.65rem;font-weight:800;letter-spacing:0.04em;padding:2px 8px;border-radius:20px;}
+.mq-badge-next-v{background:#8FB339;color:#1C1F14;}
+.mq-badge-deck-v{background:var(--surface2);color:var(--muted);border:1px solid var(--line);}
+.mq-teams-v{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;padding:10px 12px;}
+.mq-team-v{text-align:center;}
+.mq-player-v{display:flex;align-items:center;justify-content:center;gap:5px;margin:3px 0;}
+.mq-name-v{font-size:0.8rem;font-weight:600;}
+.mq-vs-v{font-size:0.72rem;font-weight:900;color:var(--muted);letter-spacing:0.06em;}
+.court-nextup-v{border-top:1px dashed var(--line);padding:10px 12px;background:var(--surface2);}
+.court-nextup-label-v{font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;}
+.court-nextup-teams-v{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;text-align:center;}
+.court-nextup-names-v{font-size:0.78rem;font-weight:700;line-height:1.6;}
+.sort-pills-v{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.sort-pill-v{background:none;border:1.5px solid var(--line);border-radius:20px;padding:5px 12px;font-family:var(--font);font-size:0.72rem;font-weight:700;letter-spacing:0.04em;color:var(--muted);cursor:pointer;transition:all 0.15s;}
+.sort-pill-v.active{background:var(--army);border-color:var(--army);color:white;}
+.card-v{background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--line);margin-bottom:14px;}
+.empty-v{text-align:center;padding:30px 16px;color:var(--muted);font-size:0.85rem;font-weight:500;}
+.empty-v .icon{font-size:2rem;margin-bottom:8px;}
+/* FIX A/J: connection states */
+.connecting{display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:12px;color:var(--muted);}
+.spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.no-session{display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:14px;color:var(--muted);text-align:center;padding:20px;}
+.no-session .icon{font-size:3rem;}
+.no-session h2{font-size:1.1rem;font-weight:800;color:var(--ink);}
+.no-session p{font-size:0.85rem;font-weight:500;max-width:260px;line-height:1.6;}
+.ended-banner{background:var(--surface);border-radius:12px;padding:22px 16px;text-align:center;border:1px solid var(--line);margin-bottom:16px;}
+.ended-banner-icon{font-size:2.2rem;margin-bottom:8px;}
+.ended-banner-title{font-size:1.05rem;font-weight:800;letter-spacing:0.02em;margin-bottom:3px;}
+.ended-banner-sub{font-size:0.8rem;font-weight:500;color:var(--muted);}
+.ended-stats{display:flex;gap:10px;margin-bottom:16px;}
+.ended-stat{flex:1;background:var(--surface);border-radius:10px;padding:13px 8px;text-align:center;border:1px solid var(--line);}
+.ended-stat-val{font-size:1.1rem;font-weight:800;}
+.ended-stat-label{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-top:3px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" style="padding:0;overflow:hidden;background:transparent;"><img src="logo.png" alt="Paddle District" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" onerror="this.style.display='none'"></div>
+  <div class="header-text">
+    <h1 id="viewSessionName">Pickleball Open Play</h1>
+    <p id="viewSessionDate">Live View — Read Only</p>
+  </div>
+  <div class="live-dot" id="liveDot" title="Connection status"></div>
+  <div class="session-clock-view" id="viewClock">--:--:--</div>
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️</button>
+</header>
+
+<div class="view-qr" id="viewQr">
+  <div class="view-qr-panel">
+    <div class="qr-box"><div id="viewQrContainer"></div></div>
+    <div class="view-qr-label">Scan to view on your phone</div>
+  </div>
+  <button class="view-qr-btn" id="viewQrBtn" onclick="toggleViewQR()">⛶ QR</button>
+</div>
+
+<div class="container" id="mainContent">
+  <div class="connecting" id="connectingScreen">
+    <div class="spinner"></div>
+    <div>Connecting to live session...</div>
+  </div>
+</div>
+
+<!-- QR Code library (global, loaded before the module) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB8LGAiW_GhGwv69e4ZFFG1XyM3qkWaAt8",
+  authDomain: "pickledistrict-fef9a.firebaseapp.com",
+  databaseURL: "https://pickledistrict-fef9a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pickledistrict-fef9a",
+  storageBucket: "pickledistrict-fef9a.firebasestorage.app",
+  messagingSenderId: "39488978109",
+  appId: "1:39488978109:web:ffdddd5da4b751088c4bd4"
+};
+
+// Named instance keeps this page's anonymous auth in its own localStorage key
+// ('viewer'), separate from the default app used by dashboard + app.html.
+// Without this, signInAnonymously() here overwrites the admin's Google session.
+const app = initializeApp(firebaseConfig, 'viewer');
+const db = getDatabase(app);
+const auth = getAuth(app);
+
+let state = null;
+let rankSort = 'wins';
+// FIX B: single interval refs, cleared before restart
+let clockInterval = null;
+let timerInterval = null;
+// FIX J: timeout for "no session" message
+let connectTimeout = setTimeout(() => {
+  const mc = document.getElementById('mainContent');
+  if (mc) mc.innerHTML = `<div class="no-session">
+    <div class="icon">📡</div>
+    <h2>Connection Timeout</h2>
+    <p>Could not load the session. This usually means:<br><br>
+    • The session link is wrong or expired<br>
+    • Firebase domain authorization is pending<br>
+    • Check your internet connection</p>
+    <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:var(--army);color:white;border:none;border-radius:8px;font-family:var(--font);font-size:0.85rem;font-weight:700;cursor:pointer;letter-spacing:0.03em;">↻ Refresh</button>
+  </div>`;
+}, 10000);
+
+const initials = name => name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+const normArr = val => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (val._empty === true) return [];
+  const keys = Object.keys(val).filter(k => k !== '_empty');
+  if (!keys.length) return [];
+  if (keys.every(k => !isNaN(parseInt(k)))) return keys.sort((a,b)=>parseInt(a)-parseInt(b)).map(k=>val[k]);
+  return Object.values(val);
+};
+const normCourts = val => normArr(val).map(c=>({...c,team1:normArr(c.team1),team2:normArr(c.team2)}));
+const normMQ = val => normArr(val).map(m=>({...m,team1:normArr(m.team1),team2:normArr(m.team2)}));
+const normGH = val => normArr(val).map(g=>({...g,team1:normArr(g.team1),team2:normArr(g.team2)}));
+const avatarColor = name => {
+  const colors=['#4A5C2F','#2E5E6E','#5C2F5E','#8B4020','#2F5E4A','#5E4A2F'];
+  let hash=0; for(let c of name) hash=(hash*31+c.charCodeAt(0))%colors.length;
+  return colors[Math.abs(hash)];
+};
+const fmt = ms => {
+  const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+};
+const fmtCourt = startedAt => {
+  if(!startedAt) return '00:00';
+  const s=Math.floor((Date.now()-startedAt)/1000),m=Math.floor(s/60),sec=s%60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+};
+const isWarn = startedAt => startedAt && (Date.now()-startedAt)>20*60*1000;
+
+function toggleTheme() {
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('themeBtn').textContent=isDark?'☀️':'🌙';
+  localStorage.setItem('pb_view_theme',isDark?'light':'dark');
+}
+window.toggleTheme=toggleTheme;
+(function loadTheme(){
+  const saved=localStorage.getItem('pb_view_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',saved);
+  document.getElementById('themeBtn').textContent=saved==='dark'?'☀️':'🌙';
+})();
+
+// FIX G: connection monitoring
+onValue(ref(db, '.info/connected'), snap => {
+  if (state?.sessionEnded) return; // preserve ended-state dot
+  const dot = document.getElementById('liveDot');
+  dot.className = snap.val() ? 'live-dot' : 'live-dot offline';
+  dot.title = snap.val() ? 'Connected — Live' : 'Disconnected';
+});
+
+function renderAll(s) {
+  clearTimeout(connectTimeout);
+  const ns = {
+    ...s,
+    players:    normArr(s.players),
+    courts:     normCourts(s.courts),
+    courtDefs:  normArr(s.courtDefs),
+    matchQueue: normMQ(s.matchQueue||[]),
+    gameHistory:normGH(s.gameHistory),
+    queueOrder: normArr(s.queueOrder),
+  };
+  state = ns;
+  s = ns;
+  document.getElementById('viewSessionName').textContent = s.sessionName || 'Paddle District';
+  if (s.sessionEnded) { showEndedState(s); return; }
+  if (s.sessionStartTime) {
+    const d = new Date(s.sessionStartTime);
+    document.getElementById('viewSessionDate').textContent =
+      d.toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'}) + ' · Live';
+    clearInterval(clockInterval);
+    clockInterval = setInterval(() => {
+      const el = document.getElementById('viewClock');
+      if (el) el.textContent = fmt(Date.now() - s.sessionStartTime);
+    }, 1000);
+    document.getElementById('viewClock').textContent = fmt(Date.now() - s.sessionStartTime);
+  }
+  ensureLayout();
+  renderCourts(s);
+  renderQueue(s);
+  renderRankings(s);
+  renderHistory(s);
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => tickTimers(s), 1000);
+}
+
+function showEndedState(s) {
+  clearInterval(clockInterval); clockInterval = null;
+  clearInterval(timerInterval); timerInterval = null;
+  layoutBuilt = false;
+  const dot = document.getElementById('liveDot');
+  if (dot) { dot.className = 'live-dot offline'; dot.title = 'Session Ended'; }
+  const d = s.sessionStartTime ? new Date(s.sessionStartTime) : null;
+  const dateStr = d ? d.toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'}) : '';
+  document.getElementById('viewSessionDate').textContent = dateStr + ' · Ended';
+  const finalTime = (s.sessionStartTime && s.sessionEndTime) ? fmt(s.sessionEndTime - s.sessionStartTime) : '--:--:--';
+  document.getElementById('viewClock').textContent = finalTime;
+  const players = s.players || [];
+  const gh = s.gameHistory || [];
+  const activePlayers = players.filter(p => p.gamesPlayed > 0).length;
+  document.getElementById('mainContent').innerHTML = `
+    <div class="ended-banner">
+      <div class="ended-banner-icon">🏁</div>
+      <div class="ended-banner-title">Session Complete</div>
+      <div class="ended-banner-sub">${s.sessionName || 'Open Play'}</div>
+    </div>
+    <div class="ended-stats">
+      <div class="ended-stat"><div class="ended-stat-val">${finalTime}</div><div class="ended-stat-label">Duration</div></div>
+      <div class="ended-stat"><div class="ended-stat-val">${gh.length}</div><div class="ended-stat-label">Games</div></div>
+      <div class="ended-stat"><div class="ended-stat-val">${activePlayers}</div><div class="ended-stat-label">Players</div></div>
+    </div>
+    <div class="section-header">🏆 Final Standings</div>
+    <div class="card-v">
+      <div class="sort-pills-v">
+        <button class="sort-pill-v active" onclick="setSort('wins')">By Wins</button>
+        <button class="sort-pill-v" onclick="setSort('points')">By Points</button>
+        <button class="sort-pill-v" onclick="setSort('winpct')">By Win%</button>
+        <button class="sort-pill-v" onclick="setSort('ptpct')">By Pt%</button>
+      </div>
+      <div id="vRankings"></div>
+    </div>
+    <div class="section-header">📋 Match History</div>
+    <input type="text" id="historySearch" class="history-search" placeholder="🔍 Search by player name…" oninput="searchHistory()" autocomplete="off">
+    <div class="card-v" id="vHistory"></div>`;
+  renderRankings(s);
+  renderHistory(s);
+  // Sync sort pill active state — pills always render as "wins" after innerHTML swap
+  if (rankSort !== 'wins') {
+    document.querySelectorAll('.sort-pill-v').forEach(p => p.classList.remove('active'));
+    ['wins','points','winpct','ptpct'].forEach((k,i) => {
+      if (k === rankSort) document.querySelectorAll('.sort-pill-v')[i]?.classList.add('active');
+    });
+  }
+}
+
+// FIX A: handle null (admin started new session — clear everything)
+function handleNull() {
+  clearTimeout(connectTimeout);
+  clearInterval(clockInterval); clockInterval = null;
+  clearInterval(timerInterval); timerInterval = null;
+  layoutBuilt = false;
+  state = null;
+  document.getElementById('viewSessionName').textContent = 'Pickleball Open Play';
+  document.getElementById('viewSessionDate').textContent = 'Live View — Read Only';
+  document.getElementById('viewClock').textContent = '--:--:--';
+  // FIX J: show a friendly "waiting for session" screen
+  document.getElementById('mainContent').innerHTML = `
+    <div class="no-session">
+      <div class="icon">🏸</div>
+      <h2>No Active Session</h2>
+      <p>The admin has not started a session yet, or the previous session was cleared.<br>This page will update automatically when a new session starts.</p>
+    </div>`;
+}
+
+function tickTimers(s) {
+  (s.courts||[]).filter(c=>!c.submitted&&c.startedAt).forEach(c=>{
+    const el=document.getElementById(`vt-${c.id}`);
+    if(!el) return;
+    el.textContent=fmtCourt(c.startedAt);
+    el.className='court-view-timer'+(isWarn(c.startedAt)?' warn':'');
+  });
+}
+
+let layoutBuilt = false;
+function ensureLayout() {
+  if (layoutBuilt) return;
+  layoutBuilt = true;
+  document.getElementById('mainContent').innerHTML = `
+    <div class="section-header">🏸 Courts</div>
+    <div class="court-grid" id="vCourts"></div>
+    <div class="section-header">⏳ Queue</div>
+    <div class="card-v queue-view-list" id="vQueue"></div>
+    <div class="section-header">🏆 Leaderboard</div>
+    <div class="card-v">
+      <div class="sort-pills-v">
+        <button class="sort-pill-v active" onclick="setSort('wins')">By Wins</button>
+        <button class="sort-pill-v" onclick="setSort('points')">By Points</button>
+        <button class="sort-pill-v" onclick="setSort('winpct')">By Win%</button>
+        <button class="sort-pill-v" onclick="setSort('ptpct')">By Pt%</button>
+      </div>
+      <div id="vRankings"></div>
+    </div>
+    <div class="section-header">📋 Match History</div>
+    <input type="text" id="historySearch" class="history-search" placeholder="🔍 Search by player name…" oninput="searchHistory()" autocomplete="off">
+    <div class="card-v" id="vHistory"></div>`;
+}
+
+// Balance the court grid so rows are even (4 -> 2x2, 6 -> 3x2, 3 -> 3 across),
+// capped by how many ~340px columns actually fit the screen.
+function balanceCourtGrid(n) {
+  const el=document.getElementById('vCourts');
+  if(!el) return;
+  if(n<=1){ el.style.gridTemplateColumns='minmax(0,520px)'; return; }
+  const fitByWidth=Math.max(1, Math.floor((el.clientWidth+14)/(340+14)));
+  const desired = n<=3 ? n : Math.ceil(Math.sqrt(n));
+  const cols=Math.max(1, Math.min(desired, fitByWidth));
+  el.style.gridTemplateColumns=`repeat(${cols}, minmax(0,520px))`;
+}
+window.addEventListener('resize', () => { if(state) balanceCourtGrid((state.courtDefs||[]).length); });
+
+function renderCourts(s) {
+  const el=document.getElementById('vCourts');
+  if(!el) return;
+  const defs=s.courtDefs||[], courts=s.courts||[], players=s.players||[];
+  const getP=id=>players.find(p=>p.id===id);
+  if(!defs.length){el.innerHTML='<div class="empty-v"><div class="icon">🏸</div>No courts set up yet.</div>';return;}
+  balanceCourtGrid(defs.length);
+  el.innerHTML=defs.map(def=>{
+    const c=courts.find(ct=>ct.id===def.id);
+    const hdr=`<div class="court-view-header">
+      <span class="court-view-name">${def.name}</span>
+      ${c&&!c.submitted?`<span class="court-view-timer ${isWarn(c.startedAt)?'warn':''}" id="vt-${def.id}">${fmtCourt(c.startedAt)}</span>`:''}
+      ${c?`<span class="court-view-round">Rd ${c.round}${c.submitted?' ✓':''}</span>`:''}
+    </div>`;
+    if(!c) return `<div class="court-idle-view">${hdr}<div class="court-idle-body">Waiting for next match</div></div>`;
+    const t1=c.team1.map(id=>getP(id)), t2=c.team2.map(id=>getP(id));
+    if(c.submitted){
+      const diff=c.score1-c.score2;
+      const winner=diff>0?t1.map(p=>p?.name||'?').join(' & '):diff<0?t2.map(p=>p?.name||'?').join(' & '):null;
+      return `<div class="court-view">${hdr}<div class="court-view-body">
+        <div style="text-align:center;padding:6px 0 10px">
+          <div style="font-size:2rem;font-weight:800;letter-spacing:0.02em;">${c.score1} <span style="color:var(--muted);font-size:1.3rem;">–</span> ${c.score2}</div>
+          <div style="font-size:0.78rem;font-weight:500;color:var(--muted);margin-top:4px;">${t1.map(p=>p?.name||'?').join(' & ')} vs ${t2.map(p=>p?.name||'?').join(' & ')}</div>
+          ${winner?`<div style="font-size:0.78rem;font-weight:800;color:#8FB339;margin-top:6px;letter-spacing:0.03em;">🏆 ${winner}</div>`:'<div style="font-size:0.75rem;color:var(--muted);margin-top:6px;">Tie</div>'}
+        </div>
+      </div></div>`;
+    }
+    const teamView=(tp,label)=>`<div class="team-view">
+      <div class="team-view-label">${label}</div>
+      ${tp.map(p=>`<div class="player-chip"><span class="player-bullet-v"></span><span class="player-chip-name">${p?.name||'?'}</span></div>`).join('')}
+    </div>`;
+    const nextUpV = (mq) => {
+      if (!mq || !mq.length) return '';
+      const nm = mq[0];
+      const t1n = nm.team1.map(id=>(players.find(p=>p.id===id)?.name||'?')); 
+      const t2n = nm.team2.map(id=>(players.find(p=>p.id===id)?.name||'?'));
+      return `<div class="court-nextup-v"><div class="court-nextup-label-v">🔜 Next Up</div><div class="court-nextup-teams-v"><div><div class="court-nextup-names-v">${t1n.join('<br>')}</div></div><div class="mq-vs-v">VS</div><div><div class="court-nextup-names-v">${t2n.join('<br>')}</div></div></div></div>`;
+    };
+    return `<div class="court-view">${hdr}<div class="court-view-body">
+      <div class="match-view">${teamView(t1,'Team A')}<div class="vs-view">VS</div>${teamView(t2,'Team B')}</div>
+    </div>${nextUpV(s.matchQueue||[])}</div>`;
+  }).join('');
+}
+
+function mqCardView(m, label, isNext, players) {
+  const getP = id => players.find(p=>p.id===id);
+  const t1 = m.team1.map(getP), t2 = m.team2.map(getP);
+  const teamHtml = tp => tp.map(p=>`<div class="mq-player-v"><span class="player-chip-avatar" style="background:${avatarColor(p?.name||'?')};">${initials(p?.name||'?')}</span><span class="mq-name-v">${p?.name||'?'}</span></div>`).join('');
+  return `<div class="mq-card-v ${isNext?'next':''}">
+    <div class="mq-header-v">
+      <span class="mq-label-v">${label}</span>
+      <span class="mq-badge-v ${isNext?'mq-badge-next-v':'mq-badge-deck-v'}">${isNext?'Next Up':'On Deck'}</span>
+    </div>
+    <div class="mq-teams-v">
+      <div class="mq-team-v">${teamHtml(t1)}</div>
+      <div class="mq-vs-v">VS</div>
+      <div class="mq-team-v">${teamHtml(t2)}</div>
+    </div>
+  </div>`;
+}
+
+function renderQueue(s) {
+  const el = document.getElementById('vQueue');
+  if(!el) return;
+  const present = (s.players||[]).filter(p=>p.present);
+  const mq = s.matchQueue||[];
+  if(!present.length && !mq.length){ el.innerHTML='<div class="empty-v">No players present yet.</div>'; return; }
+
+  const playingIds = new Set();
+  (s.courts||[]).filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>playingIds.add(id)));
+  const mqIds = new Set(); mq.forEach(m=>[...m.team1,...m.team2].forEach(id=>mqIds.add(id)));
+  const freeWaiting = present.filter(p=>!playingIds.has(p.id)&&!mqIds.has(p.id));
+
+  let html='';
+
+  // Upcoming Matches
+  if(mq.length){
+    html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink);margin-bottom:8px;">📋 Upcoming Matches</div>`;
+    mq.forEach((m,i)=>{ html+=mqCardView(m, `Match ${i+1}`, i===0, s.players||[]); });
+    html+=`<div style="height:1px;background:var(--line);margin:10px 0;"></div>`;
+  }
+
+  // Free waiting
+  if(freeWaiting.length){
+    html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:7px;">⏳ Still Waiting</div>`;
+    html+=freeWaiting.map((p,i)=>`<div class="queue-view-item"><div class="queue-view-rank">${i+1}</div><div class="player-chip-avatar" style="background:${avatarColor(p.name)};width:26px;height:26px;">${initials(p.name)}</div><span class="queue-view-name">${p.name}</span></div>`).join('');
+  }
+
+  if(!html) html='<div class="empty-v">No one waiting right now.</div>';
+  el.innerHTML=html;
+}
+
+function setSort(key) {
+  rankSort=key;
+  document.querySelectorAll('.sort-pill-v').forEach(p=>p.classList.remove('active'));
+  ['wins','points','winpct','ptpct'].forEach((k,i)=>{if(k===key)document.querySelectorAll('.sort-pill-v')[i]?.classList.add('active');});
+  if(state) renderRankings(state);
+}
+window.setSort=setSort;
+
+function renderRankings(s) {
+  const el=document.getElementById('vRankings');
+  if(!el) return;
+  const base=(s.players||[]).filter(p=>p.gamesPlayed>0);
+  if(!base.length){el.innerHTML='<div class="empty-v"><div class="icon">🏆</div>No games played yet.</div>';return;}
+  const withStats=base.map(p=>{const tot=p.points+p.pointsAgainst;return{...p,winPct:p.gamesPlayed>0?Math.round(p.wins/p.gamesPlayed*100):0,ptPct:tot>0?Math.round(p.points/tot*100):0,scoreDiff:p.points-p.pointsAgainst};});
+  const sorted=[...withStats].sort((a,b)=>{
+    if(rankSort==='wins') return b.wins!==a.wins?b.wins-a.wins:b.scoreDiff-a.scoreDiff;
+    if(rankSort==='points') return b.points!==a.points?b.points-a.points:b.scoreDiff-a.scoreDiff;
+    if(rankSort==='winpct') return b.winPct!==a.winPct?b.winPct-a.winPct:b.scoreDiff-a.scoreDiff;
+    if(rankSort==='ptpct') return b.ptPct!==a.ptPct?b.ptPct-a.ptPct:b.scoreDiff-a.scoreDiff;
+    return 0;
+  });
+  const col2=rankSort==='wins'?'Wins':rankSort==='points'?'Points':rankSort==='winpct'?'Win%':'Pt%';
+  const col2Val=p=>rankSort==='wins'?p.wins:rankSort==='points'?p.points:rankSort==='winpct'?`${p.winPct}%`:`${p.ptPct}%`;
+  el.innerHTML=`<table class="rank-view-table"><thead><tr><th>#</th><th>Player</th><th>${col2}</th><th>GP</th><th>Diff</th></tr></thead><tbody>${sorted.map((p,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-medal">${medal||i+1}</span></td><td><span class="player-tag-view"><span class="mini-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${p.name}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff-v ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
+}
+
+// Read-only mirror of app.html's Game History (newest first).
+function renderHistory(s) {
+  const el=document.getElementById('vHistory');
+  if(!el) return;
+  const gh=s.gameHistory||[];
+  // Search input is the single source of truth for the query (no separate state to desync).
+  const search=document.getElementById('historySearch');
+  if(search) search.style.display = gh.length ? '' : 'none';
+  if(!gh.length){el.innerHTML='<div class="empty-v"><div class="icon">📋</div>No games played yet.</div>';return;}
+  const q=(search?.value||'').trim().toLowerCase();
+  const games = q
+    ? gh.filter(g=>[...(g.team1||[]),...(g.team2||[])].some(n=>(n||'').toLowerCase().includes(q)))
+    : gh;
+  if(!games.length){el.innerHTML='<div class="empty-v"><div class="icon">🔍</div>No games match that name.</div>';return;}
+  el.innerHTML=games.map(g=>{
+    const t1=(g.team1||[]).join(' & '), t2=(g.team2||[]).join(' & ');
+    const winner=g.score1>g.score2?t1:g.score2>g.score1?t2:null;
+    return `<div class="history-view-item">
+      <div class="history-view-top">
+        <span class="history-view-meta">Rd ${g.round} · ${g.courtName||'Court '+g.court}</span>
+        <span class="history-view-score">${g.score1} – ${g.score2}</span>
+      </div>
+      <div class="history-view-players">${t1} vs ${t2}</div>
+      ${winner?`<span class="history-badge win">🏆 ${winner}</span>`:`<span class="history-badge tie">Tie</span>`}
+    </div>`;
+  }).join('');
+}
+window.searchHistory = function() { if (state) renderHistory(state); };
+
+// Firebase listener
+// Get session from URL
+const _urlParams = new URLSearchParams(window.location.search);
+const _SESSION_ID = _urlParams.get('session');
+if (!_SESSION_ID) {
+  document.getElementById('mainContent').innerHTML = '<div class="no-session"><div class="icon">⚠️</div><h2>No Session Found</h2><p>This link is missing a session ID. Ask the organizer for the correct link.</p></div>';
+} else {
+  // Small "⛶ QR" button that expands a QR of THIS live-view URL on demand,
+  // so people watching the projector can pull it up on their phone.
+  window.toggleViewQR = function() {
+    const wrap = document.getElementById('viewQr');
+    if (!wrap) return;
+    const open = wrap.classList.toggle('open');
+    const btn = document.getElementById('viewQrBtn');
+    if (btn) btn.textContent = open ? '✕ Hide' : '⛶ QR';
+  };
+  (function genViewQR(){
+    if (!window.QRCode) { setTimeout(genViewQR, 300); return; }
+    const wrap = document.getElementById('viewQr');
+    const box = document.getElementById('viewQrContainer');
+    if (!wrap || !box) return;
+    box.innerHTML = '';
+    new QRCode(box, { text: window.location.href, width: 120, height: 120,
+      colorDark:'#1C1F14', colorLight:'#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
+    wrap.style.display = 'flex';
+  })();
+}
+const _sessionPath = _SESSION_ID ? `sessions/${_SESSION_ID}` : 'sessions/_invalid_';
+
+// _listening guards against duplicate onValue subscriptions.
+// Reset to false in the error callback so onAuthStateChanged can revive it.
+let _listening = false;
+function _startListen() {
+  if (_listening) return;
+  _listening = true;
+  onValue(ref(db, _sessionPath), (snapshot) => {
+    clearTimeout(connectTimeout);
+    const data = snapshot.val();
+    if (data) renderAll(data);
+    else handleNull();
+  }, (error) => {
+    _listening = false;   // allow onAuthStateChanged to restart the listener
+    layoutBuilt = false;  // force layout rebuild when listener is re-established
+    clearTimeout(connectTimeout);
+    const mc = document.getElementById('mainContent');
+    if (mc) mc.innerHTML = `<div class="no-session">
+      <div class="icon">🔒</div>
+      <h2>Connection Error</h2>
+      <p style="font-size:0.82rem;">${error.message}<br><br>
+      Fix: Go to Firebase Console → Realtime Database → Rules and set sessions ".read" to true or "auth != null".</p>
+      <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:var(--army);color:white;border:none;border-radius:8px;font-family:var(--font);font-size:0.85rem;font-weight:700;cursor:pointer;">↻ Refresh</button>
+    </div>`;
+  });
+}
+
+// onAuthStateChanged fires on every auth state change — initial sign-in,
+// hourly token refresh, and when the admin signs out in another tab (which
+// clears the shared Firebase Auth state for this origin).
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    _startListen();
+  } else {
+    // Auth was lost (e.g. admin signed out in app.html, wiping the shared
+    // auth state). Re-authenticate anonymously so the onValue listener can
+    // resume. onAuthStateChanged will fire again once sign-in completes.
+    signInAnonymously(auth).catch(e => console.warn('Re-auth failed:', e.message));
+  }
+});
+
+// Trigger the initial anonymous sign-in.
+signInAnonymously(auth).catch(e => { console.warn('Anon sign-in failed:', e.message); _startListen(); });
+</script>
+</body>
+</html>

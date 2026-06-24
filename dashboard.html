@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Paddle District</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--army:#4A5C2F;--army-light:#637A3D;--army-pale:#EEF2E6;--accent:#8FB339;--accent-dim:#728F2D;--red:#C0392B;--gold:#D4A017;--radius:10px;--font:'Montserrat',sans-serif;}
+[data-theme="light"]{--bg:#F5F6F0;--surface:#FFFFFF;--surface2:#F0F2EA;--ink:#1C1F14;--ink2:#3A3F2A;--muted:#6B7254;--line:#D8DDD0;--shadow:0 2px 12px rgba(0,0,0,0.07);}
+[data-theme="dark"]{--bg:#1A1C14;--surface:#252819;--surface2:#2E3220;--ink:#EEF0E8;--ink2:#CDD1BE;--muted:#8A9470;--line:#3A3F2A;--shadow:0 2px 16px rgba(0,0,0,0.3);}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:100vh;padding-bottom:60px;font-size:15px;transition:background 0.2s;}
+header{background:var(--army);color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,0.25);}
+.logo-circle{width:34px;height:34px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+header h1{font-size:1rem;font-weight:800;letter-spacing:0.02em;flex:1;}
+.user-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);border-radius:20px;padding:5px 12px;}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;color:#1C1F14;flex-shrink:0;}
+.user-name{font-size:0.75rem;font-weight:600;letter-spacing:0.01em;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.theme-toggle{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 10px;color:white;font-size:1rem;cursor:pointer;}
+.logout-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;border-radius:6px;padding:5px 12px;font-family:var(--font);font-size:0.72rem;font-weight:700;cursor:pointer;letter-spacing:0.03em;}
+.container{max-width:640px;margin:0 auto;padding:0 16px;}
+.section-title{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin:24px 0 12px;}
+.card{background:var(--surface);border-radius:var(--radius);padding:18px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--line);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border:none;border-radius:8px;font-family:var(--font);font-size:0.85rem;font-weight:700;letter-spacing:0.03em;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.btn-primary{background:var(--army);color:white;}
+.btn-primary:hover{background:var(--army-light);}
+.btn-accent{background:var(--accent);color:#1C1F14;}
+.btn-accent:hover{background:var(--accent-dim);}
+.btn-outline{background:none;border:1.5px solid var(--line);color:var(--muted);}
+.btn-outline:hover{border-color:var(--army);color:var(--army);}
+.btn-danger{background:none;border:1.5px solid var(--line);color:var(--red);}
+.btn-danger:hover{background:#FDEAE5;border-color:var(--red);}
+.btn-sm{padding:6px 12px;font-size:0.75rem;}
+.btn-full{width:100%;}
+input[type="text"],input[type="date"]{font-family:var(--font);font-size:0.9rem;font-weight:500;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;transition:border-color 0.15s;width:100%;}
+input:focus{border-color:var(--army);}
+.input-row{display:flex;gap:8px;margin-bottom:10px;}
+.input-row input{flex:1;width:auto;}
+/* Session cards */
+.session-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--line);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;}
+.session-card:hover{border-color:var(--army);}
+.session-card.session-live{border-color:var(--accent);background:var(--surface);}
+.session-card.session-live:hover{border-color:var(--army);}
+.session-icon{width:42px;height:42px;border-radius:8px;background:var(--army-pale);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+.session-info{flex:1;min-width:0;}
+.session-name-row{display:flex;align-items:center;gap:8px;min-width:0;}
+.session-name-row .badge{flex-shrink:0;}
+.session-name{font-weight:700;font-size:0.9rem;letter-spacing:0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.session-card .btn-sm svg{width:15px;height:15px;}
+.session-meta{font-size:0.75rem;font-weight:500;color:var(--muted);margin-top:2px;letter-spacing:0.01em;}
+.session-actions{display:flex;gap:6px;flex-shrink:0;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#8FB339;animation:blink 2s infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:0.68rem;font-weight:800;letter-spacing:0.04em;}
+.badge-live{background:rgba(143,179,57,0.15);color:#4A5C2F;border:1px solid rgba(143,179,57,0.3);}
+[data-theme="dark"] .badge-live{color:#8FB339;}
+.badge-ended{background:var(--surface2);color:var(--muted);}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-state .icon{font-size:2.5rem;margin-bottom:12px;}
+.empty-state p{font-size:0.85rem;font-weight:500;line-height:1.6;}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;display:flex;align-items:flex-end;justify-content:center;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--surface);border-radius:16px 16px 0 0;padding:24px 20px;width:100%;max-width:480px;}
+.modal h2{font-size:1rem;font-weight:800;margin-bottom:16px;}
+.modal-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;display:block;}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink2);color:var(--bg);padding:11px 22px;border-radius:22px;font-size:0.85rem;font-weight:700;letter-spacing:0.02em;transition:transform 0.25s;z-index:400;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.skeleton{background:var(--surface2);border-radius:8px;animation:shimmer 1.2s infinite;}
+@keyframes shimmer{0%{opacity:0.5;}50%{opacity:1;}100%{opacity:0.5;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-circle" style="padding:0;overflow:hidden;background:transparent;">
+    <img src="logo.png" alt="Paddle District" style="width:34px;height:34px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none'">
+  </div>
+  <h1>Paddle District</h1>
+  <div class="user-pill">
+    <div class="user-avatar" id="userAvatar">?</div>
+    <span class="user-name" id="userName">Loading...</span>
+  </div>
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+  <button class="logout-btn" onclick="doLogout()">Log out</button>
+</header>
+
+<div class="container">
+  <div class="section-title">New Session</div>
+  <div class="card">
+    <div class="input-row">
+      <input type="text" id="newSessionName" placeholder="Session name (e.g. Friday Open Play)">
+      <input type="date" id="newSessionDate" style="max-width:160px;">
+    </div>
+    <button class="btn btn-accent btn-full" onclick="createSession()">⚡ Start New Session</button>
+  </div>
+
+  <div id="liveSessionBanner" style="display:none;margin-bottom:16px;"></div>
+  <div class="section-title">My Sessions</div>
+  <div id="sessionList">
+    <div class="skeleton" style="height:70px;margin-bottom:10px;"></div>
+    <div class="skeleton" style="height:70px;margin-bottom:10px;"></div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay hidden" id="deleteOverlay" onclick="closeDeleteModal(event)">
+  <div class="modal">
+    <h2>Delete this session?</h2>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;font-weight:500;">This will permanently remove all data for this session. This cannot be undone.</p>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline" style="flex:1" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger" style="flex:1;background:var(--red);color:white;border:none;" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getDatabase, ref, push, set, get, update, remove, onValue } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB8LGAiW_GhGwv69e4ZFFG1XyM3qkWaAt8",
+  authDomain: "pickledistrict-fef9a.firebaseapp.com",
+  databaseURL: "https://pickledistrict-fef9a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pickledistrict-fef9a",
+  storageBucket: "pickledistrict-fef9a.firebasestorage.app",
+  messagingSenderId: "39488978109",
+  appId: "1:39488978109:web:ffdddd5da4b751088c4bd4"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentUser = null;
+let deleteTargetId = null;
+
+// Auth guard — wait for full resolution before redirecting
+let _authResolved = false;
+onAuthStateChanged(auth, user => {
+  if (user && !user.isAnonymous) {
+    _authResolved = true;
+    currentUser = user;
+    const initials = (user.displayName||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('userAvatar').textContent = initials;
+    document.getElementById('userName').textContent = user.displayName || user.email;
+    loadSessions();
+  } else if (user && user.isAnonymous) {
+    // Stale anonymous session in the default app (left over from before view.html
+    // was isolated to its own named app instance). Sign it out immediately so
+    // index.html shows the login form instead of bouncing back here.
+    signOut(auth).then(() => {
+      window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'index.html';
+    });
+  } else {
+    // No user yet — give Firebase 3 seconds to resolve before redirecting
+    setTimeout(() => {
+      if (!_authResolved) {
+        window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'index.html';
+      }
+    }, 3000);
+  }
+});
+
+window.doLogout = async () => {
+  await signOut(auth);
+  window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'index.html';
+};
+
+// ── SESSIONS ──────────────────────────────────────────────────────────────
+window.createSession = async () => {
+  if (!currentUser) { showToast('Not logged in — please refresh.'); return; }
+  const name = document.getElementById('newSessionName').value.trim() || 'Open Play';
+  const date = document.getElementById('newSessionDate').value || new Date().toISOString().slice(0,10);
+  const sessionRef = push(ref(db, `sessions`));
+  const sessionId = sessionRef.key;
+  const sessionData = {
+    name, date,
+    ownerId: currentUser.uid,
+    ownerName: currentUser.displayName || currentUser.email,
+    createdAt: Date.now(),
+    status: 'active',
+    players:{_empty:true}, courts:{_empty:true}, courtDefs:{_empty:true},
+    matchQueue:{_empty:true}, gameHistory:{_empty:true}, queueOrder:{_empty:true},
+    globalRound:0, playerIdCounter:0, courtIdCounter:0, mqIdCounter:0,
+    sessionStartTime: Date.now(), sessionName: name,
+    sessionEnded: false, sessionEndTime: null
+  };
+  await set(sessionRef, sessionData);
+  // Register session under user profile for device-independent recovery
+  await update(ref(db, `users/${currentUser.uid}/sessions/${sessionId}`), {
+    name: name, lastOpened: Date.now()
+  });
+  await set(ref(db, `users/${currentUser.uid}/lastSession`), sessionId);
+  document.getElementById('newSessionName').value = '';
+  showToast('Session created!');
+  const _appUrl = window.location.pathname.replace(/[^/]*$/, '') + 'app.html?session=' + sessionId;
+  window.location.href = _appUrl;
+};
+
+function renderSessionList(entries) {
+  const list = document.getElementById('sessionList');
+  if (!entries.length) { list.innerHTML = emptyState(); return; }
+  const sorted = [...entries].sort(([,a],[,b]) => (b.createdAt||0) - (a.createdAt||0));
+  list.innerHTML = sorted.map(([id, s]) => sessionCard(id, s)).join('');
+  // Live session resume banner
+  const live = sorted.find(([,s]) => !s.sessionEnded && s.status !== 'ended');
+  const banner = document.getElementById('liveSessionBanner');
+  if (banner && live) {
+    const [liveId, liveS] = live;
+    const basePath = window.location.pathname.replace(/[^/]*$/, '');
+    const resumeUrl = basePath + 'app.html?session=' + liveId;
+    const liveName = (liveS.name || liveS.sessionName || 'Open Play').replace(/</g,'&lt;');
+    banner.style.display = '';
+    banner.innerHTML = '<div style="background:var(--army);color:white;border-radius:var(--radius);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:var(--shadow);">'
+      + '<div><div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;opacity:0.75;margin-bottom:3px;">Active Session</div>'
+      + '<div style="font-size:1rem;font-weight:800;">' + liveName + '</div></div>'
+      + '<button onclick="window.location.href=this.dataset.url" data-url="' + resumeUrl + '" style="background:var(--accent);color:#1C1F14;border:none;border-radius:8px;padding:10px 18px;font-family:var(--font);font-size:0.85rem;font-weight:800;cursor:pointer;white-space:nowrap;">&#9654; Resume</button>'
+      + '</div>';
+  } else if (banner) {
+    banner.style.display = 'none';
+  }
+}
+
+let _unsubSessions = null;
+function loadSessions() {
+  const list = document.getElementById('sessionList');
+
+  // Strategy 1: Read session IDs from user profile (device-independent)
+  const userSessionsRef = ref(db, `users/${currentUser.uid}/sessions`);
+  if (_unsubSessions) { _unsubSessions(); _unsubSessions = null; }
+  _unsubSessions = onValue(userSessionsRef, async snap => {
+    const userSessions = snap.val();
+    if (!userSessions) {
+      // Fallback: scan all sessions for ownerId match
+      loadSessionsByOwner();
+      return;
+    }
+    // Fetch full session data for each registered session ID
+    const ids = Object.keys(userSessions);
+    const results = await Promise.all(ids.map(id =>
+      get(ref(db, `sessions/${id}`)).then(s => s.exists() ? [id, s.val()] : null).catch(() => null)
+    ));
+    // Trust the user's own session index — no need to re-check ownerId field
+    const entries = results.filter(Boolean);
+    if (!entries.length) {
+      loadSessionsByOwner(); // fallback for sessions created before the index existed
+      return;
+    }
+    renderSessionList(entries);
+  }, () => loadSessionsByOwner());
+}
+
+function loadSessionsByOwner() {
+  // Fallback: read all sessions, filter by ownerId
+  const list = document.getElementById('sessionList');
+  get(ref(db, 'sessions')).then(snap => {
+    const all = snap.val();
+    if (!all) { list.innerHTML = emptyState(); return; }
+    const entries = Object.entries(all).filter(([,s]) => s && s.ownerId === currentUser.uid);
+    if (!entries.length) { list.innerHTML = emptyState(); return; }
+    renderSessionList(entries);
+    // Register found sessions under user profile for future device-independent lookup
+    entries.forEach(([id, s]) => {
+      update(ref(db, `users/${currentUser.uid}/sessions/${id}`), {
+        name: s.name || s.sessionName || 'Open Play',
+        lastOpened: Date.now()
+      });
+    });
+  }).catch(() => {
+    // Collection-level read blocked by Firebase rules — primary path (users/{uid}/sessions)
+    // is the reliable lookup; this fallback only runs for sessions predating that index.
+    list.innerHTML = `<div class="empty-state"><div class="icon">🏸</div><p>No sessions found.<br><span style="font-size:0.78rem;font-weight:500;color:var(--muted);">Sessions you run are saved to your account and appear here after login.</span></p></div>`;
+  });
+}
+
+function sessionCard(id, s) {
+  const isLive = !s.sessionEnded && s.status !== 'ended';
+  const date = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'}) : '';
+  const ghRaw = s.gameHistory;
+  const gameCount = !ghRaw || ghRaw._empty ? 0
+    : Array.isArray(ghRaw) ? ghRaw.length
+    : Object.keys(ghRaw).filter(k=>k!=='_empty').length;
+  const plRaw = s.players;
+  const playerCount = !plRaw || plRaw._empty ? 0
+    : Array.isArray(plRaw) ? plRaw.length
+    : Object.keys(plRaw).filter(k=>k!=='_empty').length;
+  const basePath = window.location.pathname.replace(/[^/]*$/, '');
+  const meta = [
+    date,
+    gameCount ? ` · ${gameCount} game${gameCount!==1?'s':''}` : '',
+    playerCount ? ` · ${playerCount} player${playerCount!==1?'s':''}` : ''
+  ].join('');
+  const liveHint = isLive ? '<div style="font-size:0.72rem;font-weight:700;color:var(--army);margin-top:3px;">⚡ Tap to manage</div>' : '';
+  const viewHref = basePath + 'view.html?session=' + id;
+  const eyeSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const trashSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+  return `<div class="session-card ${isLive?'session-live':''}" data-id="${id}" onclick="openSession(this.dataset.id)">
+    <div class="session-icon">${isLive ? '🟢' : '📋'}</div>
+    <div class="session-info">
+      <div class="session-name-row">
+        <span class="session-name">${s.name||'Open Play'}</span>
+        <span class="badge ${isLive?'badge-live':'badge-ended'}">${isLive?'Live':'Ended'}</span>
+      </div>
+      <div class="session-meta">${meta}</div>
+      ${liveHint}
+    </div>
+    <div class="session-actions" onclick="event.stopPropagation()">
+      <a href="${viewHref}" target="_blank" class="btn btn-outline btn-sm" title="Open live view">${eyeSvg} View</a>
+      <button class="btn btn-outline btn-sm" onclick="promptDelete('${id}')" title="Delete session" aria-label="Delete session">${trashSvg}</button>
+    </div>
+  </div>`;
+}
+
+
+function emptyState() {
+  return `<div class="empty-state"><div class="icon">🏸</div><p>No sessions yet.<br>Start one above to get going!</p></div>`;
+}
+
+window.openSession = (id) => {
+  const basePath = window.location.pathname.replace(/[^/]*$/, '');
+  window.location.href = basePath + 'app.html?session=' + id;
+};
+
+window.promptDelete = (id) => {
+  deleteTargetId = id;
+  document.getElementById('deleteOverlay').classList.remove('hidden');
+};
+window.closeDeleteModal = (e) => {
+  if (e && e.target !== document.getElementById('deleteOverlay')) return;
+  document.getElementById('deleteOverlay').classList.add('hidden');
+  deleteTargetId = null;
+};
+window.confirmDelete = async () => {
+  if (!deleteTargetId) return;
+  await remove(ref(db, `sessions/${deleteTargetId}`));
+  await remove(ref(db, `users/${currentUser.uid}/sessions/${deleteTargetId}`));
+  document.getElementById('deleteOverlay').classList.add('hidden');
+  deleteTargetId = null;
+  showToast('Session deleted.');
+};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+
+<script>
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('pb_theme', isDark ? 'light' : 'dark');
+}
+(function(){
+  const saved = localStorage.getItem('pb_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeBtn').textContent = saved === 'dark' ? '☀️' : '🌙';
+  const d = document.getElementById('newSessionDate');
+  if (d) d.value = new Date().toISOString().slice(0,10);
+})();
+</script>
+</body>
+</html>

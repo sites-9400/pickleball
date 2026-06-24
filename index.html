@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paddle District</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--army:#4A5C2F;--army-light:#637A3D;--accent:#8FB339;--font:'Montserrat',sans-serif;}
+[data-theme="light"]{--bg:#F5F6F0;--surface:#FFFFFF;--ink:#1C1F14;--muted:#6B7254;--line:#D8DDD0;}
+[data-theme="dark"]{--bg:#1A1C14;--surface:#252819;--ink:#EEF0E8;--muted:#8A9470;--line:#3A3F2A;}
+html,body{height:100%;}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;transition:background 0.2s;}
+
+.card{background:var(--surface);border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:1px solid var(--line);}
+
+.logo-wrap{display:flex;align-items:center;justify-content:center;margin-bottom:28px;}
+.logo-circle{width:52px;height:52px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand{margin-left:12px;}
+.brand-name{font-size:1.25rem;font-weight:900;letter-spacing:0.01em;color:var(--ink);line-height:1;}
+.brand-sub{font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+
+.tagline{text-align:center;font-size:0.88rem;font-weight:500;color:var(--muted);margin-bottom:32px;letter-spacing:0.01em;line-height:1.6;}
+
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px 20px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-family:var(--font);font-size:0.9rem;font-weight:700;letter-spacing:0.02em;cursor:pointer;transition:all 0.15s;}
+.google-btn:hover{border-color:var(--army);background:var(--bg);}
+.google-btn svg{flex-shrink:0;}
+
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
+.divider-line{flex:1;height:1px;background:var(--line);}
+.divider-text{font-size:0.72rem;font-weight:600;color:var(--muted);letter-spacing:0.04em;}
+
+.input-group{margin-bottom:12px;}
+.input-label{font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
+input[type="email"],input[type="password"],input[type="text"]{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:0.9rem;font-weight:500;background:var(--bg);color:var(--ink);outline:none;transition:border-color 0.15s;}
+input:focus{border-color:var(--army);}
+
+.btn-primary{width:100%;padding:13px;border:none;border-radius:10px;background:var(--army);color:white;font-family:var(--font);font-size:0.9rem;font-weight:700;letter-spacing:0.03em;cursor:pointer;transition:background 0.15s;margin-top:4px;}
+.btn-primary:hover{background:var(--army-light);}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+
+.toggle-text{text-align:center;font-size:0.8rem;font-weight:500;color:var(--muted);margin-top:20px;}
+.toggle-link{color:var(--army);font-weight:700;cursor:pointer;background:none;border:none;font-family:var(--font);font-size:0.8rem;text-decoration:underline;}
+
+.error-msg{background:#FDEAE5;border:1.5px solid #E05A3A;border-radius:8px;padding:10px 13px;font-size:0.82rem;font-weight:600;color:#C0392B;margin-bottom:12px;display:none;}
+.error-msg.visible{display:block;}
+
+.theme-toggle{position:fixed;top:16px;right:16px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:0.85rem;cursor:pointer;font-family:var(--font);}
+
+/* panels */
+#loginPanel,#signupPanel{display:none;}
+#loginPanel.active,#signupPanel.active{display:block;}
+
+.loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;font-size:0.85rem;font-weight:500;color:var(--muted);}
+.spinner-sm{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+
+<div class="card">
+  <div class="logo-wrap">
+    <div class="logo-circle" style="padding:0;background:transparent;overflow:hidden;"><img src="logo.png" alt="Paddle District" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" onerror="this.style.display='none'"></div>
+    <div class="brand">
+      <div class="brand-name">Paddle District</div>
+      <div class="brand-sub">Pickleball Community</div>
+    </div>
+  </div>
+
+  <p class="tagline">Run your open play session. Courts, queues, and rankings in one place.</p>
+
+  <!-- ERROR -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- GOOGLE -->
+  <button class="google-btn" onclick="signInWithGoogle()">
+    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+    Continue with Google
+  </button>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <span class="divider-text">or</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <!-- LOGIN PANEL -->
+  <div id="loginPanel" class="active">
+    <div class="input-group">
+      <label class="input-label">Email</label>
+      <input type="email" id="loginEmail" placeholder="you@email.com" onkeydown="if(event.key==='Enter')emailLogin()">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')emailLogin()">
+    </div>
+    <button class="btn-primary" onclick="emailLogin()" id="loginBtn">Log In</button>
+    <div class="toggle-text">
+      No account? <button class="toggle-link" onclick="showPanel('signup')">Sign up</button>
+    </div>
+  </div>
+
+  <!-- SIGNUP PANEL -->
+  <div id="signupPanel">
+    <div class="input-group">
+      <label class="input-label">Name</label>
+      <input type="text" id="signupName" placeholder="Your name">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Email</label>
+      <input type="email" id="signupEmail" placeholder="you@email.com">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Password</label>
+      <input type="password" id="signupPassword" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')emailSignup()">
+    </div>
+    <button class="btn-primary" onclick="emailSignup()" id="signupBtn">Create Account</button>
+    <div class="toggle-text">
+      Already have an account? <button class="toggle-link" onclick="showPanel('login')">Log in</button>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB8LGAiW_GhGwv69e4ZFFG1XyM3qkWaAt8",
+  authDomain: "pickledistrict-fef9a.firebaseapp.com",
+  databaseURL: "https://pickledistrict-fef9a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pickledistrict-fef9a",
+  storageBucket: "pickledistrict-fef9a.firebasestorage.app",
+  messagingSenderId: "39488978109",
+  appId: "1:39488978109:web:ffdddd5da4b751088c4bd4"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const provider = new GoogleAuthProvider();
+
+// If already logged in with a real account, go straight to dashboard
+onAuthStateChanged(auth, user => {
+  if (user && !user.isAnonymous) window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+});
+
+async function ensureUserProfile(user) {
+  const userRef = ref(db, `users/${user.uid}`);
+  const snap = await get(userRef);
+  if (!snap.exists()) {
+    await set(userRef, {
+      displayName: user.displayName || 'Organizer',
+      email: user.email,
+      createdAt: Date.now(),
+      role: 'organizer'
+    });
+  }
+}
+
+window.signInWithGoogle = async () => {
+  showError('');
+  try {
+    const result = await signInWithPopup(auth, provider);
+    await ensureUserProfile(result.user);
+    window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+  } catch(e) {
+    showError(friendlyError(e.code));
+  }
+};
+
+window.emailLogin = async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { showError('Please enter your email and password.'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Logging in...';
+  showError('');
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+  } catch(e) {
+    showError(friendlyError(e.code));
+    btn.disabled = false; btn.textContent = 'Log In';
+  }
+};
+
+window.emailSignup = async () => {
+  const name = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  if (!name) { showError('Please enter your name.'); return; }
+  if (!email) { showError('Please enter your email.'); return; }
+  if (password.length < 6) { showError('Password must be at least 6 characters.'); return; }
+  const btn = document.getElementById('signupBtn');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  showError('');
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(result.user, { displayName: name });
+    await ensureUserProfile(result.user);
+    window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+  } catch(e) {
+    showError(friendlyError(e.code));
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+};
+
+function friendlyError(code) {
+  const map = {
+    'auth/user-not-found': 'No account found with that email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/invalid-credential': 'Incorrect email or password.',
+    'auth/email-already-in-use': 'An account with this email already exists.',
+    'auth/weak-password': 'Password must be at least 6 characters.',
+    'auth/invalid-email': 'Please enter a valid email address.',
+    'auth/popup-closed-by-user': 'Sign-in cancelled.',
+    'auth/network-request-failed': 'Network error. Check your connection.',
+  };
+  return map[code] || 'Something went wrong. Please try again.';
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.className = msg ? 'error-msg visible' : 'error-msg';
+}
+
+window.showPanel = (panel) => {
+  document.getElementById('loginPanel').className = panel==='login' ? 'active' : '';
+  document.getElementById('signupPanel').className = panel==='signup' ? 'active' : '';
+  showError('');
+};
+</script>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('pb_theme', isDark ? 'light' : 'dark');
+}
+(function(){
+  const saved = localStorage.getItem('pb_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeBtn').textContent = saved === 'dark' ? '☀️' : '🌙';
+})();
+</script>
+</body>
+</html>
