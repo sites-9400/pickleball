@@ -218,6 +218,20 @@ header h1 {
   color: var(--muted);
   margin-bottom: 14px;
 }
+.mode-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--army-pale);
+  color: var(--army);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  vertical-align: middle;
+}
+[data-theme="dark"] .mode-badge { background: rgba(143,179,57,0.16); color: var(--accent); }
 
 /* ===== INPUTS ===== */
 input[type="text"],
@@ -960,7 +974,7 @@ input:focus, textarea:focus { border-color: var(--army); }
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Courts</div>
+      <div class="card-title">Courts <span class="mode-badge" id="modeBadge"></span></div>
       <div class="input-row">
         <input type="text" id="newCourtName" placeholder="Court name (e.g. Court 1, Main Court)" onkeydown="if(event.key==='Enter')addCourt()">
         <button class="btn btn-accent" onclick="addCourt()">+ Add Court</button>
@@ -1061,6 +1075,7 @@ let rankSort = 'wins';
 let swapContext = null;
 let sessionStartTime = null;
 let sessionName = '';
+let sessionMode = { format: 'doubles', matchmaking: 'waittime' };
 let sessionOwnerId = '';
 let sessionOwnerName = '';
 let sessionCreatedAt = null;
@@ -1205,6 +1220,7 @@ window._fbApplyRemote = function(s) {
   queueOrder       = normArr(s.queueOrder);
   sessionStartTime  = s.sessionStartTime  || null;
   sessionName       = s.sessionName || s.name || '';
+  sessionMode       = (s.mode && typeof s.mode === 'object') ? { format: s.mode.format || 'doubles', matchmaking: s.mode.matchmaking || 'waittime' } : { format: 'doubles', matchmaking: 'waittime' };
   sessionOwnerId    = s.ownerId     || '';
   sessionOwnerName  = s.ownerName   || '';
   sessionCreatedAt  = s.createdAt   || null;
@@ -1485,22 +1501,51 @@ function getFreeWaiting() {
     return queueOrder.indexOf(a.id)-queueOrder.indexOf(b.id);
   });
 }
+// ===== MODE HELPERS =====
+function fmt(){ return sessionMode.format === 'singles' ? 'singles' : 'doubles'; }
+function mm(){ return sessionMode.matchmaking || 'waittime'; }
+function teamSize(){ return fmt()==='singles' ? 1 : 2; }
+function matchSize(){ return teamSize()*2; }
+function ratingOf(p){ return p && p.gamesPlayed ? (p.wins - p.losses) : 0; }
+function modeLabel(){
+  const f = fmt()==='singles' ? 'Singles' : 'Doubles';
+  const m = {waittime:'By wait time', balanced:'Balanced', random:'Random', manual:'Manual', ladder:'Ladder (KotC)'}[mm()] || mm();
+  return `${f} · ${m}`;
+}
+// Pick the players + teams for the next match per the session's matchmaking style.
+function chooseMatchPlayers(){
+  const need=matchSize();
+  const pool=getFreeWaiting(); // sorted by wait (lastPlayedRound asc, then queueOrder)
+  if(pool.length<need) return null;
+  const style=mm(), ts=teamSize();
+  // Balanced doubles: take the longest-waiting 4, then snake-pair by rating for even teams.
+  if(style==='balanced' && ts===2){
+    const r=[...pool.slice(0,need)].sort((a,b)=>ratingOf(b)-ratingOf(a)); // strongest..weakest
+    return {team1:[r[0].id, r[3].id], team2:[r[1].id, r[2].id]};
+  }
+  // Random: random selection AND pairing. Waittime/balanced-singles: longest-waiting, random pairing.
+  const chosen = style==='random' ? shuffle(pool.slice()).slice(0,need) : pool.slice(0,need);
+  const g=shuffle(chosen.slice());
+  return {team1:g.slice(0,ts).map(p=>p.id), team2:g.slice(ts,ts*2).map(p=>p.id)};
+}
 function rebuildMatchQueue() {
   const presentIds=new Set(presentPlayers().map(p=>p.id));
-  const allPlayerIds=new Set(players.map(p=>p.id));
   const onCourtIds=new Set();
   courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>onCourtIds.add(id)));
   // Clean queueOrder — remove absent or deleted players
   queueOrder=queueOrder.filter(id=>presentIds.has(id));
+  const need=matchSize();
   matchQueue=matchQueue.filter(m=>
+    (m.team1.length+m.team2.length)===need &&
     [...m.team1,...m.team2].every(id=>presentIds.has(id)&&!onCourtIds.has(id))
   );
+  // Manual/Ladder modes don't auto-build the queue (Stage 2).
+  if(mm()==='manual' || mm()==='ladder') return;
   const MAX_QUEUED=3;
   while(matchQueue.length<MAX_QUEUED){
-    const free=getFreeWaiting();
-    if(free.length<4) break;
-    const group=shuffle(free.slice(0,4));
-    matchQueue.push({id:++mqIdCounter,team1:[group[0].id,group[1].id],team2:[group[2].id,group[3].id]});
+    const m=chooseMatchPlayers();
+    if(!m) break;
+    matchQueue.push({id:++mqIdCounter,team1:m.team1,team2:m.team2});
   }
 }
 
@@ -1537,7 +1582,7 @@ function renameCourtDef(courtId,newName) {
 }
 function generateMatchForCourt(courtId) {
   rebuildMatchQueue();
-  if(!matchQueue.length){showToast('Need at least 4 waiting players.');return;}
+  if(!matchQueue.length){showToast(`Need at least ${matchSize()} waiting players.`);return;}
   const def=courtDefs.find(d=>d.id===courtId);
   const now=Date.now();
   globalRound++;
@@ -1671,6 +1716,7 @@ function nextUpHtml() {
   </div>`;
 }
 function renderCourts() {
+  const mb=document.getElementById('modeBadge'); if(mb) mb.textContent=modeLabel();
   const el=document.getElementById('courtList');
   if(!courtDefs.length){el.innerHTML='<div class="empty-state"><div class="icon">🏸</div>No courts yet. Add one above.</div>';return;}
   const cards=courtDefs.map(def=>{
@@ -1686,7 +1732,7 @@ function renderCourts() {
     if(!c){
       return `<div class="court-idle-card">${header}<div class="court-body" style="text-align:center;padding:20px 16px;">
         <div style="color:var(--muted);font-size:0.85rem;font-weight:500;margin-bottom:14px;">No match assigned yet</div>
-        ${matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least 4 waiting players</div>`}
+        ${matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} waiting players</div>`}
       </div></div>`;
     }
     const t1=c.team1.map(id=>getPlayer(id));

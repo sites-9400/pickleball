@@ -35,6 +35,10 @@ header h1{font-size:1rem;font-weight:800;letter-spacing:0.02em;flex:1;}
 .btn-full{width:100%;}
 input[type="text"],input[type="date"]{font-family:var(--font);font-size:0.9rem;font-weight:500;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;transition:border-color 0.15s;width:100%;}
 input:focus{border-color:var(--army);}
+.mode-select{font-family:var(--font);font-size:0.85rem;font-weight:600;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;flex:1;width:auto;cursor:pointer;}
+.mode-select:focus{border-color:var(--army);}
+.mode-field{flex:1;min-width:0;}
+.mode-label{font-size:0.64rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;display:block;}
 .input-row{display:flex;gap:8px;margin-bottom:10px;}
 .input-row input{flex:1;width:auto;}
 /* Session cards */
@@ -91,6 +95,23 @@ input:focus{border-color:var(--army);}
     <div class="input-row">
       <input type="text" id="newSessionName" placeholder="Session name (e.g. Friday Open Play)">
       <input type="date" id="newSessionDate" style="max-width:160px;">
+    </div>
+    <div class="input-row">
+      <div class="mode-field">
+        <label class="mode-label">Format</label>
+        <select id="newSessionFormat" class="mode-select">
+          <option value="doubles">Doubles (2v2)</option>
+          <option value="singles">Singles (1v1)</option>
+        </select>
+      </div>
+      <div class="mode-field">
+        <label class="mode-label">Matchmaking</label>
+        <select id="newSessionMatchmaking" class="mode-select">
+          <option value="waittime">By wait time</option>
+          <option value="balanced">Balanced (by ranking)</option>
+          <option value="random">Random</option>
+        </select>
+      </div>
     </div>
     <button class="btn btn-accent btn-full" onclick="createSession()">⚡ Start New Session</button>
   </div>
@@ -176,10 +197,13 @@ window.createSession = async () => {
   if (!currentUser) { showToast('Not logged in — please refresh.'); return; }
   const name = document.getElementById('newSessionName').value.trim() || 'Open Play';
   const date = document.getElementById('newSessionDate').value || new Date().toISOString().slice(0,10);
+  const format = document.getElementById('newSessionFormat')?.value || 'doubles';
+  const matchmaking = document.getElementById('newSessionMatchmaking')?.value || 'waittime';
   const sessionRef = push(ref(db, `sessions`));
   const sessionId = sessionRef.key;
   const sessionData = {
     name, date,
+    mode: { format, matchmaking },
     ownerId: currentUser.uid,
     ownerName: currentUser.displayName || currentUser.email,
     createdAt: Date.now(),
