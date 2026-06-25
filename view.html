@@ -204,6 +204,7 @@ let connectTimeout = setTimeout(() => {
 }, 10000);
 
 const initials = name => name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+const escapeHtml = str => String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const normArr = val => {
   if (!val) return [];
   if (Array.isArray(val)) return val;
@@ -285,6 +286,12 @@ function renderAll(s) {
   renderQueue(s);
   renderRankings(s);
   renderHistory(s);
+  renderViewStandings(s);
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => tickTimers(s), 1000);
+}
+
+function renderViewStandings(s) {
   try {
     const mode = (s.mode && s.mode.matchmaking) || 'waittime';
     const t = s.tournament;
@@ -296,15 +303,13 @@ function renderAll(s) {
         score1: m.score1 < 0 ? 0 : m.score1, score2: m.score2 < 0 ? 0 : m.score2, submitted: !!m.submitted,
       }));
       const rows = computeStandings(teams.length, matches);
-      const nm = i => teams[i] ? (teams[i].name || ('Team ' + (i + 1))) : ('Team ' + (i + 1));
+      const nm = i => escapeHtml(teams[i] ? (teams[i].name || ('Team ' + (i + 1))) : ('Team ' + (i + 1)));
       host.innerHTML = '<div class="section-header">Round-Robin Standings</div>' +
         '<div class="card-v"><table class="v-table"><thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>Diff</th></tr></thead><tbody>' +
         rows.map((r, i) => `<tr><td>${i + 1}</td><td>${nm(r.team)}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.diff > 0 ? '+' : ''}${r.diff}</td></tr>`).join('') +
         '</tbody></table></div>';
     } else if (host) { host.innerHTML = ''; }
   } catch (e) { /* viewer must never crash on optional standings */ }
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => tickTimers(s), 1000);
 }
 
 function showEndedState(s) {
@@ -359,6 +364,7 @@ function showEndedState(s) {
     <div class="card-v" id="vHistory"></div>`;
   renderRankings(s);
   renderHistory(s);
+  renderViewStandings(s);
   // Sync sort pill active state — pills always render as "wins" after innerHTML swap
   if (rankSort !== 'wins') {
     document.querySelectorAll('.sort-pill-v').forEach(p => p.classList.remove('active'));
