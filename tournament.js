@@ -49,3 +49,8 @@ export function computeStandings(teamCount, matches) {
   rows.sort((x, y) => y.wins - x.wins || y.diff - x.diff || y.pointsFor - x.pointsFor);
   return rows;
 }
+
+export function nextEligibleMatch(matches, busyTeams) {
+  const busy = busyTeams instanceof Set ? busyTeams : new Set(busyTeams);
+  return matches.find(m => !m.submitted && !busy.has(m.teamA) && !busy.has(m.teamB)) || null;
+}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTeams, generateRoundRobin, computeStandings } from '../tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch } from '../tournament.js';
 
 test('buildTeams: doubles pairs in order, no leftover', () => {
   const r = buildTeams(['a', 'b', 'c', 'd'], 2);
@@ -94,4 +94,26 @@ test('computeStandings: includes teams with no games played', () => {
   const s = computeStandings(4, []);
   assert.equal(s.length, 4);
   assert.ok(s.every(t => t.played === 0));
+});
+
+test('nextEligibleMatch: skips matches with a busy team', () => {
+  const matches = [
+    { id: 'm1', teamA: 0, teamB: 1, submitted: false },
+    { id: 'm2', teamA: 2, teamB: 3, submitted: false },
+  ];
+  const r = nextEligibleMatch(matches, [0]); // team 0 busy
+  assert.equal(r.id, 'm2');
+});
+
+test('nextEligibleMatch: skips submitted matches', () => {
+  const matches = [
+    { id: 'm1', teamA: 0, teamB: 1, submitted: true },
+    { id: 'm2', teamA: 0, teamB: 2, submitted: false },
+  ];
+  assert.equal(nextEligibleMatch(matches, []).id, 'm2');
+});
+
+test('nextEligibleMatch: null when nothing eligible', () => {
+  const matches = [{ id: 'm1', teamA: 0, teamB: 1, submitted: false }];
+  assert.equal(nextEligibleMatch(matches, [0, 1]), null);
 });
