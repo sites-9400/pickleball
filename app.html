@@ -273,6 +273,9 @@ header h1 {
 .t-free-h{font-size:0.85rem;font-weight:600;color:var(--muted)}
 .t-free-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .t-free .t-chip{background:var(--gold);color:#222}
+.t-courts{margin-top:10px}
+.t-court-chip{background:var(--ink,#2b2b2b);color:#fff;cursor:default}
+.t-court-chip .t-x{color:#ddd}
 .t-empty{color:var(--muted);font-size:14px}
 .t-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;text-decoration:underline}
 .t-setup-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
@@ -2234,6 +2237,11 @@ function renderTournamentSetup() {
       <div class="t-free-h">Tap a player to assign (team size ${ts})</div>
       <div class="t-free-list">${free.map(p => `<span class="t-chip" onclick="tAssignPlayer('${p.id}')">${p.name}</span>`).join('') || '<span class="t-empty">everyone assigned</span>'}</div>
     </div>`;
+  const courtsHtml = `
+    <div class="t-courts">
+      <div class="t-free-h">Courts (${courtDefs.length}) - add using the field above</div>
+      <div class="t-free-list">${courtDefs.map(d => `<span class="t-chip t-court-chip">${d.name} <button class="t-x" onclick="removeCourt(${d.id})">remove</button></span>`).join('') || '<span class="t-empty">No courts yet. Add at least one above before starting.</span>'}</div>
+    </div>`;
   const controls = t.locked
     ? renderTournamentStartControls(t)     // defined in Task 8
     : `<div class="t-setup-actions">
@@ -2246,6 +2254,7 @@ function renderTournamentSetup() {
       <h3>${mm()==='bracket' ? 'Bracket' : 'Round robin'} setup</h3>
       <div class="t-teams">${teamsHtml || '<span class="t-empty">No teams yet. Auto-pair or add a team.</span>'}</div>
       ${freeHtml}
+      ${courtsHtml}
       ${controls}
     </div>`;
 }
