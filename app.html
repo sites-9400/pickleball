@@ -1179,6 +1179,7 @@ let sessionStartTime = null;
 let sessionName = '';
 let sessionMode = { format: 'doubles', matchmaking: 'waittime' };
 let ladder = null; // King of the Court state: { started, round, bench:[[pid,...],...] }
+let tournament = null;
 let sessionOwnerId = '';
 let sessionOwnerName = '';
 let sessionCreatedAt = null;
@@ -1253,6 +1254,7 @@ function saveState() {
     sessionStartTime, sessionName,
     name: sessionName,
     ladder: ladder ? cleanLadder(ladder) : null,
+    tournament: tournament ? cleanTournament(tournament) : null,
     sessionEnded, sessionEndTime,
     status: sessionEnded ? 'ended' : 'active'
   };
@@ -1303,6 +1305,38 @@ function cleanLadder(l) {
   };
 }
 
+function normTournament(val) {
+  if (!val || typeof val !== 'object') return null;
+  return {
+    kind: val.kind || 'roundrobin',
+    started: !!val.started,
+    locked: !!val.locked,
+    passes: val.passes === 2 ? 2 : 1,
+    teams: normArr(val.teams).map(t => ({
+      id: t.id, name: t.name || '', players: normArr(t.players),
+    })),
+    matches: normArr(val.matches).map(m => ({
+      id: m.id, round: m.round || 1, teamA: m.teamA, teamB: m.teamB,
+      score1: (m.score1 ?? ''), score2: (m.score2 ?? ''), submitted: !!m.submitted,
+    })),
+  };
+}
+function cleanTournament(t) {
+  return {
+    kind: t.kind || 'roundrobin',
+    started: !!t.started,
+    locked: !!t.locked,
+    passes: t.passes === 2 ? 2 : 1,
+    teams: t.teams && t.teams.length
+      ? t.teams.map(tm => ({ id: tm.id, name: tm.name || '', players: cleanForFirebase(tm.players) }))
+      : {_empty:true},
+    matches: t.matches && t.matches.length
+      ? t.matches.map(m => ({ id: m.id, round: m.round, teamA: m.teamA, teamB: m.teamB,
+          score1: m.score1 === '' ? -1 : m.score1, score2: m.score2 === '' ? -1 : m.score2, submitted: !!m.submitted }))
+      : {_empty:true},
+  };
+}
+
 // Deep-normalize matchQueue
 function normMatchQueue(val) {
   return normArr(val).map(m => ({
@@ -1343,6 +1377,7 @@ window._fbApplyRemote = function(s) {
   sessionName       = s.sessionName || s.name || '';
   sessionMode       = (s.mode && typeof s.mode === 'object') ? { format: s.mode.format || 'doubles', matchmaking: s.mode.matchmaking || 'waittime' } : { format: 'doubles', matchmaking: 'waittime' };
   ladder            = s.ladder ? normLadder(s.ladder) : null;
+  tournament        = s.tournament ? normTournament(s.tournament) : null;
   sessionOwnerId    = s.ownerId     || '';
   sessionOwnerName  = s.ownerName   || '';
   sessionCreatedAt  = s.createdAt   || null;
@@ -2226,6 +2261,7 @@ function confirmLeave() {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch } from './tournament.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
