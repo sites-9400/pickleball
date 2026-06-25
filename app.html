@@ -2146,10 +2146,10 @@ function renderCourts() {
         </div>
         ${mm()==='manual'
           ? (freeForManual().length>=matchSize()?`<button class="next-match-btn" onclick="openManualPick(${def.id})">⚡ Pick Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Need ${matchSize()} free players</div>`)
-          : (matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`)}
+          : (c.tMatchId?`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Match complete</div>`:matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`)}
       </div></div>`;
     }
-    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name">${p?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span>`).join('');
+    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name">${p?.name||'?'}${!c.tMatchId?`<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button>`:''}</span>`).join('');
     const rowHtml=(tp,tk,tag,tagCls,sid)=>`<div class="ct-row">
       <span class="ct-tag ${tagCls}">${tag}</span>
       <div class="ct-names">${namesHtml(tp,tk)}</div>
@@ -2161,6 +2161,7 @@ function renderCourts() {
       <div class="ct-vs">VS</div>
       ${rowHtml(t2,'team2','T2','t2','score2')}
       <button class="btn btn-accent btn-full" style="margin-top:14px" onclick="submitScore(${def.id})">Submit Score</button>
+      ${c.tMatchId?`<button class="btn btn-full" style="margin-top:6px" onclick="tSwapMatch(${def.id})">Swap match</button>`:''}
     </div></div>`;
   }).join('');
   el.innerHTML='<div class="court-grid-layout">'+cards+'</div>';
@@ -2199,7 +2200,11 @@ function tAssignPlayer(pid) {
   const cur = t.teams.find(tm => tm.players.includes(pid));
   if (cur) { cur.players = cur.players.filter(x => x !== pid); saveState(); renderCourts(); return; }
   let target = t.teams.find(tm => tm.players.length < teamSize());
-  if (!target) { tNewTeam(); target = t.teams[t.teams.length - 1]; }
+  if (!target) {
+    const n = t.teams.length + 1;
+    t.teams.push({ id: 'tm' + n + '_' + n, name: 'Team ' + n, players: [] });
+    target = t.teams[t.teams.length - 1];
+  }
   target.players.push(pid);
   saveState(); renderCourts();
 }

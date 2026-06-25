@@ -303,7 +303,15 @@ function renderViewStandings(s) {
         score1: m.score1 < 0 ? 0 : m.score1, score2: m.score2 < 0 ? 0 : m.score2, submitted: !!m.submitted,
       }));
       const rows = computeStandings(teams.length, matches);
-      const nm = i => escapeHtml(teams[i] ? (teams[i].name || ('Team ' + (i + 1))) : ('Team ' + (i + 1)));
+      const playersMap = {};
+      normArr(s.players).forEach(p => { if (p && p.id) playersMap[p.id] = p.name; });
+      const nm = i => {
+        if (!teams[i]) return escapeHtml('Team ' + (i + 1));
+        const ps = normArr(teams[i].players);
+        const resolved = ps.map(pid => playersMap[pid]).filter(Boolean);
+        if (resolved.length) return escapeHtml(resolved.join(' & '));
+        return escapeHtml(teams[i].name || ('Team ' + (i + 1)));
+      };
       host.innerHTML = '<div class="section-header">Round-Robin Standings</div>' +
         '<div class="card-v"><table class="v-table"><thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>Diff</th></tr></thead><tbody>' +
         rows.map((r, i) => `<tr><td>${i + 1}</td><td>${nm(r.team)}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.diff > 0 ? '+' : ''}${r.diff}</td></tr>`).join('') +
