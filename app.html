@@ -2253,11 +2253,6 @@ window.tLockTeams = tLockTeams;
 // ===== TOURNAMENT PLAY (round-robin) =====
 function renderTournamentStartControls(t) {
   if (mm() === 'bracket') return '<div class="t-empty">Bracket play is added in a later phase.</div>';
-  if (t.started) {
-    return `<div class="t-start">
-      <button class="btn" onclick="resetTournament()">Reset tournament</button>
-    </div>`;
-  }
   return `
     <div class="t-start">
       <label>Rounds:
@@ -2334,6 +2329,7 @@ function renderTournamentStandings(containerId) {
   host.innerHTML = `
     <div class="t-standings">
       <h3>Standings</h3>
+      <button class="btn" onclick="resetTournament()">Reset tournament</button>
       <table class="t-table">
         <thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>Diff</th><th>PF</th></tr></thead>
         <tbody>
@@ -2343,7 +2339,7 @@ function renderTournamentStandings(containerId) {
     </div>`;
 }
 function resetTournament() {
-  if (!confirm('Reset this tournament? Teams and schedule are rebuilt; game history is kept.')) return;
+  if (!confirm('Reset this tournament? Teams are unlocked and the schedule is cleared. Game history is kept.')) return;
   if (tournament) { tournament.started = false; tournament.locked = false; tournament.matches = []; }
   courts = [];
   saveState(); renderCourts(); renderRankings();
