@@ -52,6 +52,8 @@ input:focus{border-color:var(--army);}
 #loginPanel,#signupPanel{display:none;}
 #loginPanel.active,#signupPanel.active{display:block;}
 
+.howto-link{margin-top:18px;display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;font-weight:600;color:var(--muted);text-decoration:none;letter-spacing:0.02em;}
+.howto-link:hover{color:var(--army);text-decoration:underline;}
 .loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;font-size:0.85rem;font-weight:500;color:var(--muted);}
 .spinner-sm{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -123,6 +125,8 @@ input:focus{border-color:var(--army);}
   </div>
 
 </div>
+
+<a class="howto-link" href="how-to-use.pdf" target="_blank" rel="noopener">📄 How to use · Modes guide</a>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
