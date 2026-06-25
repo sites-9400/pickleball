@@ -1,0 +1,56 @@
+// Pure tournament logic. No DOM, no Firebase, no I/O.
+
+export function buildTeams(playerIds, teamSize) {
+  const teams = [];
+  let i = 0;
+  for (; i + teamSize <= playerIds.length; i += teamSize) {
+    teams.push(playerIds.slice(i, i + teamSize));
+  }
+  return { teams, leftover: playerIds.slice(i) };
+}
+
+export function generateRoundRobin(teamCount, passes = 1) {
+  const matches = [];
+  let round = 1;
+  for (let pass = 0; pass < passes; pass++) {
+    // Circle method. Pad with a sentinel "bye" (-1) when odd.
+    const ids = Array.from({ length: teamCount }, (_, i) => i);
+    if (ids.length % 2 === 1) ids.push(-1);
+    const n = ids.length;
+    const arr = ids.slice();
+    for (let r = 0; r < n - 1; r++) {
+      for (let i = 0; i < n / 2; i++) {
+        const a = arr[i], b = arr[n - 1 - i];
+        if (a !== -1 && b !== -1) matches.push({ round, teamA: a, teamB: b });
+      }
+      // rotate all but the first element
+      arr.splice(1, 0, arr.pop());
+      round++;
+    }
+  }
+  return matches;
+}
+
+export function computeStandings(teamCount, matches) {
+  const rows = Array.from({ length: teamCount }, (_, team) => ({
+    team, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, diff: 0, played: 0,
+  }));
+  for (const m of matches) {
+    if (!m.submitted) continue;
+    const a = rows[m.teamA], b = rows[m.teamB];
+    if (!a || !b) continue;
+    a.played++; b.played++;
+    a.pointsFor += m.score1; a.pointsAgainst += m.score2;
+    b.pointsFor += m.score2; b.pointsAgainst += m.score1;
+    if (m.score1 > m.score2) { a.wins++; b.losses++; }
+    else if (m.score2 > m.score1) { b.wins++; a.losses++; }
+  }
+  for (const r of rows) r.diff = r.pointsFor - r.pointsAgainst;
+  rows.sort((x, y) => y.wins - x.wins || y.diff - x.diff || y.pointsFor - x.pointsFor);
+  return rows;
+}
+
+export function nextEligibleMatch(matches, busyTeams) {
+  const busy = busyTeams instanceof Set ? busyTeams : new Set(busyTeams);
+  return matches.find(m => !m.submitted && !busy.has(m.teamA) && !busy.has(m.teamB)) || null;
+}

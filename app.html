@@ -263,6 +263,24 @@ header h1 {
 .ladder-sitting{margin-top:14px;}
 .ladder-sit-name{display:inline-block;background:var(--surface2);border-radius:20px;padding:4px 12px;font-size:0.8rem;font-weight:600;margin:0 6px 6px 0;}
 .ladder-sit-hint{font-size:0.74rem;font-weight:500;color:var(--muted);margin-top:6px;}
+/* ===== Tournament setup (round-robin / bracket) ===== */
+.t-setup{padding:12px}
+.t-team{border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.t-team-h{font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.t-team-players{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.t-chip{background:var(--army);color:#fff;border-radius:14px;padding:4px 10px;cursor:pointer;font-size:14px}
+.t-free{margin-top:10px}
+.t-free-h{font-size:0.85rem;font-weight:600;color:var(--muted)}
+.t-free-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.t-free .t-chip{background:var(--gold);color:#222}
+.t-empty{color:var(--muted);font-size:14px}
+.t-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;text-decoration:underline}
+.t-setup-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.t-start{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.t-standings{padding:12px}
+.t-table{width:100%;border-collapse:collapse;margin-top:8px}
+.t-table th,.t-table td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line)}
+.t-table th{font-size:12px;color:var(--muted);text-transform:uppercase}
 /* ===== Manual match picker ===== */
 .manual-preview{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:12px;}
 .manual-team{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
@@ -1179,6 +1197,7 @@ let sessionStartTime = null;
 let sessionName = '';
 let sessionMode = { format: 'doubles', matchmaking: 'waittime' };
 let ladder = null; // King of the Court state: { started, round, bench:[[pid,...],...] }
+let tournament = null;
 let sessionOwnerId = '';
 let sessionOwnerName = '';
 let sessionCreatedAt = null;
@@ -1253,6 +1272,7 @@ function saveState() {
     sessionStartTime, sessionName,
     name: sessionName,
     ladder: ladder ? cleanLadder(ladder) : null,
+    tournament: tournament ? cleanTournament(tournament) : null,
     sessionEnded, sessionEndTime,
     status: sessionEnded ? 'ended' : 'active'
   };
@@ -1303,6 +1323,38 @@ function cleanLadder(l) {
   };
 }
 
+function normTournament(val) {
+  if (!val || typeof val !== 'object') return null;
+  return {
+    kind: val.kind || 'roundrobin',
+    started: !!val.started,
+    locked: !!val.locked,
+    passes: val.passes === 2 ? 2 : 1,
+    teams: normArr(val.teams).map(t => ({
+      id: t.id, name: t.name || '', players: normArr(t.players),
+    })),
+    matches: normArr(val.matches).map(m => ({
+      id: m.id, round: m.round || 1, teamA: m.teamA, teamB: m.teamB,
+      score1: (m.score1 ?? ''), score2: (m.score2 ?? ''), submitted: !!m.submitted,
+    })),
+  };
+}
+function cleanTournament(t) {
+  return {
+    kind: t.kind || 'roundrobin',
+    started: !!t.started,
+    locked: !!t.locked,
+    passes: t.passes === 2 ? 2 : 1,
+    teams: t.teams && t.teams.length
+      ? t.teams.map(tm => ({ id: tm.id, name: tm.name || '', players: cleanForFirebase(tm.players) }))
+      : {_empty:true},
+    matches: t.matches && t.matches.length
+      ? t.matches.map(m => ({ id: m.id, round: m.round, teamA: m.teamA, teamB: m.teamB,
+          score1: m.score1 === '' ? -1 : m.score1, score2: m.score2 === '' ? -1 : m.score2, submitted: !!m.submitted }))
+      : {_empty:true},
+  };
+}
+
 // Deep-normalize matchQueue
 function normMatchQueue(val) {
   return normArr(val).map(m => ({
@@ -1343,6 +1395,7 @@ window._fbApplyRemote = function(s) {
   sessionName       = s.sessionName || s.name || '';
   sessionMode       = (s.mode && typeof s.mode === 'object') ? { format: s.mode.format || 'doubles', matchmaking: s.mode.matchmaking || 'waittime' } : { format: 'doubles', matchmaking: 'waittime' };
   ladder            = s.ladder ? normLadder(s.ladder) : null;
+  tournament        = s.tournament ? normTournament(s.tournament) : null;
   sessionOwnerId    = s.ownerId     || '';
   sessionOwnerName  = s.ownerName   || '';
   sessionCreatedAt  = s.createdAt   || null;
@@ -1631,7 +1684,7 @@ function matchSize(){ return teamSize()*2; }
 function ratingOf(p){ return p && p.gamesPlayed ? (p.wins - p.losses) : 0; }
 function modeLabel(){
   const f = fmt()==='singles' ? 'Singles' : 'Doubles';
-  const m = {waittime:'By wait time', balanced:'Balanced', random:'Random', manual:'Manual', ladder:'Ladder (KotC)'}[mm()] || mm();
+  const m = {waittime:'By wait time', balanced:'Balanced', random:'Random', manual:'Manual', ladder:'Ladder (KotC)', roundrobin:'Round robin', bracket:'Bracket'}[mm()] || mm();
   return `${f} · ${m}`;
 }
 // Pick the players + teams for the next match per the session's matchmaking style.
@@ -1662,7 +1715,7 @@ function rebuildMatchQueue() {
     [...m.team1,...m.team2].every(id=>presentIds.has(id)&&!onCourtIds.has(id))
   );
   // Manual/Ladder modes don't auto-build the queue (Stage 2).
-  if(mm()==='manual' || mm()==='ladder') return;
+  if(mm()==='manual' || mm()==='ladder' || mm()==='roundrobin' || mm()==='bracket') return;
   const MAX_QUEUED=3;
   while(matchQueue.length<MAX_QUEUED){
     const m=chooseMatchPlayers();
@@ -1733,6 +1786,33 @@ function submitScore(courtId) {
   const s2=parseInt(document.getElementById(`score2_${courtId}`)?.value);
   if(isNaN(s1)||isNaN(s2)){showToast('Enter both scores first.');return;}
   if(s1===0&&s2===0){if(!confirm('Score is 0 – 0. Submit anyway?')) return;}
+  // tournament branch - handle round-robin matches before normal accounting
+  const _slot = courts.find(c => c.id === courtId);
+  if (_slot && _slot.tMatchId && tournament) {
+    const s1 = parseInt(document.getElementById(`score1_${courtId}`)?.value);
+    const s2 = parseInt(document.getElementById(`score2_${courtId}`)?.value);
+    if (isNaN(s1) || isNaN(s2)) { showToast('Enter both scores first.'); return; }
+    const m = tournament.matches.find(x => x.id === _slot.tMatchId);
+    if (m && !m.submitted) {
+      m.score1 = s1; m.score2 = s2; m.submitted = true;
+      // record per-player stats + history once (mirror saveLadderResult accounting)
+      const all = [..._slot.team1, ..._slot.team2];
+      all.forEach(id => { const p = getPlayer(id); if (p) { p.gamesPlayed++; p.lastPlayedRound = m.round; } });
+      const aWin = s1 > s2, bWin = s2 > s1;
+      const aPts = s1, bPts = s2;
+      _slot.team1.forEach(id => { const p = getPlayer(id); if (p) { if (aWin) p.wins++; else if (bWin) p.losses++; p.points += aPts; p.pointsAgainst += bPts; } });
+      _slot.team2.forEach(id => { const p = getPlayer(id); if (p) { if (bWin) p.wins++; else if (aWin) p.losses++; p.points += bPts; p.pointsAgainst += aPts; } });
+      gameHistory.unshift({ round: m.round, court: _slot.id, courtName: _slot.name || ('Court ' + _slot.id),
+        team1: _slot.team1.map(id => getPlayer(id)?.name || '?'), team2: _slot.team2.map(id => getPlayer(id)?.name || '?'),
+        score1: s1, score2: s2 });
+    }
+    _slot.score1 = s1; _slot.score2 = s2; _slot.submitted = true;
+    fillCourtsFromTournament();
+    saveState(); renderCourts(); renderRankings(); renderGameHistory();
+    const remaining = tournament.matches.filter(x => !x.submitted).length;
+    showToast(remaining ? 'Result saved.' : 'Round robin complete!');
+    return;
+  }
   c.score1=s1; c.score2=s2; c.submitted=true;
   const allFour=[...c.team1,...c.team2];
   allFour.forEach(id=>{const p=getPlayer(id);if(p){p.gamesPlayed++;p.lastPlayedRound=c.round;}});
@@ -2028,6 +2108,9 @@ function closeSwapModal(e) {
 function renderCourts() {
   const mb=document.getElementById('modeBadge'); if(mb) mb.textContent=modeLabel();
   if(mm()==='ladder'){ renderLadder(); return; }
+  if ((mm()==='roundrobin' || mm()==='bracket')) {
+    if (!tournament || !tournament.started) { renderTournamentSetup(); return; }
+  }
   const el=document.getElementById('courtList');
   if(!courtDefs.length){el.innerHTML='<div class="empty-state"><div class="icon">🏸</div>No courts yet. Add one above.</div>';return;}
   const cards=courtDefs.map(def=>{
@@ -2082,6 +2165,188 @@ function renderCourts() {
   }).join('');
   el.innerHTML='<div class="court-grid-layout">'+cards+'</div>';
 }
+
+// ===== TOURNAMENT SETUP (round-robin / bracket) =====
+function ensureTournament() {
+  if (!tournament) tournament = { kind: mm(), started:false, locked:false, passes:1, teams:[], matches:[] };
+  return tournament;
+}
+function tNewTeam() {
+  const t = ensureTournament();
+  if (t.locked) return;
+  const n = t.teams.length + 1;
+  t.teams.push({ id: 'tm' + n + '_' + n, name: 'Team ' + n, players: [] });
+  saveState(); renderCourts();
+}
+function tRemoveTeam(teamId) {
+  const t = ensureTournament();
+  if (t.locked) return;
+  t.teams = t.teams.filter(tm => tm.id !== teamId);
+  saveState(); renderCourts();
+}
+function tAutoPair() {
+  const t = ensureTournament();
+  if (t.locked) return;
+  const ids = shuffle(presentPlayers().map(p => p.id));
+  const { teams } = window.buildTeams(ids, teamSize());
+  t.teams = teams.map((players, i) => ({ id: 'tm' + (i+1) + '_' + (i+1), name: 'Team ' + (i+1), players }));
+  saveState(); renderCourts();
+}
+function tAssignPlayer(pid) {
+  // Move player into the first team with an open slot; if already on a team, remove (toggle).
+  const t = ensureTournament();
+  if (t.locked) return;
+  const cur = t.teams.find(tm => tm.players.includes(pid));
+  if (cur) { cur.players = cur.players.filter(x => x !== pid); saveState(); renderCourts(); return; }
+  let target = t.teams.find(tm => tm.players.length < teamSize());
+  if (!target) { tNewTeam(); target = t.teams[t.teams.length - 1]; }
+  target.players.push(pid);
+  saveState(); renderCourts();
+}
+function tLockTeams() {
+  const t = ensureTournament();
+  const full = t.teams.filter(tm => tm.players.length === teamSize());
+  if (full.length < 2) { showToast('Need at least 2 full teams to start.'); return; }
+  t.teams = full;            // drop any incomplete teams
+  t.locked = true;
+  saveState(); renderCourts();
+  showToast('Teams locked. Choose options and start.');
+}
+function renderTournamentSetup() {
+  const host = document.getElementById('courtList');   // Courts tab dynamic container
+  const t = ensureTournament();
+  const ts = teamSize();
+  const present = presentPlayers();
+  const assigned = new Set(t.teams.flatMap(tm => tm.players));
+  const free = present.filter(p => !assigned.has(p.id));
+  const teamsHtml = t.teams.map(tm => `
+    <div class="t-team">
+      <div class="t-team-h">${tm.name}${t.locked ? '' : ` <button class="t-x" onclick="tRemoveTeam('${tm.id}')">remove</button>`}</div>
+      <div class="t-team-players">${tm.players.map(pid => `<span class="t-chip" onclick="tAssignPlayer('${pid}')">${getPlayer(pid)?.name || '?'}</span>`).join('') || '<span class="t-empty">empty</span>'}</div>
+    </div>`).join('');
+  const freeHtml = t.locked ? '' : `
+    <div class="t-free">
+      <div class="t-free-h">Tap a player to assign (team size ${ts})</div>
+      <div class="t-free-list">${free.map(p => `<span class="t-chip" onclick="tAssignPlayer('${p.id}')">${p.name}</span>`).join('') || '<span class="t-empty">everyone assigned</span>'}</div>
+    </div>`;
+  const controls = t.locked
+    ? renderTournamentStartControls(t)     // defined in Task 8
+    : `<div class="t-setup-actions">
+         <button class="btn" onclick="tAutoPair()">Auto-pair</button>
+         <button class="btn" onclick="tNewTeam()">Add team</button>
+         <button class="btn btn-primary" onclick="tLockTeams()">Lock teams</button>
+       </div>`;
+  host.innerHTML = `
+    <div class="t-setup">
+      <h3>${mm()==='bracket' ? 'Bracket' : 'Round robin'} setup</h3>
+      <div class="t-teams">${teamsHtml || '<span class="t-empty">No teams yet. Auto-pair or add a team.</span>'}</div>
+      ${freeHtml}
+      ${controls}
+    </div>`;
+}
+window.tAutoPair = tAutoPair;
+window.tAssignPlayer = tAssignPlayer;
+window.tNewTeam = tNewTeam;
+window.tRemoveTeam = tRemoveTeam;
+window.tLockTeams = tLockTeams;
+
+// ===== TOURNAMENT PLAY (round-robin) =====
+function renderTournamentStartControls(t) {
+  if (mm() === 'bracket') return '<div class="t-empty">Bracket play is added in a later phase.</div>';
+  return `
+    <div class="t-start">
+      <label>Rounds:
+        <select id="rrPasses">
+          <option value="1"${t.passes===1?' selected':''}>Single (play each once)</option>
+          <option value="2"${t.passes===2?' selected':''}>Double (play each twice)</option>
+        </select>
+      </label>
+      <button class="btn btn-primary" onclick="startRoundRobin()">Start round robin</button>
+    </div>`;
+}
+function startRoundRobin() {
+  const t = ensureTournament();
+  if (!t.locked) { showToast('Lock teams first.'); return; }
+  if (courtDefs.length < 1) { showToast('Add at least one court first.'); return; }
+  const sel = document.getElementById('rrPasses');
+  t.passes = sel && sel.value === '2' ? 2 : 1;
+  const sched = window.generateRoundRobin(t.teams.length, t.passes);
+  t.matches = sched.map((m, i) => ({ id: 'rr' + i, round: m.round, teamA: m.teamA, teamB: m.teamB, score1:'', score2:'', submitted:false }));
+  t.started = true;
+  courts = [];
+  globalRound = 1;
+  fillCourtsFromTournament();
+  if (!courtTimerInterval) courtTimerInterval = setInterval(tickCourtTimers, 1000);
+  saveState(); renderCourts(); renderRankings();
+  showToast('Round robin started.');
+}
+function busyTeamIndices() {
+  const busy = new Set();
+  courts.filter(c => !c.submitted && c.tMatchId).forEach(c => {
+    const m = tournament.matches.find(x => x.id === c.tMatchId);
+    if (m) { busy.add(m.teamA); busy.add(m.teamB); }
+  });
+  return busy;
+}
+function placeMatchOnCourt(def, m) {
+  const now = Date.now();
+  courts.push({
+    id: def.id, name: def.name,
+    team1: tournament.teams[m.teamA].players.slice(),
+    team2: tournament.teams[m.teamB].players.slice(),
+    score1:'', score2:'', submitted:false, round: m.round, startedAt: now,
+    tMatchId: m.id,
+  });
+}
+function fillCourtsFromTournament() {
+  const openDefs = courtDefs.filter(def => !courts.some(c => c.id === def.id && !c.submitted));
+  for (const def of openDefs) {
+    const m = window.nextEligibleMatch(tournament.matches, busyTeamIndices());
+    if (!m) break;
+    // remove any finished slot with this court id before reusing
+    courts = courts.filter(c => c.id !== def.id);
+    placeMatchOnCourt(def, m);
+  }
+}
+function tSwapMatch(courtId) {
+  const slot = courts.find(c => c.id === courtId);
+  if (slot && slot.submitted) return;
+  // free this court, then pick the next eligible match that's different
+  const prevId = slot ? slot.tMatchId : null;
+  courts = courts.filter(c => c.id !== courtId);
+  const busy = busyTeamIndices();
+  const candidates = tournament.matches.filter(m => !m.submitted && !busy.has(m.teamA) && !busy.has(m.teamB) && m.id !== prevId);
+  const def = courtDefs.find(d => d.id === courtId);
+  if (candidates.length && def) placeMatchOnCourt(def, candidates[0]);
+  else if (def) fillCourtsFromTournament();
+  saveState(); renderCourts();
+}
+function renderTournamentStandings(containerId) {
+  const host = document.getElementById(containerId);
+  if (!host || !tournament || !tournament.started) return;
+  const rows = window.computeStandings(tournament.teams.length, tournament.matches);
+  const name = i => tournament.teams[i] ? (tournament.teams[i].players.map(pid => getPlayer(pid)?.name || '?').join(' & ')) : ('Team ' + (i+1));
+  host.innerHTML = `
+    <div class="t-standings">
+      <h3>Standings</h3>
+      <button class="btn" onclick="resetTournament()">Reset tournament</button>
+      <table class="t-table">
+        <thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>Diff</th><th>PF</th></tr></thead>
+        <tbody>
+        ${rows.map((r, i) => `<tr><td>${i+1}</td><td>${name(r.team)}</td><td>${r.wins}</td><td>${r.losses}</td><td>${r.diff>0?'+':''}${r.diff}</td><td>${r.pointsFor}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+function resetTournament() {
+  if (!confirm('Reset this tournament? Teams are unlocked and the schedule is cleared. Game history is kept.')) return;
+  if (tournament) { tournament.started = false; tournament.locked = false; tournament.matches = []; }
+  courts = [];
+  saveState(); renderCourts(); renderRankings();
+}
+window.startRoundRobin = startRoundRobin;
+window.tSwapMatch = tSwapMatch;
+window.resetTournament = resetTournament;
 
 // ===== QUEUE =====
 function mqMatchCard(m,label,isNext) {
@@ -2143,6 +2408,10 @@ function setSort(key) {
   renderRankings();
 }
 function renderRankings() {
+  if (mm()==='roundrobin' && tournament && tournament.started) {
+    renderTournamentStandings('rankTable');
+    return;
+  }
   const el=document.getElementById('rankTable');
   const base=players.filter(p=>p.gamesPlayed>0);
   if(!base.length){el.innerHTML='<div class="empty-state"><div class="icon">🏆</div>Rankings appear after games are submitted.</div>';return;}
@@ -2226,6 +2495,11 @@ function confirmLeave() {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch } from './tournament.js';
+window.buildTeams = buildTeams;
+window.generateRoundRobin = generateRoundRobin;
+window.computeStandings = computeStandings;
+window.nextEligibleMatch = nextEligibleMatch;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
