@@ -263,6 +263,19 @@ header h1 {
 .ladder-sitting{margin-top:14px;}
 .ladder-sit-name{display:inline-block;background:var(--surface2);border-radius:20px;padding:4px 12px;font-size:0.8rem;font-weight:600;margin:0 6px 6px 0;}
 .ladder-sit-hint{font-size:0.74rem;font-weight:500;color:var(--muted);margin-top:6px;}
+/* ===== Tournament setup (round-robin / bracket) ===== */
+.t-setup{padding:12px}
+.t-team{border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.t-team-h{font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.t-team-players{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.t-chip{background:var(--army);color:#fff;border-radius:14px;padding:4px 10px;cursor:pointer;font-size:14px}
+.t-free{margin-top:10px}
+.t-free-h{font-size:0.85rem;font-weight:600;color:var(--muted)}
+.t-free-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.t-free .t-chip{background:var(--gold);color:#222}
+.t-empty{color:var(--muted);font-size:14px}
+.t-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;text-decoration:underline}
+.t-setup-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 /* ===== Manual match picker ===== */
 .manual-preview{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:12px;}
 .manual-team{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
@@ -2063,6 +2076,9 @@ function closeSwapModal(e) {
 function renderCourts() {
   const mb=document.getElementById('modeBadge'); if(mb) mb.textContent=modeLabel();
   if(mm()==='ladder'){ renderLadder(); return; }
+  if ((mm()==='roundrobin' || mm()==='bracket')) {
+    if (!tournament || !tournament.started) { renderTournamentSetup(); return; }
+  }
   const el=document.getElementById('courtList');
   if(!courtDefs.length){el.innerHTML='<div class="empty-state"><div class="icon">🏸</div>No courts yet. Add one above.</div>';return;}
   const cards=courtDefs.map(def=>{
@@ -2117,6 +2133,90 @@ function renderCourts() {
   }).join('');
   el.innerHTML='<div class="court-grid-layout">'+cards+'</div>';
 }
+
+// ===== TOURNAMENT SETUP (round-robin / bracket) =====
+function ensureTournament() {
+  if (!tournament) tournament = { kind: mm(), started:false, locked:false, passes:1, teams:[], matches:[] };
+  return tournament;
+}
+function tNewTeam() {
+  const t = ensureTournament();
+  if (t.locked) return;
+  const n = t.teams.length + 1;
+  t.teams.push({ id: 'tm' + n + '_' + n, name: 'Team ' + n, players: [] });
+  saveState(); renderCourts();
+}
+function tRemoveTeam(teamId) {
+  const t = ensureTournament();
+  if (t.locked) return;
+  t.teams = t.teams.filter(tm => tm.id !== teamId);
+  saveState(); renderCourts();
+}
+function tAutoPair() {
+  const t = ensureTournament();
+  if (t.locked) return;
+  const ids = shuffle(presentPlayers().map(p => p.id));
+  const { teams } = window.buildTeams(ids, teamSize());
+  t.teams = teams.map((players, i) => ({ id: 'tm' + (i+1) + '_' + (i+1), name: 'Team ' + (i+1), players }));
+  saveState(); renderCourts();
+}
+function tAssignPlayer(pid) {
+  // Move player into the first team with an open slot; if already on a team, remove (toggle).
+  const t = ensureTournament();
+  if (t.locked) return;
+  const cur = t.teams.find(tm => tm.players.includes(pid));
+  if (cur) { cur.players = cur.players.filter(x => x !== pid); saveState(); renderCourts(); return; }
+  let target = t.teams.find(tm => tm.players.length < teamSize());
+  if (!target) { tNewTeam(); target = t.teams[t.teams.length - 1]; }
+  target.players.push(pid);
+  saveState(); renderCourts();
+}
+function tLockTeams() {
+  const t = ensureTournament();
+  const full = t.teams.filter(tm => tm.players.length === teamSize());
+  if (full.length < 2) { showToast('Need at least 2 full teams to start.'); return; }
+  t.teams = full;            // drop any incomplete teams
+  t.locked = true;
+  saveState(); renderCourts();
+  showToast('Teams locked. Choose options and start.');
+}
+function renderTournamentSetup() {
+  const host = document.getElementById('courtList');   // Courts tab dynamic container
+  const t = ensureTournament();
+  const ts = teamSize();
+  const present = presentPlayers();
+  const assigned = new Set(t.teams.flatMap(tm => tm.players));
+  const free = present.filter(p => !assigned.has(p.id));
+  const teamsHtml = t.teams.map(tm => `
+    <div class="t-team">
+      <div class="t-team-h">${tm.name}${t.locked ? '' : ` <button class="t-x" onclick="tRemoveTeam('${tm.id}')">remove</button>`}</div>
+      <div class="t-team-players">${tm.players.map(pid => `<span class="t-chip" onclick="tAssignPlayer('${pid}')">${getPlayer(pid)?.name || '?'}</span>`).join('') || '<span class="t-empty">empty</span>'}</div>
+    </div>`).join('');
+  const freeHtml = t.locked ? '' : `
+    <div class="t-free">
+      <div class="t-free-h">Tap a player to assign (team size ${ts})</div>
+      <div class="t-free-list">${free.map(p => `<span class="t-chip" onclick="tAssignPlayer('${p.id}')">${p.name}</span>`).join('') || '<span class="t-empty">everyone assigned</span>'}</div>
+    </div>`;
+  const controls = t.locked
+    ? renderTournamentStartControls(t)     // defined in Task 8
+    : `<div class="t-setup-actions">
+         <button class="btn" onclick="tAutoPair()">Auto-pair</button>
+         <button class="btn" onclick="tNewTeam()">Add team</button>
+         <button class="btn btn-primary" onclick="tLockTeams()">Lock teams</button>
+       </div>`;
+  host.innerHTML = `
+    <div class="t-setup">
+      <h3>${mm()==='bracket' ? 'Bracket' : 'Round robin'} setup</h3>
+      <div class="t-teams">${teamsHtml || '<span class="t-empty">No teams yet. Auto-pair or add a team.</span>'}</div>
+      ${freeHtml}
+      ${controls}
+    </div>`;
+}
+window.tAutoPair = tAutoPair;
+window.tAssignPlayer = tAssignPlayer;
+window.tNewTeam = tNewTeam;
+window.tRemoveTeam = tRemoveTeam;
+window.tLockTeams = tLockTeams;
 
 // ===== QUEUE =====
 function mqMatchCard(m,label,isNext) {
@@ -2262,6 +2362,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebas
 import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch } from './tournament.js';
+window.buildTeams = buildTeams;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
