@@ -1631,7 +1631,7 @@ function matchSize(){ return teamSize()*2; }
 function ratingOf(p){ return p && p.gamesPlayed ? (p.wins - p.losses) : 0; }
 function modeLabel(){
   const f = fmt()==='singles' ? 'Singles' : 'Doubles';
-  const m = {waittime:'By wait time', balanced:'Balanced', random:'Random', manual:'Manual', ladder:'Ladder (KotC)'}[mm()] || mm();
+  const m = {waittime:'By wait time', balanced:'Balanced', random:'Random', manual:'Manual', ladder:'Ladder (KotC)', roundrobin:'Round robin', bracket:'Bracket'}[mm()] || mm();
   return `${f} · ${m}`;
 }
 // Pick the players + teams for the next match per the session's matchmaking style.
@@ -1662,7 +1662,7 @@ function rebuildMatchQueue() {
     [...m.team1,...m.team2].every(id=>presentIds.has(id)&&!onCourtIds.has(id))
   );
   // Manual/Ladder modes don't auto-build the queue (Stage 2).
-  if(mm()==='manual' || mm()==='ladder') return;
+  if(mm()==='manual' || mm()==='ladder' || mm()==='roundrobin' || mm()==='bracket') return;
   const MAX_QUEUED=3;
   while(matchQueue.length<MAX_QUEUED){
     const m=chooseMatchPlayers();
