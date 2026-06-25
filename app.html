@@ -569,6 +569,38 @@ input:focus, textarea:focus { border-color: var(--army); }
 }
 .score-input:focus { border-color: var(--accent); outline: none; }
 .score-sep { text-align: center; color: var(--muted); font-weight: 800; font-size: 1.1rem; }
+/* ===== Inline court layout (T-tag · players · score per row) ===== */
+.ct-head-row { display: flex; justify-content: flex-end; margin-bottom: 5px; }
+.ct-score-head { width: 56px; text-align: center; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.ct-row { display: flex; align-items: center; gap: 10px; }
+.ct-tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; padding: 4px 9px; border-radius: 6px;
+  font-size: 0.72rem; font-weight: 900; letter-spacing: 0.04em; flex-shrink: 0;
+}
+.ct-tag.t1 { background: var(--army); color: #fff; }
+.ct-tag.t2 { background: var(--gold); color: #1C1F14; }
+.ct-names { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 5px 14px; }
+.ct-name { display: inline-flex; align-items: center; gap: 5px; font-size: 1.05rem; font-weight: 600; color: var(--ink); overflow-wrap: break-word; }
+.ct-score {
+  flex: 0 0 56px; width: 56px; text-align: center;
+  font-family: var(--font); font-size: 1.35rem; font-weight: 800;
+  padding: 8px 4px; border: 2px solid var(--line); border-radius: 8px;
+  background: var(--input-bg); color: var(--ink); transition: border-color 0.15s;
+}
+.ct-score:focus { border-color: var(--accent); outline: none; }
+.ct-vs { text-align: center; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.1em; color: var(--muted); padding: 5px 0; }
+/* Rankings explainer */
+.rank-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.rank-info-btn { background: none; border: 1.5px solid var(--line); border-radius: 20px; color: var(--muted); font-family: var(--font); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; padding: 5px 11px; cursor: pointer; white-space: nowrap; transition: all 0.12s; }
+.rank-info-btn:hover { border-color: var(--army); color: var(--army); }
+[data-theme="dark"] .rank-info-btn:hover { border-color: var(--accent); color: var(--accent); }
+.rank-info-panel { background: var(--surface2); border-radius: 10px; padding: 13px 15px; margin-bottom: 14px; font-size: 0.78rem; line-height: 1.55; color: var(--ink2, var(--ink)); }
+.rank-info-panel.hidden { display: none; }
+.rank-info-panel ul { list-style: none; margin: 0; padding: 0; }
+.rank-info-panel li { margin-bottom: 6px; }
+.rank-info-panel li:last-child { margin-bottom: 0; }
+.rank-info-panel strong { color: var(--ink); }
 .next-match-btn {
   display: flex;
   align-items: center;
@@ -1057,7 +1089,20 @@ input:focus, textarea:focus { border-color: var(--army); }
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Leaderboard</div>
+      <div class="rank-head">
+        <div class="card-title" style="margin-bottom:0;">Leaderboard</div>
+        <button class="rank-info-btn" onclick="toggleRankInfo()" aria-expanded="false">ⓘ How it's scored</button>
+      </div>
+      <div class="rank-info-panel hidden" id="rankInfoPanel">
+        <ul>
+          <li><strong>Wins / Losses:</strong> the team with the higher score gets a win, the other a loss. A tie counts for neither.</li>
+          <li><strong>Points:</strong> total points your team scored across all your games.</li>
+          <li><strong>Score Diff:</strong> points you scored minus points given up (your margin), shown as + or - in the last column.</li>
+          <li><strong>GP:</strong> games played.</li>
+          <li><strong>Win%:</strong> wins divided by games played. <strong>Pt%:</strong> your points as a share of all points in your games.</li>
+          <li><strong>Sorting:</strong> choose a metric with the pills below. Players tied on that metric are ranked by Score Diff.</li>
+        </ul>
+      </div>
       <div class="sort-pills">
         <button class="sort-pill active" onclick="setSort('wins')">By Wins</button>
         <button class="sort-pill" onclick="setSort('points')">By Points</button>
@@ -1820,11 +1865,19 @@ function renderLadder(){
     html+=`<div class="court-card ladder-court ${c.submitted?'reported':''}">
       <div class="court-header"><span class="court-name-static">${c.name}</span><span class="ladder-rank">${rank}</span>${c.submitted?'<span class="court-round">✓ reported</span>':''}</div>
       <div class="court-body">
-        <div class="ladder-team ${aWon?'win':''}"><span class="ladder-team-seat">A</span><span class="ladder-team-names">${teamLabel(c.team1)}</span>${aWon?'<span class="ladder-win">🏆</span>':''}</div>
-        <div class="ladder-team ${bWon?'win':''}"><span class="ladder-team-seat">B</span><span class="ladder-team-names">${teamLabel(c.team2)}</span>${bWon?'<span class="ladder-win">🏆</span>':''}</div>
-        <div class="score-section-label">Enter Score <span class="ladder-score-hint">(A – B)</span></div>
-        <div class="ladder-score-row"><input class="score-input" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}"><div class="score-sep">–</div><input class="score-input" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}"></div>
-        <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
+        <div class="ct-head-row"><span class="ct-score-head">Score</span></div>
+        <div class="ct-row">
+          <span class="ct-tag t1">A</span>
+          <div class="ct-names"><span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span></div>
+          <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}">
+        </div>
+        <div class="ct-vs">VS</div>
+        <div class="ct-row">
+          <span class="ct-tag t2">B</span>
+          <div class="ct-names"><span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span></div>
+          <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}">
+        </div>
+        <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
       </div>
     </div>`;
   });
@@ -1972,21 +2025,6 @@ function closeSwapModal(e) {
 }
 
 // ===== RENDER COURTS =====
-function nextUpHtml() {
-  if(!matchQueue.length) return '';
-  const m = matchQueue[0];
-  if (!m) return '';
-  const t1=m.team1.map(id=>getPlayer(id));
-  const t2=m.team2.map(id=>getPlayer(id));
-  return `<div class="court-nextup">
-    <div class="court-nextup-label">🔜 Next Up</div>
-    <div class="court-nextup-teams">
-      <div class="court-nextup-team"><div class="court-nextup-names">${t1.map(p=>p?.name||'?').join('<br>')}</div></div>
-      <div class="court-nextup-vs">VS</div>
-      <div class="court-nextup-team"><div class="court-nextup-names">${t2.map(p=>p?.name||'?').join('<br>')}</div></div>
-    </div>
-  </div>`;
-}
 function renderCourts() {
   const mb=document.getElementById('modeBadge'); if(mb) mb.textContent=modeLabel();
   if(mm()==='ladder'){ renderLadder(); return; }
@@ -2026,24 +2064,21 @@ function renderCourts() {
         ${mm()==='manual'
           ? (freeForManual().length>=matchSize()?`<button class="next-match-btn" onclick="openManualPick(${def.id})">⚡ Pick Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Need ${matchSize()} free players</div>`)
           : (matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`)}
-      </div>${nextUpHtml()}</div>`;
+      </div></div>`;
     }
-    const teamHtml=(tp,tk,label)=>`<div class="team"><div class="team-label">${label}</div>${tp.map((p,i)=>`
-      <div class="team-player-row">
-        <span class="player-bullet"></span>
-        <span class="team-player-name">${p?.name||'?'}</span>
-        <button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button>
-      </div>`).join('')}</div>`;
+    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name">${p?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span>`).join('');
+    const rowHtml=(tp,tk,tag,tagCls,sid)=>`<div class="ct-row">
+      <span class="ct-tag ${tagCls}">${tag}</span>
+      <div class="ct-names">${namesHtml(tp,tk)}</div>
+      <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="${sid}_${def.id}" oninput="updateScore(${def.id})">
+    </div>`;
     return `<div class="court-card">${header}<div class="court-body">
-      <div class="match-teams">${teamHtml(t1,'team1','Team A')}<div class="vs-badge">VS</div>${teamHtml(t2,'team2','Team B')}</div>
-      <div class="score-section-label">Enter Score</div>
-      <div class="score-row">
-        <input class="score-input" type="number" min="0" max="99" placeholder="0" id="score1_${def.id}" oninput="updateScore(${def.id})">
-        <div class="score-sep">–</div>
-        <input class="score-input" type="number" min="0" max="99" placeholder="0" id="score2_${def.id}" oninput="updateScore(${def.id})">
-      </div>
-      <button class="btn btn-accent btn-full" onclick="submitScore(${def.id})">Submit Score</button>
-    </div>${nextUpHtml()}</div>`;
+      <div class="ct-head-row"><span class="ct-score-head">Score</span></div>
+      ${rowHtml(t1,'team1','T1','t1','score1')}
+      <div class="ct-vs">VS</div>
+      ${rowHtml(t2,'team2','T2','t2','score2')}
+      <button class="btn btn-accent btn-full" style="margin-top:14px" onclick="submitScore(${def.id})">Submit Score</button>
+    </div></div>`;
   }).join('');
   el.innerHTML='<div class="court-grid-layout">'+cards+'</div>';
 }
@@ -2095,6 +2130,12 @@ function renderQueue() {
 }
 
 // ===== RANKINGS =====
+function toggleRankInfo() {
+  const p=document.getElementById('rankInfoPanel');
+  const b=document.querySelector('.rank-info-btn');
+  const nowHidden=p.classList.toggle('hidden');
+  if(b) b.setAttribute('aria-expanded', String(!nowHidden));
+}
 function setSort(key) {
   rankSort=key;
   document.querySelectorAll('.sort-pill').forEach(p=>p.classList.remove('active'));
