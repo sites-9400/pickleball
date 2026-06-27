@@ -2139,7 +2139,13 @@ function _openSwapOptions(outgoingId) {
   const onCourtIds=new Set();
   courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>onCourtIds.add(id)));
   const queueCands=getFreeWaiting().map(p=>({id:p.id, skill:p.skill||'intermediate', name:p.name}));
-  const overrideCands=presentPlayers().filter(p=>p.id!==outgoingId).map(p=>({id:p.id, name:p.name, playing:onCourtIds.has(p.id)}));
+  // For a court swap, exclude players already seated on the same court (overriding a seat with a same-court player is nonsensical and would duplicate them).
+  const sameCourtIds=new Set();
+  if(swapContext&&swapContext.type==='court'){
+    const sc=courts.find(ct=>ct.id===swapContext.courtId);
+    if(sc)[...sc.team1,...sc.team2].forEach(id=>sameCourtIds.add(id));
+  }
+  const overrideCands=presentPlayers().filter(p=>p.id!==outgoingId&&!sameCourtIds.has(p.id)).map(p=>({id:p.id, name:p.name, playing:onCourtIds.has(p.id)}));
   const autoId=window.bestSkillMatch?(window.bestSkillMatch(outgoing?.skill||'intermediate', queueCands)):null;
   const chip=(id,name,tag)=>`<div class="swap-option" onclick="confirmSwap(${id})">${name}${tag?` <span style="color:var(--muted);font-size:0.7rem;">${tag}</span>`:''}</div>`;
   const autoHtml = autoId!=null
@@ -2165,6 +2171,7 @@ function confirmSwap(incomingId) {
       ['team1','team2'].forEach(tk=>{ const i=ct[tk].indexOf(incomingId); if(i>=0) ct[tk].splice(i,1); });
     });
     c[team][playerIndex]=incomingId;
+    queueOrder=queueOrder.filter(id=>id!==incomingId);
     // outgoing fate
     if(fate==='remove'){
       const p=getPlayer(outgoingId); if(p){ p.present=false; }
