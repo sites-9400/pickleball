@@ -1720,11 +1720,14 @@ function renderCheckinPanel(){
 }
 function _genCheckinQR(){
   if(!window.QRCode || !window.checkinUrl){ setTimeout(_genCheckinQR, 300); return; }
+  const url=window.checkinUrl();
   const el=document.getElementById('checkinQrContainer');
   if(!el) return;
+  if(el.dataset.qrUrl === url) return; // URL unchanged; skip rebuild (avoids flicker on every renderPlayers)
   el.innerHTML='';
-  new QRCode(el, { text: window.checkinUrl(), width:120, height:120,
+  new QRCode(el, { text: url, width:120, height:120,
     colorDark:'#1C1F14', colorLight:'#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
+  el.dataset.qrUrl = url;
 }
 function toggleCheckinOpen(){
   checkinOpen = !checkinOpen;
@@ -2903,7 +2906,11 @@ window._getViewLink = function() {
 window.checkinUrl = () => `${window.location.origin}${_basePath()}checkin.html?session=${_SESSION_ID}`;
 window.copyCheckinLink = function() {
   const link = window.checkinUrl();
-  navigator.clipboard?.writeText(link).then(() => window.showToast && window.showToast('Check-in link copied!'));
+  navigator.clipboard.writeText(link).then(() => {
+    if(window.showToast) showToast('Check-in link copied!');
+  }).catch(() => {
+    prompt('Copy this check-in link for players:', link);
+  });
 };
 // Show share card whenever remote state loads
 window._onShareCardReady = function() {
