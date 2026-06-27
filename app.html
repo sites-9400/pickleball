@@ -1441,6 +1441,7 @@ window._fbApplyRemote = function(s) {
   sessionDate       = s.date        || '';
   sessionEnded      = s.sessionEnded      || false;
   sessionEndTime    = s.sessionEndTime    || null;
+  const _hadCheckinOpen = (s.checkinOpen !== undefined);
   checkinOpen       = (s.checkinOpen !== false); // default open; only an explicit false closes it
 
   applySessionUI();
@@ -1471,6 +1472,11 @@ window._fbApplyRemote = function(s) {
     const lnk = window._getViewLink();
     if (lnk && typeof showShareCard !== 'undefined') showShareCard(lnk);
   }
+
+  // Persist checkinOpen once for sessions created before this field existed,
+  // so Firebase rules (checkinOpen.val() === true) pass on first anonymous check-in.
+  // Only fires once per old session (next snapshot has the field, so _hadCheckinOpen will be true).
+  if (!_hadCheckinOpen) { saveState(); }
 };
 
 // Called when Firebase node is null (session deleted / new session)
@@ -2755,6 +2761,7 @@ window._importCheckin = function(key, entry) {
   const res = window.checkinToPlayer ? window.checkinToPlayer(entry, players) : {skip:true, reason:'invalid'};
   if (res.skip) {
     if (res.reason === 'duplicate') showToast(`${entry.name} is already checked in.`);
+    if (res.reason === 'invalid') console.warn('[checkin] skipped invalid entry', key, entry);
     window._removeCheckin && window._removeCheckin(key);
     return;
   }
