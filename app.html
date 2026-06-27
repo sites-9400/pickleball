@@ -2743,20 +2743,36 @@ function confirmLeave() {
     const ls = document.getElementById('loadingScreen');
     if (ls && !ls.classList.contains('hidden')) {
       const lbl = document.getElementById('loadingLabel');
-      if (lbl) lbl.textContent = 'Connection timeout — check your internet or try refreshing.';
+      if (lbl) lbl.textContent = 'Connection timeout -- check your internet or try refreshing.';
       ls.style.cursor = 'pointer';
       ls.onclick = () => location.reload();
     }
   }, 8000);
 })();
+
+window._importCheckin = function(key, entry) {
+  if (!entry) { window._removeCheckin && window._removeCheckin(key); return; }
+  const res = window.checkinToPlayer ? window.checkinToPlayer(entry, players) : {skip:true, reason:'invalid'};
+  if (res.skip) {
+    if (res.reason === 'duplicate') showToast(`${entry.name} is already checked in.`);
+    window._removeCheckin && window._removeCheckin(key);
+    return;
+  }
+  const p = res.player; p.id = ++playerIdCounter;
+  players.push(p);
+  if (!queueOrder.includes(p.id)) queueOrder.push(p.id);
+  rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
+  showToast(`${p.name} checked in.`);
+  window._removeCheckin && window._removeCheckin(key);
+};
 </script>
 
 <!-- Firebase Session Sync -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+import { getDatabase, ref, set, update, onValue, get, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch } from './tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch, checkinToPlayer } from './tournament.js';
 window.buildTeams = buildTeams;
 window.generateRoundRobin = generateRoundRobin;
 window.computeStandings = computeStandings;
@@ -2764,6 +2780,7 @@ window.nextEligibleMatch = nextEligibleMatch;
 window.resolveChallengeCourt = resolveChallengeCourt;
 window.skillBalancedTeams = skillBalancedTeams;
 window.bestSkillMatch = bestSkillMatch;
+window.checkinToPlayer = checkinToPlayer;
 window.manualDragStart = manualDragStart;
 
 const firebaseConfig = {
@@ -2787,11 +2804,22 @@ if (!_SESSION_ID) window.location.href = window.location.pathname.replace(/[^/]*
 
 const _SESSION_REF = ref(_db, `sessions/${_SESSION_ID}`);
 
+window._removeCheckin = (key) => remove(ref(_db, `sessions/${_SESSION_ID}/checkins/${key}`));
+let _checkinListenerAttached = false;
+function _attachCheckinListener() {
+  if (_checkinListenerAttached) return;
+  _checkinListenerAttached = true;
+  onChildAdded(ref(_db, `sessions/${_SESSION_ID}/checkins`), (snap) => {
+    if (window._importCheckin) window._importCheckin(snap.key, snap.val());
+  });
+}
+
 // Auth guard — wait for full resolution, add grace period for slow connections
 let _authUser = undefined;
 onAuthStateChanged(_auth, user => {
   _authUser = user && !user.isAnonymous ? user : null;
   if (_authUser) {
+    _attachCheckinListener();
     // Register this session under user profile — device-independent recovery
     if (_SESSION_ID) {
       const userSessionRef = ref(_db, `users/${user.uid}/sessions/${_SESSION_ID}`);
