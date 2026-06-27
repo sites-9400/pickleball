@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check In - Paddle District</title>
+<style>
+  :root{--army:#3a4a23;--ink:#1C1F14;--bg:#fff;--line:#e3e3dc;--muted:#6b6f60;--font:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#f4f5ef;color:var(--ink);min-height:100vh;}
+  .header{background:var(--army);color:#fff;padding:22px 18px;text-align:center;}
+  .header img{height:54px;margin-bottom:6px;}
+  .header h1{margin:0;font-size:1.1rem;font-weight:800;}
+  .header .sub{font-size:0.8rem;opacity:0.85;margin-top:3px;}
+  .wrap{max-width:420px;margin:0 auto;padding:20px 18px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;}
+  label{display:block;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:14px 0 6px;}
+  input[type=text]{width:100%;font-family:var(--font);font-size:1rem;padding:12px;border:1.5px solid var(--line);border-radius:9px;outline:none;}
+  input[type=text]:focus{border-color:var(--army);}
+  .skills{display:flex;gap:8px;}
+  .skills button{flex:1;font-family:var(--font);font-size:0.82rem;font-weight:700;padding:11px 6px;border:1.5px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);cursor:pointer;}
+  .skills button.on{background:var(--army);color:#fff;border-color:var(--army);}
+  .submit{width:100%;margin-top:18px;font-family:var(--font);font-size:1rem;font-weight:800;padding:14px;border:none;border-radius:10px;background:var(--army);color:#fff;cursor:pointer;}
+  .submit:disabled{opacity:0.5;cursor:default;}
+  .msg{text-align:center;padding:24px 10px;}
+  .msg .big{font-size:1.15rem;font-weight:800;margin-bottom:8px;}
+  .closed{text-align:center;color:var(--muted);padding:30px 10px;font-weight:600;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+  <div class="header">
+    <img src="logo.png" alt="Paddle District">
+    <h1 id="sessionName">Open Play</h1>
+    <div class="sub">Player check-in</div>
+  </div>
+  <div class="wrap">
+    <div class="card" id="card">
+      <div id="formArea">
+        <label for="nameInput">Your name</label>
+        <input type="text" id="nameInput" maxlength="40" placeholder="e.g. Maria S" autocomplete="off">
+        <label>Skill level</label>
+        <div class="skills" id="skills">
+          <button type="button" data-skill="beginner">Beginner</button>
+          <button type="button" data-skill="intermediate" class="on">Intermediate</button>
+          <button type="button" data-skill="advanced">Advanced</button>
+        </div>
+        <button class="submit" id="submitBtn">Check in</button>
+      </div>
+      <div class="msg hidden" id="doneArea">
+        <div class="big" id="doneName">You're checked in!</div>
+        <div style="color:var(--muted);font-size:0.9rem;">The organizer will get you into a game.</div>
+        <button class="submit" id="againBtn" style="margin-top:20px;">Check in someone else</button>
+      </div>
+      <div class="closed hidden" id="closedArea">Check-in is closed by the organizer.</div>
+    </div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getDatabase, ref, get, push, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
+  authDomain: "pickleball-255db.firebaseapp.com",
+  databaseURL: "https://pickleball-255db-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pickleball-255db"
+};
+const app = initializeApp(firebaseConfig, 'checkin');
+const db = getDatabase(app);
+const auth = getAuth(app);
+
+const SID = new URLSearchParams(window.location.search).get('session');
+let skill = 'intermediate';
+
+const formArea = document.getElementById('formArea');
+const doneArea = document.getElementById('doneArea');
+const closedArea = document.getElementById('closedArea');
+
+function showClosed(){ formArea.classList.add('hidden'); doneArea.classList.add('hidden'); closedArea.classList.remove('hidden'); }
+function showForm(){ formArea.classList.remove('hidden'); doneArea.classList.add('hidden'); closedArea.classList.add('hidden'); }
+
+document.querySelectorAll('#skills button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#skills button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); skill = b.getAttribute('data-skill');
+}));
+
+document.getElementById('againBtn').addEventListener('click', () => {
+  document.getElementById('nameInput').value = '';
+  document.getElementById('submitBtn').disabled = false;
+  showForm();
+});
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const name = document.getElementById('nameInput').value.trim();
+  if(!name){ document.getElementById('nameInput').focus(); return; }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  try {
+    await push(ref(db, `sessions/${SID}/checkins`), { name, skill, ts: Date.now() });
+    document.getElementById('doneName').textContent = `You're checked in, ${name}!`;
+    formArea.classList.add('hidden'); doneArea.classList.remove('hidden');
+  } catch(e){
+    btn.disabled = false;
+    alert('Could not check in. Check-in may be closed. Please ask the organizer.');
+  }
+});
+
+function start(){
+  if(!SID){ document.getElementById('card').innerHTML = '<div class="closed">This link is missing a session. Ask the organizer for the correct link.</div>'; return; }
+  // Live-gate on checkinOpen + show session name
+  onValue(ref(db, `sessions/${SID}/name`), s => { const n = s.val(); if(n) document.getElementById('sessionName').textContent = n; });
+  onValue(ref(db, `sessions/${SID}/checkinOpen`), s => {
+    if(s.val() === true){ if(doneArea.classList.contains('hidden')) showForm(); }
+    else { showClosed(); }
+  });
+}
+signInAnonymously(auth).then(start).catch(() => start());
+</script>
+</body>
+</html>
