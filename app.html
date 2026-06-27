@@ -423,6 +423,9 @@ input:focus, textarea:focus { border-color: var(--army); }
 .skill-badge.beginner{background:#e6f4ea;color:#1e7e34;}
 .skill-badge.intermediate{background:#fff4e0;color:#b8860b;}
 .skill-badge.advanced{background:#fde8e8;color:#c0392b;}
+.via-tag{font-size:0.55rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;padding:2px 6px;border-radius:5px;margin-left:4px;}
+.via-tag.qr{background:#e8f0fe;color:#1a56db;}
+.via-tag.manual{background:#eee;color:#777;}
 .skill-counts{font-size:0.72rem;font-weight:600;color:var(--muted);margin-top:6px;}
 
 /* ===== COURT CARDS ===== */
@@ -1399,7 +1402,7 @@ window._fbApplyRemote = function(s) {
     if (document.activeElement === el && el.value) activeScores[el.id] = el.value;
   });
 
-  players      = normArr(s.players).map(p => ({ ...p, skill: p.skill || 'intermediate' }));
+  players      = normArr(s.players).map(p => ({ ...p, skill: p.skill || 'intermediate', via: p.via || 'manual' }));
   courts       = normCourts(s.courts);
   courtDefs    = normArr(s.courtDefs);
   matchQueue   = normMatchQueue(s.matchQueue);
@@ -1620,7 +1623,7 @@ function addPlayer() {
   let added=0, skipped=0;
   names.forEach(name=>{
     if(players.find(p=>p.name.toLowerCase()===name.toLowerCase())){skipped++;return;}
-    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate'});
+    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate',via:'manual'});
     added++;
   });
   input.value=''; rebuildMatchQueue(); renderPlayers(); saveState();
@@ -1679,6 +1682,7 @@ function renderPlayers() {
       <span class="player-name">${p.name}</span>
       <div class="status-dot ${p.present?'present':''}"></div>
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
+      <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
       <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})">${p.present?'Here ✓':'Absent'}</button>
       <button class="remove-btn" onclick="removePlayer(${p.id})">✕</button>
     </div>`).join('');
