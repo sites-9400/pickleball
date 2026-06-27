@@ -1725,6 +1725,23 @@ function chooseMatchPlayers(){
   const g=shuffle(chosen.slice());
   return {team1:g.slice(0,ts).map(p=>p.id), team2:g.slice(ts,ts*2).map(p=>p.id)};
 }
+function fillChallengeCourts(){
+  if(mm()!=='challenge') return false;
+  let changed=false;
+  const ts=teamSize();
+  courts.forEach(c=>{
+    if(c.submitted) return;
+    if(c.team2 && c.team2.length>0) return; // already has an opponent
+    const queueIds=getFreeWaiting().map(p=>p.id).filter(id=>!c.team1.includes(id));
+    if(queueIds.length>=ts){
+      c.team2=queueIds.slice(0,ts);
+      c.awaitingChallengers=false;
+      c.startedAt=Date.now();
+      changed=true;
+    }
+  });
+  return changed;
+}
 function rebuildMatchQueue() {
   const presentIds=new Set(presentPlayers().map(p=>p.id));
   const onCourtIds=new Set();
@@ -1743,6 +1760,15 @@ function rebuildMatchQueue() {
     const m=chooseMatchPlayers();
     if(!m) break;
     matchQueue.push({id:++mqIdCounter,team1:m.team1,team2:m.team2});
+  }
+  // Step 4: fill any holding challenge courts after queue is rebuilt
+  if(mm()==='challenge'){
+    if(fillChallengeCourts()){
+      // re-clean matchQueue since challengers are now seated on courts
+      const nowOnCourt=new Set();
+      courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>nowOnCourt.add(id)));
+      matchQueue=matchQueue.filter(m=>[...m.team1,...m.team2].every(id=>!nowOnCourt.has(id)));
+    }
   }
 }
 
@@ -1848,6 +1874,26 @@ function submitScore(courtId) {
   const t1names=c.team1.map(id=>getPlayer(id)?.name||'?');
   const t2names=c.team2.map(id=>getPlayer(id)?.name||'?');
   gameHistory.unshift({round:c.round,court:c.id,courtName:c.name||`Court ${c.id}`,team1:t1names,team2:t2names,score1:s1,score2:s2});
+  if(mm()==='challenge' && winTeam){
+    const winnerIds=[...winTeam];
+    const loserIds=[...loseTeam];
+    const ts=teamSize();
+    // waiting pool excludes the players who just played on this court
+    const queueIds=getFreeWaiting().map(p=>p.id).filter(id=>!winnerIds.includes(id)&&!loserIds.includes(id));
+    const r=window.resolveChallengeCourt({winnerIds, loserIds, queueIds, teamSize:ts});
+    // losers sink to the back of the waiting order
+    loserIds.forEach(id=>{ const p=getPlayer(id); if(p) p.lastPlayedRound=globalRound; });
+    const def=courtDefs.find(d=>d.id===courtId);
+    const now=Date.now(); globalRound++;
+    const slot={id:courtId,name:def?.name||`Court ${courtId}`,team1:r.stayIds,team2:r.opponentIds,score1:'',score2:'',submitted:false,round:globalRound,startedAt:now,awaitingChallengers:!r.ready};
+    const idx=courts.findIndex(x=>x.id===courtId);
+    if(idx>=0) courts[idx]=slot; else courts.push(slot);
+    if(!courtTimerInterval) courtTimerInterval=setInterval(tickCourtTimers,1000);
+    rebuildMatchQueue();
+    renderCourts(); renderRankings(); renderGameHistory(); renderQueue(); saveState();
+    showToast(r.ready?'Winners stay. Challengers are up!':'Winners stay. Waiting for challengers.');
+    return;
+  }
   rebuildMatchQueue();
   renderCourts(); renderRankings(); renderGameHistory(); renderQueue(); saveState();
   showToast('Score saved!');
@@ -2177,12 +2223,15 @@ function renderCourts() {
       <div class="ct-names">${namesHtml(tp,tk)}</div>
       <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="${sid}_${def.id}" oninput="updateScore(${def.id})">
     </div>`;
+    const isHolding = mm()==='challenge' && (!c.team2 || !c.team2.length);
     return `<div class="court-card">${header}<div class="court-body">
       <div class="ct-head-row"><span class="ct-score-head">Score</span></div>
       ${rowHtml(t1,'team1','T1','t1','score1')}
       <div class="ct-vs">VS</div>
-      ${rowHtml(t2,'team2','T2','t2','score2')}
-      <button class="btn btn-accent btn-full" style="margin-top:14px" onclick="submitScore(${def.id})">Submit Score</button>
+      ${isHolding
+        ? `<div class="ct-row"><span class="ct-tag t2">T2</span><div class="ct-names"><span class="ct-name" style="color:var(--muted)">Waiting for challengers…</span></div></div>`
+        : rowHtml(t2,'team2','T2','t2','score2')}
+      ${isHolding ? '' : `<button class="btn btn-accent btn-full" style="margin-top:14px" onclick="submitScore(${def.id})">Submit Score</button>`}
       ${c.tMatchId?`<button class="btn btn-full" style="margin-top:6px" onclick="tSwapMatch(${def.id})">Swap match</button>`:''}
     </div></div>`;
   }).join('');
@@ -2528,11 +2577,12 @@ function confirmLeave() {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch } from './tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt } from './tournament.js';
 window.buildTeams = buildTeams;
 window.generateRoundRobin = generateRoundRobin;
 window.computeStandings = computeStandings;
 window.nextEligibleMatch = nextEligibleMatch;
+window.resolveChallengeCourt = resolveChallengeCourt;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
