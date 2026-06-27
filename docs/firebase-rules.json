@@ -1,0 +1,22 @@
+{
+  "rules": {
+    "sessions": {
+      ".read": "auth != null",
+      "$sid": {
+        ".write": "auth != null && (!data.exists() ? newData.child('ownerId').val() === auth.uid : data.child('ownerId').val() === auth.uid)",
+        "checkins": {
+          "$cid": {
+            ".write": "auth != null && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || (!data.exists() && newData.exists() && root.child('sessions').child($sid).child('checkinOpen').val() === true))",
+            ".validate": "newData.hasChildren(['name','skill','ts']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 40 && newData.child('skill').isString() && newData.child('skill').val().matches(/^(beginner|intermediate|advanced)$/) && newData.child('ts').isNumber()"
+          }
+        }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}
