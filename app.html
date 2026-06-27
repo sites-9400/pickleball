@@ -1715,10 +1715,10 @@ function chooseMatchPlayers(){
   const pool=getFreeWaiting(); // sorted by wait (lastPlayedRound asc, then queueOrder)
   if(pool.length<need) return null;
   const style=mm(), ts=teamSize();
-  // Balanced doubles: take the longest-waiting 4, then snake-pair by rating for even teams.
+  // Balanced doubles: take the longest-waiting 4, then snake-pair by declared skill level.
   if(style==='balanced' && ts===2){
-    const r=[...pool.slice(0,need)].sort((a,b)=>ratingOf(b)-ratingOf(a)); // strongest..weakest
-    return {team1:[r[0].id, r[3].id], team2:[r[1].id, r[2].id]};
+    const four=pool.slice(0,need).map(p=>({id:p.id, skill:p.skill||'intermediate'}));
+    return window.skillBalancedTeams(four, ts);
   }
   // Random: random selection AND pairing. Waittime/balanced-singles: longest-waiting, random pairing.
   const chosen = style==='random' ? shuffle(pool.slice()).slice(0,need) : pool.slice(0,need);
@@ -2577,12 +2577,13 @@ function confirmLeave() {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt } from './tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams } from './tournament.js';
 window.buildTeams = buildTeams;
 window.generateRoundRobin = generateRoundRobin;
 window.computeStandings = computeStandings;
 window.nextEligibleMatch = nextEligibleMatch;
 window.resolveChallengeCourt = resolveChallengeCourt;
+window.skillBalancedTeams = skillBalancedTeams;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
