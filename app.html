@@ -298,6 +298,9 @@ header h1 {
 .manual-chip-av{width:28px;height:28px;border-radius:50%;color:#fff;font-size:0.66rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .manual-chip-name{flex:1;min-width:0;font-size:0.9rem;font-weight:600;color:var(--ink);}
 .manual-chip-slot{width:22px;height:22px;border-radius:50%;background:var(--army);color:#fff;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.manual-chip{touch-action:none;}
+.drag-ghost{position:fixed;transform:translate(-50%,-120%);pointer-events:none;background:var(--army);color:#fff;padding:6px 10px;border-radius:8px;font-size:0.8rem;font-weight:700;z-index:9999;}
+.drop-team.drag-over{outline:2px dashed var(--army);}
 
 /* ===== INPUTS ===== */
 input[type="text"],
@@ -2080,13 +2083,13 @@ function renderManualPick(){
   const aNames=sel.slice(0,ts).map(id=>getPlayer(id)?.name||'?');
   const bNames=sel.slice(ts,need).map(id=>getPlayer(id)?.name||'?');
   document.getElementById('manualPreview').innerHTML=
-    `<div class="manual-team"><span class="manual-team-tag">Team A</span><span class="manual-team-names">${aNames.length?aNames.join(' & '):'—'}</span></div>`+
+    `<div class="manual-team drop-team" data-team="A"><span class="manual-team-tag">Team A</span><span class="manual-team-names">${aNames.length?aNames.join(' & '):'Drop here'}</span></div>`+
     `<div class="manual-vs">VS</div>`+
-    `<div class="manual-team"><span class="manual-team-tag">Team B</span><span class="manual-team-names">${bNames.length?bNames.join(' & '):'—'}</span></div>`;
+    `<div class="manual-team drop-team" data-team="B"><span class="manual-team-tag">Team B</span><span class="manual-team-names">${bNames.length?bNames.join(' & '):'Drop here'}</span></div>`;
   const avail=freeForManual();
   document.getElementById('manualOptions').innerHTML = avail.length
     ? avail.map(p=>{ const idx=sel.indexOf(p.id); const on=idx>=0;
-        return `<button class="manual-chip ${on?'on':''}" onclick="toggleManualPlayer(${p.id})"><span class="manual-chip-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span><span class="manual-chip-name">${p.name}</span>${on?`<span class="manual-chip-slot">${idx<ts?'A':'B'}</span>`:''}</button>`;
+        return `<button class="manual-chip ${on?'on':''}" onpointerdown="manualDragStart(event,${p.id})" onclick="toggleManualPlayer(${p.id})"><span class="manual-chip-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span><span class="manual-chip-name">${p.name}</span>${on?`<span class="manual-chip-slot">${idx<ts?'A':'B'}</span>`:''}</button>`;
       }).join('')
     : '<div style="color:var(--muted);font-size:0.85rem;font-weight:500;text-align:center;padding:14px;">No available players right now.</div>';
   const btn=document.getElementById('manualStartBtn');
@@ -2105,6 +2108,69 @@ function confirmManualPick(){
   closeManualModal();
   renderCourts(); renderQueue(); saveState();
   showToast(`${def?.name||'Court'} — match started!`);
+}
+
+// ===== MANUAL DRAG-AND-DROP =====
+// Pointer-events shim: works for mouse and touch.
+// A 6px movement threshold keeps plain taps firing the existing onclick toggle.
+let _drag = null;
+function manualDragStart(ev, id) {
+  _drag = { id, startX: ev.clientX, startY: ev.clientY, ghost: null, dragging: false };
+  window.addEventListener('pointermove', _manualDragMove);
+  window.addEventListener('pointerup', _manualDragEnd);
+}
+function _manualDragMove(ev) {
+  if (!_drag) return;
+  const dx = ev.clientX - _drag.startX, dy = ev.clientY - _drag.startY;
+  if (!_drag.dragging) {
+    if (Math.hypot(dx, dy) < 6) return; // below threshold: still a tap
+    _drag.dragging = true;
+    const ghost = document.createElement('div');
+    ghost.className = 'drag-ghost';
+    ghost.textContent = getPlayer(_drag.id)?.name || '?';
+    document.body.appendChild(ghost);
+    _drag.ghost = ghost;
+    ev.preventDefault(); // prevent scroll on touch now that drag is committed
+  }
+  if (_drag.ghost) {
+    _drag.ghost.style.left = ev.clientX + 'px';
+    _drag.ghost.style.top = ev.clientY + 'px';
+  }
+}
+function _manualDragEnd(ev) {
+  window.removeEventListener('pointermove', _manualDragMove);
+  window.removeEventListener('pointerup', _manualDragEnd);
+  if (_drag && _drag.dragging) {
+    // Hide ghost before elementFromPoint so we don't accidentally hit it
+    if (_drag.ghost) _drag.ghost.style.display = 'none';
+    const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.drop-team');
+    if (el) assignManualToTeam(_drag.id, el.getAttribute('data-team'));
+    if (_drag.ghost) _drag.ghost.remove();
+    // dragging flag suppresses click synthesis in most browsers; onclick not fired
+  }
+  // If !dragging: threshold never crossed; clean up and let onclick fire normally
+  _drag = null;
+}
+// Deterministic slot-insert mirroring the tap model.
+// Team A = selected[0..ts), Team B = selected[ts..2*ts).
+// Constraint: Team B can only accept players once Team A is full (A-then-B fill order).
+function assignManualToTeam(id, team) {
+  const ts = teamSize();
+  // Remove id from selected if already present, then recompute sides
+  manualPick.selected = manualPick.selected.filter(x => x !== id);
+  const A = manualPick.selected.slice(0, ts);
+  const B = manualPick.selected.slice(ts, ts * 2);
+  if (team === 'A') {
+    if (A.length < ts) A.push(id);
+    else { showToast('Team A is full.'); return; }
+  } else {
+    // Enforce A-then-B order: B slot only opens after A is full
+    if (A.length < ts) { showToast('Fill Team A first.'); return; }
+    if (B.length < ts) B.push(id);
+    else { showToast('Team B is full.'); return; }
+  }
+  manualPick.selected = [...A, ...B];
+  renderManualPick();
 }
 
 // ===== SWAP =====
@@ -2613,6 +2679,7 @@ window.nextEligibleMatch = nextEligibleMatch;
 window.resolveChallengeCourt = resolveChallengeCourt;
 window.skillBalancedTeams = skillBalancedTeams;
 window.bestSkillMatch = bestSkillMatch;
+window.manualDragStart = manualDragStart;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
