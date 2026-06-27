@@ -76,6 +76,7 @@ input:focus{border-color:var(--army);}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .skeleton{background:var(--surface2);border-radius:8px;animation:shimmer 1.2s infinite;}
 @keyframes shimmer{0%{opacity:0.5;}50%{opacity:1;}100%{opacity:0.5;}}
+.mode-desc{margin-top:8px;font-size:0.78rem;line-height:1.45;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;}
 </style>
 </head>
 <body>
@@ -110,16 +111,22 @@ input:focus{border-color:var(--army);}
       <div class="mode-field">
         <label class="mode-label">Matchmaking</label>
         <select id="newSessionMatchmaking" class="mode-select">
-          <option value="waittime">By wait time</option>
-          <option value="balanced">Balanced (by ranking)</option>
-          <option value="random">Random</option>
-          <option value="manual">Manual (pick each match)</option>
-          <option value="ladder">Ladder — King of the Court</option>
-          <option value="roundrobin">Round robin (fixed teams)</option>
-          <option value="bracket">Bracket (fixed teams)</option>
+          <optgroup label="Primary styles">
+            <option value="roundrobin">Round robin</option>
+            <option value="ladder">King of the court</option>
+            <option value="challenge">Challenge courts</option>
+            <option value="random">Numbering</option>
+          </optgroup>
+          <optgroup label="More styles">
+            <option value="waittime">By wait time</option>
+            <option value="balanced">Balanced (by skill)</option>
+            <option value="manual">Manual (pick each match)</option>
+            <option value="bracket">Bracket (fixed teams)</option>
+          </optgroup>
         </select>
       </div>
     </div>
+    <div class="mode-desc" id="modeDesc"></div>
     <button class="btn btn-accent btn-full" onclick="createSession()">⚡ Start New Session</button>
   </div>
 
@@ -401,6 +408,23 @@ function toggleTheme() {
   const d = document.getElementById('newSessionDate');
   if (d) d.value = new Date().toISOString().slice(0,10);
 })();
+const MODE_DESC = {
+  roundrobin: 'Fixed teams play a full schedule against each other. Ranked by wins, then point differential.',
+  ladder: 'King of the court. Winners move up a court, losers move down. Partners stay together.',
+  challenge: 'Winners stay on their court. Losers go to the back of the waiting queue and the next challengers come on.',
+  random: 'Numbering. Players are numbered off and rotate into random matchups.',
+  waittime: 'The players who have waited longest are matched up next.',
+  balanced: 'Teams are balanced by skill level for even games.',
+  manual: 'You pick every match yourself, court by court.',
+  bracket: 'Fixed teams play a single or double elimination bracket. (Bracket play arrives in a later phase.)'
+};
+function updateModeDesc(){
+  const sel=document.getElementById('newSessionMatchmaking');
+  const el=document.getElementById('modeDesc');
+  if(sel&&el) el.textContent=MODE_DESC[sel.value]||'';
+}
+document.getElementById('newSessionMatchmaking')?.addEventListener('change', updateModeDesc);
+updateModeDesc();
 </script>
 </body>
 </html>

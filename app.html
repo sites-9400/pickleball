@@ -1706,7 +1706,7 @@ function matchSize(){ return teamSize()*2; }
 function ratingOf(p){ return p && p.gamesPlayed ? (p.wins - p.losses) : 0; }
 function modeLabel(){
   const f = fmt()==='singles' ? 'Singles' : 'Doubles';
-  const m = {waittime:'By wait time', balanced:'Balanced', random:'Random', manual:'Manual', ladder:'Ladder (KotC)', roundrobin:'Round robin', bracket:'Bracket'}[mm()] || mm();
+  const m = {waittime:'By wait time', balanced:'Balanced', random:'Numbering', manual:'Manual', ladder:'King of the court', roundrobin:'Round robin', bracket:'Bracket', challenge:'Challenge courts'}[mm()] || mm();
   return `${f} · ${m}`;
 }
 // Pick the players + teams for the next match per the session's matchmaking style.
