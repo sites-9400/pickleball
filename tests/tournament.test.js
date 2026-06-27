@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt } from '../tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillRank, bestSkillMatch, skillBalancedTeams } from '../tournament.js';
 
 test('buildTeams: doubles pairs in order, no leftover', () => {
   const r = buildTeams(['a', 'b', 'c', 'd'], 2);
@@ -146,4 +146,28 @@ test('challenge conserves players', () => {
   const r = resolveChallengeCourt({ winnerIds:[1,2], loserIds:[3,4], queueIds:[5,6], teamSize:2 });
   const all = [...r.stayIds, ...r.opponentIds, ...r.updatedQueue].sort();
   assert.deepEqual(all, [1,2,3,4,5,6]);
+});
+
+test('skillRank maps levels and defaults to 2', () => {
+  assert.equal(skillRank('beginner'), 1);
+  assert.equal(skillRank('intermediate'), 2);
+  assert.equal(skillRank('advanced'), 3);
+  assert.equal(skillRank('whatever'), 2);
+});
+
+test('bestSkillMatch picks nearest skill, ties by order', () => {
+  const cands = [{id:5,skill:'advanced'},{id:6,skill:'beginner'},{id:7,skill:'beginner'}];
+  // outgoing intermediate(2): beginner diff 1, advanced diff 1 -> first in order wins (id5)
+  assert.equal(bestSkillMatch('intermediate', cands), 5);
+  // outgoing beginner(1): id6 diff 0 wins
+  assert.equal(bestSkillMatch('beginner', cands), 6);
+  assert.equal(bestSkillMatch('beginner', []), null);
+});
+
+test('skillBalancedTeams snake-distributes by skill (doubles)', () => {
+  const ps = [{id:1,skill:'advanced'},{id:2,skill:'advanced'},{id:3,skill:'beginner'},{id:4,skill:'beginner'}];
+  const { team1, team2 } = skillBalancedTeams(ps, 2);
+  // strongest..weakest = 1,2,3,4 -> snake: team1=[1,4], team2=[2,3]
+  assert.deepEqual(team1, [1,4]);
+  assert.deepEqual(team2, [2,3]);
 });

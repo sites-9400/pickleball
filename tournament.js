@@ -67,3 +67,26 @@ export function resolveChallengeCourt({ winnerIds, loserIds, queueIds, teamSize 
   const updatedQueue = [...queueIds, ...loserIds];
   return { stayIds, opponentIds: [], updatedQueue, ready: false };
 }
+
+export function skillRank(skill) {
+  return { beginner:1, intermediate:2, advanced:3 }[skill] || 2;
+}
+
+export function bestSkillMatch(outgoingSkill, candidates) {
+  if (!candidates || !candidates.length) return null;
+  const target = skillRank(outgoingSkill);
+  let best = candidates[0], bestDiff = Math.abs(skillRank(best.skill) - target);
+  for (const c of candidates.slice(1)) {
+    const d = Math.abs(skillRank(c.skill) - target);
+    if (d < bestDiff) { best = c; bestDiff = d; }
+  }
+  return best.id;
+}
+
+export function skillBalancedTeams(playerObjs, teamSize) {
+  const sorted = [...playerObjs].sort((a,b) => skillRank(b.skill) - skillRank(a.skill));
+  const team1 = [], team2 = [];
+  // snake: 0->t1, 1->t2, 2->t2, 3->t1, ... keeps total skill even
+  sorted.forEach((p, i) => { (i % 4 === 0 || i % 4 === 3 ? team1 : team2).push(p.id); });
+  return { team1, team2 };
+}
