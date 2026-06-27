@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillRank, bestSkillMatch, skillBalancedTeams } from '../tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillRank, bestSkillMatch, skillBalancedTeams, checkinToPlayer } from '../tournament.js';
 
 test('buildTeams: doubles pairs in order, no leftover', () => {
   const r = buildTeams(['a', 'b', 'c', 'd'], 2);
@@ -170,4 +170,35 @@ test('skillBalancedTeams snake-distributes by skill (doubles)', () => {
   // strongest..weakest = 1,2,3,4 -> snake: team1=[1,4], team2=[2,3]
   assert.deepEqual(team1, [1,4]);
   assert.deepEqual(team2, [2,3]);
+});
+
+test('checkinToPlayer builds a present qr player with validated skill', () => {
+  const r = checkinToPlayer({name:'Maria S', skill:'advanced', ts:1}, []);
+  assert.equal(r.skip, undefined);
+  assert.equal(r.player.name, 'Maria S');
+  assert.equal(r.player.present, true);
+  assert.equal(r.player.via, 'qr');
+  assert.equal(r.player.skill, 'advanced');
+  assert.equal(r.player.wins, 0);
+  assert.equal('id' in r.player, false);
+});
+
+test('checkinToPlayer defaults unknown skill to intermediate', () => {
+  assert.equal(checkinToPlayer({name:'Bob', skill:'pro', ts:1}, []).player.skill, 'intermediate');
+  assert.equal(checkinToPlayer({name:'Bob', ts:1}, []).player.skill, 'intermediate');
+});
+
+test('checkinToPlayer trims the name', () => {
+  assert.equal(checkinToPlayer({name:'  Ana T  ', skill:'beginner', ts:1}, []).player.name, 'Ana T');
+});
+
+test('checkinToPlayer skips duplicate names case-insensitively', () => {
+  const existing = [{name:'Maria S'}];
+  const r = checkinToPlayer({name:'maria s', skill:'beginner', ts:1}, existing);
+  assert.deepEqual(r, {skip:true, reason:'duplicate'});
+});
+
+test('checkinToPlayer skips empty/whitespace names', () => {
+  assert.deepEqual(checkinToPlayer({name:'   ', skill:'beginner', ts:1}, []), {skip:true, reason:'invalid'});
+  assert.deepEqual(checkinToPlayer({skill:'beginner', ts:1}, []), {skip:true, reason:'invalid'});
 });

@@ -90,3 +90,17 @@ export function skillBalancedTeams(playerObjs, teamSize) {
   sorted.forEach((p, i) => { (i % 4 === 0 || i % 4 === 3 ? team1 : team2).push(p.id); });
   return { team1, team2 };
 }
+
+export function checkinToPlayer(entry, existingPlayers) {
+  const name = (entry && typeof entry.name === 'string') ? entry.name.trim() : '';
+  if (!name) return { skip: true, reason: 'invalid' };
+  const skills = ['beginner', 'intermediate', 'advanced'];
+  const skill = (entry && skills.includes(entry.skill)) ? entry.skill : 'intermediate';
+  const dup = (existingPlayers || []).some(p =>
+    p && typeof p.name === 'string' && p.name.toLowerCase() === name.toLowerCase());
+  if (dup) return { skip: true, reason: 'duplicate' };
+  return { player: {
+    name, present: true, gamesPlayed: 0, wins: 0, losses: 0,
+    points: 0, pointsAgainst: 0, lastPlayedRound: -1, skill, via: 'qr'
+  } };
+}
