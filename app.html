@@ -942,6 +942,13 @@ input:focus, textarea:focus { border-color: var(--army); }
 .share-btns{display:flex;gap:6px;flex-wrap:wrap;}
 .share-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:white;border-radius:6px;padding:7px 12px;font-family:var(--font);font-size:0.75rem;font-weight:700;letter-spacing:0.03em;cursor:pointer;transition:background 0.15s;white-space:nowrap;}
 .share-btn:hover{background:rgba(255,255,255,0.25);}
+.checkin-panel{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);}
+.checkin-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.checkin-title{font-size:0.8rem;font-weight:800;color:var(--ink);}
+.checkin-toggle{font-family:var(--font);font-size:0.7rem;font-weight:800;border:none;border-radius:14px;padding:5px 12px;cursor:pointer;}
+.checkin-toggle.open{background:#e6f4ea;color:#1e7e34;}
+.checkin-toggle.closed{background:#fde8e8;color:#c0392b;}
+.checkin-qr{display:flex;justify-content:center;margin-top:10px;}
 
 /* ===== MATCH QUEUE CARDS ===== */
 .mq-section-label{font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
@@ -1041,6 +1048,15 @@ input:focus, textarea:focus { border-color: var(--army); }
         <button class="share-btn" onclick="copyViewLink()">📋 Copy Link</button>
       </div>
     </div>
+
+      <div class="checkin-panel" id="checkinPanel">
+        <div class="checkin-head">
+          <span class="checkin-title">Player check-in</span>
+          <button class="checkin-toggle" id="checkinToggleBtn" onclick="toggleCheckinOpen()">Open</button>
+        </div>
+        <div class="share-link-box" id="checkinLinkDisplay" onclick="copyCheckinLink()">Generating...</div>
+        <div class="checkin-qr" id="checkinQrContainer"></div>
+      </div>
 
     <div class="card">
       <div class="card-title">Add Players</div>
@@ -1225,6 +1241,7 @@ let sessionCreatedAt = null;
 let sessionDate = '';
 let sessionEnded = false;
 let sessionEndTime = null;
+let checkinOpen = true;
 let sessionTimerInterval = null;
 let courtTimerInterval = null;
 
@@ -1295,6 +1312,7 @@ function saveState() {
     ladder: ladder ? cleanLadder(ladder) : null,
     tournament: tournament ? cleanTournament(tournament) : null,
     sessionEnded, sessionEndTime,
+    checkinOpen: checkinOpen,
     status: sessionEnded ? 'ended' : 'active'
   };
   if (window._fbWrite) {
@@ -1423,6 +1441,7 @@ window._fbApplyRemote = function(s) {
   sessionDate       = s.date        || '';
   sessionEnded      = s.sessionEnded      || false;
   sessionEndTime    = s.sessionEndTime    || null;
+  checkinOpen       = (s.checkinOpen !== false); // default open; only an explicit false closes it
 
   applySessionUI();
   // Rebuild match queue from current state (removes stale/absent players)
@@ -1686,7 +1705,34 @@ function renderPlayers() {
       <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})">${p.present?'Here ✓':'Absent'}</button>
       <button class="remove-btn" onclick="removePlayer(${p.id})">✕</button>
     </div>`).join('');
+  renderCheckinPanel();
 }
+
+function renderCheckinPanel(){
+  const box=document.getElementById('checkinLinkDisplay');
+  const btn=document.getElementById('checkinToggleBtn');
+  if(box && window.checkinUrl) box.textContent=window.checkinUrl();
+  if(btn){
+    btn.textContent = checkinOpen ? 'Open' : 'Closed';
+    btn.className = 'checkin-toggle ' + (checkinOpen ? 'open' : 'closed');
+  }
+  _genCheckinQR();
+}
+function _genCheckinQR(){
+  if(!window.QRCode || !window.checkinUrl){ setTimeout(_genCheckinQR, 300); return; }
+  const el=document.getElementById('checkinQrContainer');
+  if(!el) return;
+  el.innerHTML='';
+  new QRCode(el, { text: window.checkinUrl(), width:120, height:120,
+    colorDark:'#1C1F14', colorLight:'#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
+}
+function toggleCheckinOpen(){
+  checkinOpen = !checkinOpen;
+  renderCheckinPanel();
+  saveState();
+  showToast(checkinOpen ? 'Check-in opened.' : 'Check-in closed.');
+}
+window.toggleCheckinOpen = toggleCheckinOpen;
 
 // ===== MATCH QUEUE =====
 function getActivePlayers() {
@@ -2853,6 +2899,11 @@ window.copyViewLink = function() {
 };
 window._getViewLink = function() {
   return `${window.location.origin}${_basePath()}view.html?session=${_SESSION_ID}`;
+};
+window.checkinUrl = () => `${window.location.origin}${_basePath()}checkin.html?session=${_SESSION_ID}`;
+window.copyCheckinLink = function() {
+  const link = window.checkinUrl();
+  navigator.clipboard?.writeText(link).then(() => window.showToast && window.showToast('Check-in link copied!'));
 };
 // Show share card whenever remote state loads
 window._onShareCardReady = function() {

@@ -229,7 +229,8 @@ window.createSession = async () => {
     matchQueue:{_empty:true}, gameHistory:{_empty:true}, queueOrder:{_empty:true},
     globalRound:0, playerIdCounter:0, courtIdCounter:0, mqIdCounter:0,
     sessionStartTime: Date.now(), sessionName: name,
-    sessionEnded: false, sessionEndTime: null
+    sessionEnded: false, sessionEndTime: null,
+    checkinOpen: true
   };
   await set(sessionRef, sessionData);
   // Register session under user profile for device-independent recovery
