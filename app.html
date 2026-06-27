@@ -417,6 +417,12 @@ input:focus, textarea:focus { border-color: var(--army); }
 }
 .remove-btn:hover { color: var(--red); }
 
+.skill-badge{font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;padding:3px 7px;border-radius:6px;border:none;cursor:pointer;font-family:var(--font);}
+.skill-badge.beginner{background:#e6f4ea;color:#1e7e34;}
+.skill-badge.intermediate{background:#fff4e0;color:#b8860b;}
+.skill-badge.advanced{background:#fde8e8;color:#c0392b;}
+.skill-counts{font-size:0.72rem;font-weight:600;color:var(--muted);margin-top:6px;}
+
 /* ===== COURT CARDS ===== */
 .court-grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,520px));gap:12px;margin-bottom:14px;justify-content:center;}
 .court-card {
@@ -1048,6 +1054,7 @@ input:focus, textarea:focus { border-color: var(--army); }
           <div class="stat-label">Total</div>
         </div>
       </div>
+      <div class="skill-counts" id="skillCounts"></div>
       <div style="position:relative;margin-bottom:12px;">
         <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:1rem;">🔍</span>
         <input type="text" id="attendanceSearch" placeholder="Search players..." oninput="renderPlayers()" style="padding-left:36px;">
@@ -1619,6 +1626,14 @@ function togglePresent(id) {
   if(!p.present) queueOrder=queueOrder.filter(q=>q!==id);
   rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
 }
+function setSkill(id){
+  const order=['beginner','intermediate','advanced'];
+  const p=getPlayer(id); if(!p) return;
+  const i=order.indexOf(p.skill||'intermediate');
+  p.skill=order[(i+1)%order.length];
+  renderPlayers(); saveState();
+}
+window.setSkill = setSkill;
 function removePlayer(id) {
   const p=getPlayer(id);
   const inMatch=courts.find(c=>!c.submitted&&(c.team1.includes(id)||c.team2.includes(id)));
@@ -1644,6 +1659,9 @@ function renderPlayers() {
   const filtered=players.filter(p=>p.name.toLowerCase().includes(search));
   document.getElementById('presentCount').textContent=presentPlayers().length;
   document.getElementById('totalCount').textContent=players.length;
+  const sc={beginner:0,intermediate:0,advanced:0};
+  players.forEach(p=>{ sc[p.skill||'intermediate']++; });
+  const scEl=document.getElementById('skillCounts'); if(scEl) scEl.textContent=`${sc.beginner} Beginner · ${sc.intermediate} Intermediate · ${sc.advanced} Advanced`;
   document.getElementById('sessionBadge').textContent=`${presentPlayers().length} playing`;
   if(!players.length){list.innerHTML='<div class="empty-state"><div class="icon">👥</div>No players yet. Add some above!</div>';return;}
   if(!filtered.length){list.innerHTML='<div class="empty-state"><div class="icon">🔍</div>No players match your search.</div>';return;}
@@ -1652,6 +1670,7 @@ function renderPlayers() {
       <div class="player-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div>
       <span class="player-name">${p.name}</span>
       <div class="status-dot ${p.present?'present':''}"></div>
+      <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})">${p.present?'Here ✓':'Absent'}</button>
       <button class="remove-btn" onclick="removePlayer(${p.id})">✕</button>
     </div>`).join('');
