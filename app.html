@@ -1384,7 +1384,7 @@ window._fbApplyRemote = function(s) {
     if (document.activeElement === el && el.value) activeScores[el.id] = el.value;
   });
 
-  players      = normArr(s.players);
+  players      = normArr(s.players).map(p => ({ ...p, skill: p.skill || 'intermediate' }));
   courts       = normCourts(s.courts);
   courtDefs    = normArr(s.courtDefs);
   matchQueue   = normMatchQueue(s.matchQueue);
@@ -1605,7 +1605,7 @@ function addPlayer() {
   let added=0, skipped=0;
   names.forEach(name=>{
     if(players.find(p=>p.name.toLowerCase()===name.toLowerCase())){skipped++;return;}
-    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1});
+    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate'});
     added++;
   });
   input.value=''; rebuildMatchQueue(); renderPlayers(); saveState();
