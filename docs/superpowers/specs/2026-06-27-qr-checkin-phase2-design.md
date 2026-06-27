@@ -30,8 +30,8 @@ importing inbox entries. This preserves the single-writer invariant and avoids t
   app instance), separate from the read-only view.
 - **Admin open/close toggle:** a `checkinOpen` flag on the session, admin-controlled, enforced both
   in `checkin.html` UI and in the Firebase rules (a closed check-in cannot be bypassed).
-- **Name storage:** the form's First name + last initial collapse into the existing single
-  `player.name` (e.g. "Maria S"). No new name fields on the player.
+- **Name:** a single free-text **Name** field, stored directly as `player.name` (no enforced format;
+  the player types whatever they like). No new name fields on the player.
 - **Player model** gains `via: 'qr' | 'manual'` (default `'manual'`, default-filled on read).
 - **Dedupe:** on import, skip a check-in whose name matches (case-insensitive) an existing player.
 - **Resilience:** if the admin app is closed at check-in time, entries wait in the inbox and import
@@ -74,10 +74,10 @@ A new standalone page modeled on `view.html`:
 - Reads `?session={id}` from the URL. Reads `sessions/{id}/name` (header) and
   `sessions/{id}/checkinOpen` (gate).
 - **If `checkinOpen !== true`:** show "Check-in is closed by the organizer." and render no form.
-- **If open:** render the form — First name (text, required, trimmed, <=30 chars), Last initial
-  (single letter, required, uppercased), Skill (radio: Beginner / Intermediate / Advanced, required).
-- On submit: build `name = First + " " + Initial`, `push(ref(db,'sessions/'+id+'/checkins'), {name, skill, ts: Date.now()})`.
-  Then show a confirmation ("You're checked in, Maria S. The organizer will get you into a game.")
+- **If open:** render the form — Name (single text field, required, trimmed, <=40 chars), Skill
+  (radio: Beginner / Intermediate / Advanced, required).
+- On submit: `push(ref(db,'sessions/'+id+'/checkins'), {name: name.trim(), skill, ts: Date.now()})`.
+  Then show a confirmation ("You're checked in, {name}. The organizer will get you into a game.")
   with a **Check in someone else** button that resets the form. Disable the submit button between
   click and confirmation to prevent double-submit.
 - Brand styling consistent with `view.html` (dark green header + logo). No em-dashes in copy.
