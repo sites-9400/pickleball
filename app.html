@@ -1841,7 +1841,7 @@ function submitScore(courtId) {
   const s1=parseInt(document.getElementById(`score1_${courtId}`)?.value);
   const s2=parseInt(document.getElementById(`score2_${courtId}`)?.value);
   if(isNaN(s1)||isNaN(s2)){showToast('Enter both scores first.');return;}
-  if(s1===0&&s2===0){if(!confirm('Score is 0 – 0. Submit anyway?')) return;}
+  if(s1===0&&s2===0&&mm()!=='challenge'){if(!confirm('Score is 0 – 0. Submit anyway?')) return;}
   if(mm()==='challenge'&&s1===s2){showToast('Ties are not allowed in Challenge courts.');return;}
   // tournament branch - handle round-robin matches before normal accounting
   const _slot = courts.find(c => c.id === courtId);
