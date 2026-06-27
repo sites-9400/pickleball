@@ -703,6 +703,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   border-radius: 20px;
   letter-spacing: 0.02em;
 }
+.swap-section-label{font-size:0.66rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:12px 0 6px;}
 .end-modal {
   background: var(--surface);
   border-radius: 16px 16px 0 0;
@@ -1156,6 +1157,11 @@ input:focus, textarea:focus { border-color: var(--army); }
   <div class="modal">
     <div class="modal-title" id="swapTitle">Swap Player</div>
     <div class="modal-sub" id="swapSub">Choose a waiting player to step in</div>
+    <div class="swap-fate" id="swapFate" style="display:none;flex-direction:column;gap:4px;margin:8px 0;padding:8px;background:rgba(0,0,0,0.05);border-radius:6px;">
+      <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px;">Outgoing player</div>
+      <label style="font-size:0.8rem;font-weight:600;"><input type="radio" name="swapFate" value="queue" checked> Send to waiting queue</label>
+      <label style="font-size:0.8rem;font-weight:600;"><input type="radio" name="swapFate" value="remove"> Remove from session</label>
+    </div>
     <div id="swapOptions"></div>
     <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeSwapModal()">Cancel</button>
   </div>
@@ -2110,6 +2116,10 @@ function openSwapModal(courtId,team,playerIndex) {
   swapContext={type:'court',courtId,team,playerIndex};
   document.getElementById('swapTitle').textContent=`Swap out ${outgoing?.name||'player'}`;
   document.getElementById('swapSub').textContent=`${c.name||'Court '+courtId} · ${team==='team1'?'Team A':'Team B'}`;
+  const fate=document.getElementById('swapFate');
+  fate.style.display='flex';
+  const queueRadio=fate.querySelector('input[value="queue"]');
+  if(queueRadio) queueRadio.checked=true;
   _openSwapOptions(outgoingId);
 }
 function openQueueSwapModal(matchId,team,playerIndex) {
@@ -2121,50 +2131,61 @@ function openQueueSwapModal(matchId,team,playerIndex) {
   swapContext={type:'queue',matchId,team,playerIndex};
   document.getElementById('swapTitle').textContent=`Swap out ${outgoing?.name||'player'}`;
   document.getElementById('swapSub').textContent=`Upcoming Match ${matchNum} · ${team==='team1'?'Team A':'Team B'}`;
+  document.getElementById('swapFate').style.display='none';
   _openSwapOptions(outgoingId);
 }
 function _openSwapOptions(outgoingId) {
-  // For swaps, only exclude players actively ON a court — queue members are eligible
+  const outgoing=getPlayer(outgoingId);
   const onCourtIds=new Set();
   courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>onCourtIds.add(id)));
-  onCourtIds.delete(outgoingId);
-  const available=presentPlayers().filter(p=>!onCourtIds.has(p.id)&&p.id!==outgoingId)
-    .sort((a,b)=>{
-      if(a.lastPlayedRound!==b.lastPlayedRound) return a.lastPlayedRound-b.lastPlayedRound;
-      return queueOrder.indexOf(a.id)-queueOrder.indexOf(b.id);
-    });
-  const opts=document.getElementById('swapOptions');
-  if(!available.length){opts.innerHTML='<div class="empty-state" style="padding:16px">No available players.</div>';}
-  else{opts.innerHTML=available.map(p=>`
-    <div class="swap-option" onclick="confirmSwap(${p.id})">
-      <div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div>
-      <span class="swap-name">${p.name}</span>
-      <span class="swap-idle">${p.lastPlayedRound===-1?'Not played':globalRound-p.lastPlayedRound+'r ago'}</span>
-    </div>`).join('');}
+  const queueCands=getFreeWaiting().map(p=>({id:p.id, skill:p.skill||'intermediate', name:p.name}));
+  const overrideCands=presentPlayers().filter(p=>p.id!==outgoingId).map(p=>({id:p.id, name:p.name, playing:onCourtIds.has(p.id)}));
+  const autoId=window.bestSkillMatch?(window.bestSkillMatch(outgoing?.skill||'intermediate', queueCands)):null;
+  const chip=(id,name,tag)=>`<div class="swap-option" onclick="confirmSwap(${id})">${name}${tag?` <span style="color:var(--muted);font-size:0.7rem;">${tag}</span>`:''}</div>`;
+  const autoHtml = autoId!=null
+    ? `<div class="swap-section-label">Auto-generate (best skill match)</div>${chip(autoId, getPlayer(autoId)?.name||'?','auto')}`
+    : '';
+  const queueHtml = queueCands.length
+    ? `<div class="swap-section-label">Pick from waiting queue</div>${queueCands.map(c=>chip(c.id,c.name,'')).join('')}`
+    : '<div class="swap-section-label">Pick from waiting queue</div><div style="color:var(--muted);font-size:0.8rem;padding:8px;">Queue is empty.</div>';
+  const overrideHtml = `<div class="swap-section-label">Override (any checked-in player)</div>${overrideCands.map(c=>chip(c.id,c.name,c.playing?'playing':'')).join('')}`;
+  document.getElementById('swapOptions').innerHTML = autoHtml + queueHtml + overrideHtml;
   document.getElementById('swapOverlay').classList.remove('hidden');
 }
 function confirmSwap(incomingId) {
   if(!swapContext) return;
   const incoming=getPlayer(incomingId);
+  const fate=(document.querySelector('input[name="swapFate"]:checked')?.value)||'queue';
   if(swapContext.type==='court'){
     const {courtId,team,playerIndex}=swapContext;
-    const c=courts.find(ct=>ct.id===courtId);
-    const teamArr=team==='team1'?c.team1:c.team2;
-    const outgoingId=teamArr[playerIndex]; const outgoing=getPlayer(outgoingId);
-    teamArr[playerIndex]=incomingId;
-    queueOrder=[outgoingId,...queueOrder.filter(id=>id!==incomingId&&id!==outgoingId)];
+    const c=courts.find(ct=>ct.id===courtId); if(!c){closeSwapModal();return;}
+    const outgoingId=c[team][playerIndex]; const outgoing=getPlayer(outgoingId);
+    // if incoming is playing on another court, vacate that seat (backfilled by rebuildMatchQueue)
+    courts.filter(ct=>!ct.submitted&&ct.id!==courtId).forEach(ct=>{
+      ['team1','team2'].forEach(tk=>{ const i=ct[tk].indexOf(incomingId); if(i>=0) ct[tk].splice(i,1); });
+    });
+    c[team][playerIndex]=incomingId;
+    // outgoing fate
+    if(fate==='remove'){
+      const p=getPlayer(outgoingId); if(p){ p.present=false; }
+      queueOrder=queueOrder.filter(q=>q!==outgoingId);
+    } else {
+      if(!queueOrder.includes(outgoingId)) queueOrder.push(outgoingId);
+      const p=getPlayer(outgoingId); if(p) p.lastPlayedRound=globalRound;
+    }
     closeSwapModal(); rebuildMatchQueue(); renderCourts(); renderQueue(); saveState();
-    showToast(`${outgoing?.name} ↔ ${incoming?.name}`);
-  } else {
-    const {matchId,team,playerIndex}=swapContext;
-    const m=matchQueue.find(q=>q.id===matchId); if(!m){closeSwapModal();return;}
-    const teamArr=team==='team1'?m.team1:m.team2;
-    const outgoingId=teamArr[playerIndex]; const outgoing=getPlayer(outgoingId);
-    teamArr[playerIndex]=incomingId;
-    queueOrder=[outgoingId,...queueOrder.filter(id=>id!==incomingId&&id!==outgoingId)];
-    closeSwapModal(); rebuildMatchQueue(); renderCourts(); renderQueue(); saveState();
-    showToast(`${outgoing?.name} ↔ ${incoming?.name}`);
+    showToast(`${outgoing?.name} >> ${incoming?.name}`);
+    return;
   }
+  // queue-swap branch (existing behavior preserved)
+  const {matchId,team,playerIndex}=swapContext;
+  const m=matchQueue.find(q=>q.id===matchId); if(!m){closeSwapModal();return;}
+  const teamArr=team==='team1'?m.team1:m.team2;
+  const outgoingId=teamArr[playerIndex]; const outgoing=getPlayer(outgoingId);
+  teamArr[playerIndex]=incomingId;
+  queueOrder=[outgoingId,...queueOrder.filter(id=>id!==incomingId&&id!==outgoingId)];
+  closeSwapModal(); rebuildMatchQueue(); renderCourts(); renderQueue(); saveState();
+  showToast(`${outgoing?.name} ↔ ${incoming?.name}`);
 }
 function closeSwapModal(e) {
   if(e&&e.target!==document.getElementById('swapOverlay')) return;
@@ -2577,13 +2598,14 @@ function confirmLeave() {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams } from './tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch } from './tournament.js';
 window.buildTeams = buildTeams;
 window.generateRoundRobin = generateRoundRobin;
 window.computeStandings = computeStandings;
 window.nextEligibleMatch = nextEligibleMatch;
 window.resolveChallengeCourt = resolveChallengeCourt;
 window.skillBalancedTeams = skillBalancedTeams;
+window.bestSkillMatch = bestSkillMatch;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
