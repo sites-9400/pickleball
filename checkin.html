@@ -58,7 +58,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getDatabase, ref, get, push, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -89,6 +89,9 @@ document.querySelectorAll('#skills button').forEach(b => b.addEventListener('cli
 document.getElementById('againBtn').addEventListener('click', () => {
   document.getElementById('nameInput').value = '';
   document.getElementById('submitBtn').disabled = false;
+  skill = 'intermediate';
+  document.querySelectorAll('#skills button').forEach(x => x.classList.remove('on'));
+  document.querySelector('#skills button[data-skill="intermediate"]').classList.add('on');
   showForm();
 });
 
