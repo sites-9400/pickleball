@@ -291,14 +291,13 @@ header h1 {
 .manual-team-names{font-size:0.9rem;font-weight:700;color:var(--ink);word-break:break-word;}
 .manual-vs{font-size:0.7rem;font-weight:900;color:var(--muted);flex-shrink:0;}
 .manual-options{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow-y:auto;}
-.manual-chip{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface2);border:1.5px solid transparent;border-radius:8px;padding:8px 12px;font-family:var(--font);cursor:pointer;transition:border-color 0.12s,background 0.12s;}
+.manual-chip{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface2);border:1.5px solid transparent;border-radius:8px;padding:8px 12px;font-family:var(--font);cursor:pointer;transition:border-color 0.12s,background 0.12s;touch-action:none;}
 .manual-chip:hover{border-color:var(--line);}
 .manual-chip.on{background:var(--army-pale);border-color:var(--army);}
 [data-theme="dark"] .manual-chip.on{background:rgba(143,179,57,0.16);border-color:var(--accent);}
 .manual-chip-av{width:28px;height:28px;border-radius:50%;color:#fff;font-size:0.66rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .manual-chip-name{flex:1;min-width:0;font-size:0.9rem;font-weight:600;color:var(--ink);}
 .manual-chip-slot{width:22px;height:22px;border-radius:50%;background:var(--army);color:#fff;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.manual-chip{touch-action:none;}
 .drag-ghost{position:fixed;transform:translate(-50%,-120%);pointer-events:none;background:var(--army);color:#fff;padding:6px 10px;border-radius:8px;font-size:0.8rem;font-weight:700;z-index:9999;}
 .drop-team.drag-over{outline:2px dashed var(--army);}
 
@@ -2115,9 +2114,13 @@ function confirmManualPick(){
 // A 6px movement threshold keeps plain taps firing the existing onclick toggle.
 let _drag = null;
 function manualDragStart(ev, id) {
-  _drag = { id, startX: ev.clientX, startY: ev.clientY, ghost: null, dragging: false };
+  _drag = { id, startX: ev.clientX, startY: ev.clientY, ghost: null, dragging: false, lastOver: null };
+  // setPointerCapture keeps move/up events flowing to us even if the pointer
+  // leaves the chip or the viewport edge. Guard: not all targets support it.
+  try { ev.target.setPointerCapture(ev.pointerId); } catch (e) {}
   window.addEventListener('pointermove', _manualDragMove);
   window.addEventListener('pointerup', _manualDragEnd);
+  window.addEventListener('pointercancel', _manualDragEnd);
 }
 function _manualDragMove(ev) {
   if (!_drag) return;
@@ -2136,17 +2139,30 @@ function _manualDragMove(ev) {
     _drag.ghost.style.left = ev.clientX + 'px';
     _drag.ghost.style.top = ev.clientY + 'px';
   }
+  // Live drop-target highlight. Ghost is pointer-events:none so it won't be hit.
+  const over = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.drop-team');
+  if (over !== _drag.lastOver) {
+    if (_drag.lastOver) _drag.lastOver.classList.remove('drag-over');
+    if (over) over.classList.add('drag-over');
+    _drag.lastOver = over;
+  }
 }
 function _manualDragEnd(ev) {
   window.removeEventListener('pointermove', _manualDragMove);
   window.removeEventListener('pointerup', _manualDragEnd);
-  if (_drag && _drag.dragging) {
-    // Hide ghost before elementFromPoint so we don't accidentally hit it
-    if (_drag.ghost) _drag.ghost.style.display = 'none';
-    const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.drop-team');
-    if (el) assignManualToTeam(_drag.id, el.getAttribute('data-team'));
+  window.removeEventListener('pointercancel', _manualDragEnd);
+  if (_drag) {
+    if (_drag.lastOver) _drag.lastOver.classList.remove('drag-over');
+    // pointercancel (e.g. system gesture/permission UI on touch) lands here too,
+    // so the ghost is removed and listeners cleared on every exit path.
+    if (_drag.dragging && ev.type !== 'pointercancel') {
+      // Hide ghost before elementFromPoint so we don't accidentally hit it
+      if (_drag.ghost) _drag.ghost.style.display = 'none';
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.drop-team');
+      if (el) assignManualToTeam(_drag.id, el.getAttribute('data-team'));
+      // dragging flag suppresses click synthesis in most browsers; onclick not fired
+    }
     if (_drag.ghost) _drag.ghost.remove();
-    // dragging flag suppresses click synthesis in most browsers; onclick not fired
   }
   // If !dragging: threshold never crossed; clean up and let onclick fire normally
   _drag = null;
