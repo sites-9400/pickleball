@@ -54,3 +54,16 @@ export function nextEligibleMatch(matches, busyTeams) {
   const busy = busyTeams instanceof Set ? busyTeams : new Set(busyTeams);
   return matches.find(m => !m.submitted && !busy.has(m.teamA) && !busy.has(m.teamB)) || null;
 }
+
+export function resolveChallengeCourt({ winnerIds, loserIds, queueIds, teamSize }) {
+  const stayIds = [...winnerIds];
+  // challengers come from the front of the queue; losers wait at the back
+  if (queueIds.length >= teamSize) {
+    const opponentIds = queueIds.slice(0, teamSize);
+    const updatedQueue = [...queueIds.slice(teamSize), ...loserIds];
+    return { stayIds, opponentIds, updatedQueue, ready: true };
+  }
+  // not enough challengers in queue; hold and append losers to back
+  const updatedQueue = [...queueIds, ...loserIds];
+  return { stayIds, opponentIds: [], updatedQueue, ready: false };
+}

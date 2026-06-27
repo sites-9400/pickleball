@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch } from '../tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt } from '../tournament.js';
 
 test('buildTeams: doubles pairs in order, no leftover', () => {
   const r = buildTeams(['a', 'b', 'c', 'd'], 2);
@@ -116,4 +116,34 @@ test('nextEligibleMatch: skips submitted matches', () => {
 test('nextEligibleMatch: null when nothing eligible', () => {
   const matches = [{ id: 'm1', teamA: 0, teamB: 1, submitted: false }];
   assert.equal(nextEligibleMatch(matches, [0, 1]), null);
+});
+
+test('challenge doubles: winners stay, losers to back, challengers from front', () => {
+  const r = resolveChallengeCourt({ winnerIds:[1,2], loserIds:[3,4], queueIds:[5,6,7], teamSize:2 });
+  assert.deepEqual(r.stayIds, [1,2]);
+  assert.deepEqual(r.opponentIds, [5,6]);
+  assert.deepEqual(r.updatedQueue, [7,3,4]);
+  assert.equal(r.ready, true);
+});
+
+test('challenge singles: one stays, one challenger', () => {
+  const r = resolveChallengeCourt({ winnerIds:[1], loserIds:[2], queueIds:[3], teamSize:1 });
+  assert.deepEqual(r.stayIds, [1]);
+  assert.deepEqual(r.opponentIds, [3]);
+  assert.deepEqual(r.updatedQueue, [2]);
+  assert.equal(r.ready, true);
+});
+
+test('challenge holds when queue too small', () => {
+  const r = resolveChallengeCourt({ winnerIds:[1,2], loserIds:[3,4], queueIds:[5], teamSize:2 });
+  assert.deepEqual(r.stayIds, [1,2]);
+  assert.deepEqual(r.opponentIds, []);
+  assert.deepEqual(r.updatedQueue, [5,3,4]);
+  assert.equal(r.ready, false);
+});
+
+test('challenge conserves players', () => {
+  const r = resolveChallengeCourt({ winnerIds:[1,2], loserIds:[3,4], queueIds:[5,6], teamSize:2 });
+  const all = [...r.stayIds, ...r.opponentIds, ...r.updatedQueue].sort();
+  assert.deepEqual(all, [1,2,3,4,5,6]);
 });
