@@ -1139,6 +1139,11 @@ input:focus, textarea:focus { border-color: var(--army); }
         <div class="empty-state"><div class="icon">⏳</div>Queue appears after matches are generated.</div>
       </div>
     </div>
+    <div class="card" id="holdCard" style="display:none;">
+      <div class="card-title">On hold</div>
+      <p style="font-size:0.82rem;font-weight:500;color:var(--muted);margin-bottom:14px;letter-spacing:0.01em;">Players taken out of play. Tap "Add to queue" when they're back.</p>
+      <div class="queue-list" id="holdList"></div>
+    </div>
   </div>
 
   <!-- RANKINGS TAB -->
@@ -2802,7 +2807,16 @@ function mqMatchCard(m,label,isNext) {
     <div class="mq-teams"><div class="mq-team">${teamHtml(t1,'team1')}</div><div class="mq-vs">VS</div><div class="mq-team">${teamHtml(t2,'team2')}</div></div>
   </div>`;
 }
+function renderHold() {
+  const card=document.getElementById('holdCard'), list=document.getElementById('holdList');
+  if(!card||!list) return;
+  const held=players.filter(p=>p&&!p.present);
+  if(!held.length){ card.style.display='none'; list.innerHTML=''; return; }
+  card.style.display='';
+  list.innerHTML=held.map(p=>`<div class="queue-item"><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${p.name}</span><button onclick="togglePresent(${p.id})" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:1.5px solid var(--army);background:none;color:var(--army);cursor:pointer;">Add to queue</button></div>`).join('');
+}
 function renderQueue() {
+  renderHold();
   const el=document.getElementById('queueList');
   const present=presentPlayers();
   if(!present.length){el.innerHTML='<div class="empty-state"><div class="icon">⏳</div>No present players yet.</div>';return;}
