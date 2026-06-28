@@ -1188,6 +1188,24 @@ input:focus, textarea:focus { border-color: var(--army); }
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="cancelOverlay" onclick="closeCancelModal(event)">
+  <div class="modal">
+    <div class="modal-title">Cancel match</div>
+    <div class="modal-sub" id="cancelSub"></div>
+    <div id="cancelOptions" style="display:flex;flex-direction:column;gap:6px;margin:10px 0;"></div>
+    <button class="btn btn-full" style="background:#c0392b;color:#fff;border:none;" onclick="confirmCancel()">Cancel this match</button>
+    <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="closeCancelModal()">Keep playing</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="closeCourtOverlay" onclick="closeCloseCourtModal(event)">
+  <div class="modal">
+    <div class="modal-title">Close this court?</div>
+    <div class="modal-sub" id="closeCourtSub"></div>
+    <div id="closeCourtActions" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+  </div>
+</div>
+
 <!-- MANUAL MATCH PICKER MODAL -->
 <div class="modal-overlay hidden" id="manualOverlay" onclick="closeManualModal(event)">
   <div class="modal">
@@ -1375,6 +1393,7 @@ function normTournament(val) {
     matches: normArr(val.matches).map(m => ({
       id: m.id, round: m.round || 1, teamA: m.teamA, teamB: m.teamB,
       score1: (m.score1 ?? ''), score2: (m.score2 ?? ''), submitted: !!m.submitted,
+      skipped: !!m.skipped,
     })),
   };
 }
@@ -1389,7 +1408,7 @@ function cleanTournament(t) {
       : {_empty:true},
     matches: t.matches && t.matches.length
       ? t.matches.map(m => ({ id: m.id, round: m.round, teamA: m.teamA, teamB: m.teamB,
-          score1: m.score1 === '' ? -1 : m.score1, score2: m.score2 === '' ? -1 : m.score2, submitted: !!m.submitted }))
+          score1: m.score1 === '' ? -1 : m.score1, score2: m.score2 === '' ? -1 : m.score2, submitted: !!m.submitted, skipped: !!m.skipped }))
       : {_empty:true},
   };
 }
@@ -1848,14 +1867,63 @@ function addCourt() {
   courtDefs.push({id,name});
   input.value=''; renderCourts(); saveState(); showToast(`${name} added!`);
 }
+let closeCourtContext = null;
 function removeCourt(courtId) {
-  const def=courtDefs.find(d=>d.id===courtId);
-  const active=courts.find(c=>c.id===courtId&&!c.submitted);
-  if(active){showToast('Submit the score first before removing this court.');return;}
-  courtDefs=courtDefs.filter(d=>d.id!==courtId);
-  courts=courts.filter(c=>c.id!==courtId);
-  renderCourts(); renderQueue(); saveState();
-  if(def) showToast(`${def.name} removed.`);
+  const def = courtDefs.find(d => d.id === courtId);
+  const active = courts.find(c => c.id === courtId && !c.submitted);
+  if (!active) { // idle court: remove directly (existing behavior)
+    courtDefs = courtDefs.filter(d => d.id !== courtId);
+    courts = courts.filter(c => c.id !== courtId);
+    renderCourts(); renderQueue(); saveState();
+    if (def) showToast(`${def.name} removed.`);
+    return;
+  }
+  // live match: confirm via dialog
+  closeCourtContext = { courtId };
+  const names = [...active.team1, ...active.team2].map(id => getPlayer(id)?.name || '?').join(', ');
+  const s1 = parseInt(document.getElementById(`score1_${courtId}`)?.value);
+  const s2 = parseInt(document.getElementById(`score2_${courtId}`)?.value);
+  const recordable = !isNaN(s1) && !isNaN(s2);
+  document.getElementById('closeCourtSub').textContent = `${active.name || def?.name || 'Court'}: ${names}. The court will be removed and players go back to the waiting queue.`;
+  let actions = '';
+  if (recordable) {
+    actions += `<button class="btn btn-full" style="background:#1e8e3e;color:#fff;border:none;" onclick="closeCourtConfirm('record')">Record score (${s1} - ${s2}) and close</button>`;
+    actions += `<button class="btn btn-full" style="background:#c0392b;color:#fff;border:none;" onclick="closeCourtConfirm('discard')">Close without recording</button>`;
+  } else {
+    actions += `<button class="btn btn-full" style="background:#c0392b;color:#fff;border:none;" onclick="closeCourtConfirm('discard')">Close court (no score)</button>`;
+  }
+  actions += `<button class="btn btn-outline btn-full" onclick="closeCloseCourtModal()">Keep court</button>`;
+  document.getElementById('closeCourtActions').innerHTML = actions;
+  document.getElementById('closeCourtOverlay').classList.remove('hidden');
+}
+function closeCloseCourtModal(e) {
+  if (e && e.target !== document.getElementById('closeCourtOverlay')) return;
+  document.getElementById('closeCourtOverlay').classList.add('hidden');
+  closeCourtContext = null;
+}
+function closeCourtConfirm(action) {
+  if (!closeCourtContext) return;
+  const { courtId } = closeCourtContext;
+  const def = courtDefs.find(d => d.id === courtId);
+  if (action === 'record') {
+    closeCloseCourtModal();
+    submitScore(courtId);
+    const after = courts.find(ct => ct.id === courtId);
+    if (after && !after.submitted) return; // submit aborted (e.g. 0-0 guard declined) -> keep court
+    courtDefs = courtDefs.filter(d => d.id !== courtId);
+    courts = courts.filter(ct => ct.id !== courtId);
+    rebuildMatchQueue(); renderCourts(); renderQueue(); saveState();
+    if (def) showToast(`${def.name} closed.`);
+    return;
+  }
+  // discard: players back to the waiting queue, then remove the court
+  const c = courts.find(ct => ct.id === courtId);
+  if (c) { [...c.team1, ...c.team2].forEach(id => { if (!queueOrder.includes(id)) queueOrder.push(id); }); }
+  closeCloseCourtModal();
+  courtDefs = courtDefs.filter(d => d.id !== courtId);
+  courts = courts.filter(ct => ct.id !== courtId);
+  rebuildMatchQueue(); renderCourts(); renderQueue(); saveState();
+  if (def) showToast(`${def.name} closed. Players back in the queue.`);
 }
 function renameCourtDef(courtId,newName) {
   if(!newName.trim()) return;
@@ -2094,6 +2162,7 @@ function renderLadder(){
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}">
         </div>
         <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
+        ${c.submitted?'':`<button class="btn btn-outline btn-full" style="margin-top:6px;color:#c0392b;border-color:#c0392b;" onclick="cancelMatch(${c.id})">Cancel match</button>`}
       </div>
     </div>`;
   });
@@ -2356,6 +2425,100 @@ function closeSwapModal(e) {
   document.getElementById('swapOverlay').classList.add('hidden');
   swapContext=null;
 }
+let cancelContext = null;
+function cancelMatch(courtId) {
+  const c = courts.find(ct => ct.id === courtId);
+  if (!c || c.submitted) return;
+  const mode = mm();
+  let variant = 'queue';
+  if (mode === 'roundrobin' || mode === 'bracket') variant = 'tournament';
+  else if (mode === 'ladder') variant = 'ladder';
+  cancelContext = { courtId, variant };
+  const names = [...c.team1, ...c.team2].map(id => getPlayer(id)?.name || '?').join(', ');
+  document.getElementById('cancelSub').textContent = `${c.name || 'Court'}: ${names}. No score will be recorded.`;
+  const optStyle = 'font-size:0.85rem;font-weight:600;display:flex;gap:6px;align-items:flex-start;';
+  let opts = '';
+  if (variant === 'tournament') {
+    opts = `
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="replay" checked> Replay later (put the match back in the schedule)</label>
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="skip"> Skip this match (not counted in standings)</label>`;
+  } else if (variant === 'ladder') {
+    opts = `
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="sitout" checked> Drop players to sitting out (tap Reset to re-seed)</label>
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="remove"> Remove players from the session</label>`;
+  } else {
+    opts = `
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="queue" checked> This match only (players go back to the waiting queue)</label>
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="bench"> Take players out of the queue (sit out, stay in session)</label>
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="remove"> Remove players from the session</label>`;
+  }
+  document.getElementById('cancelOptions').innerHTML = opts;
+  document.getElementById('cancelOverlay').classList.remove('hidden');
+}
+function closeCancelModal(e) {
+  if (e && e.target !== document.getElementById('cancelOverlay')) return;
+  document.getElementById('cancelOverlay').classList.add('hidden');
+  cancelContext = null;
+}
+function confirmCancel() {
+  if (!cancelContext) return;
+  const { courtId, variant } = cancelContext;
+  const c = courts.find(ct => ct.id === courtId);
+  if (!c) { closeCancelModal(); return; }
+  const fate = (document.querySelector('input[name="cancelFate"]:checked')?.value) || '';
+  const ids = [...c.team1, ...c.team2];
+
+  if (variant === 'tournament') {
+    const prevId = c.tMatchId;
+    if (fate === 'skip') {
+      const m = tournament.matches.find(x => x.id === prevId);
+      if (m) { m.submitted = true; m.skipped = true; m.score1 = ''; m.score2 = ''; }
+      courts = courts.filter(ct => ct.id !== courtId);
+      fillCourtsFromTournament();
+    } else { // replay later: free court, re-seat a different eligible match (match stays unplayed)
+      courts = courts.filter(ct => ct.id !== courtId);
+      const busy = busyTeamIndices();
+      const candidates = tournament.matches.filter(m => !m.submitted && !busy.has(m.teamA) && !busy.has(m.teamB) && m.id !== prevId);
+      const def = courtDefs.find(d => d.id === courtId);
+      if (candidates.length && def) placeMatchOnCourt(def, candidates[0]);
+    }
+    closeCancelModal();
+    renderCourts(); renderRankings(); saveState();
+    showToast('Match cancelled.');
+    return;
+  }
+
+  if (variant === 'ladder') {
+    if (fate === 'remove') {
+      players = players.filter(pl => !ids.includes(pl.id));
+      queueOrder = queueOrder.filter(q => !ids.includes(q));
+    }
+    // sitout: players stay present but become unplaced (court removed) -> they render in "Sitting out"
+    courts = courts.filter(ct => ct.id !== courtId);
+    closeCancelModal();
+    renderCourts(); renderPlayers(); saveState();
+    showToast(fate === 'remove' ? 'Players removed.' : 'Players moved to sitting out. Tap Reset to re-seed.');
+    return;
+  }
+
+  // queue variant (waittime / balanced / random / manual / challenge)
+  if (fate === 'remove') {
+    players = players.filter(pl => !ids.includes(pl.id));
+    queueOrder = queueOrder.filter(q => !ids.includes(q));
+    matchQueue = matchQueue.filter(m => ![...m.team1, ...m.team2].some(id => ids.includes(id)));
+  } else if (fate === 'bench') {
+    ids.forEach(id => { const p = getPlayer(id); if (p) p.present = false; });
+    queueOrder = queueOrder.filter(q => !ids.includes(q));
+  } else { // queue
+    ids.forEach(id => { if (!queueOrder.includes(id)) queueOrder.push(id); });
+  }
+  courts = courts.filter(ct => ct.id !== courtId);
+  closeCancelModal();
+  rebuildMatchQueue();
+  renderCourts(); renderPlayers(); renderQueue();
+  saveState();
+  showToast('Match cancelled.');
+}
 
 // ===== RENDER COURTS =====
 function renderCourts() {
@@ -2418,6 +2581,7 @@ function renderCourts() {
         : rowHtml(t2,'team2','T2','t2','score2')}
       ${isHolding ? '' : `<button class="btn btn-accent btn-full" style="margin-top:14px" onclick="submitScore(${def.id})">Submit Score</button>`}
       ${c.tMatchId?`<button class="btn btn-full" style="margin-top:6px" onclick="tSwapMatch(${def.id})">Swap match</button>`:''}
+      ${isHolding ? '' : `<button class="btn btn-outline btn-full" style="margin-top:6px;color:#c0392b;border-color:#c0392b;" onclick="cancelMatch(${def.id})">Cancel match</button>`}
     </div></div>`;
   }).join('');
   el.innerHTML='<div class="court-grid-layout">'+cards+'</div>';
