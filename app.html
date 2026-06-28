@@ -614,7 +614,9 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ct-tag.t1 { background: var(--army); color: #fff; }
 .ct-tag.t2 { background: var(--gold); color: #1C1F14; }
 .ct-names { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 5px 14px; }
-.ct-name { display: inline-flex; align-items: center; gap: 5px; font-size: 1.05rem; font-weight: 600; color: var(--ink); overflow-wrap: break-word; }
+.ct-name { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; font-size: 1.05rem; font-weight: 600; color: var(--ink); overflow-wrap: break-word; }
+.ct-name-row { display: inline-flex; align-items: center; gap: 5px; }
+.ct-lvl { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em; color: var(--muted); line-height: 1; }
 .ct-score {
   flex: 0 0 56px; width: 56px; text-align: center;
   font-family: var(--font); font-size: 1.35rem; font-weight: 800;
@@ -1798,6 +1800,7 @@ function mm(){ return sessionMode.matchmaking || 'waittime'; }
 function teamSize(){ return fmt()==='singles' ? 1 : 2; }
 function matchSize(){ return teamSize()*2; }
 function ratingOf(p){ return p && p.gamesPlayed ? (p.wins - p.losses) : 0; }
+function skillAbbr(p){ return ({beginner:'BEG',intermediate:'INT',advanced:'ADV'})[(p&&p.skill)||'intermediate']; }
 function modeLabel(){
   const f = fmt()==='singles' ? 'Singles' : 'Doubles';
   const m = {waittime:'By wait time', balanced:'Balanced', random:'Numbering', manual:'Manual', ladder:'King of the court', roundrobin:'Round robin', bracket:'Bracket', challenge:'Challenge courts'}[mm()] || mm();
@@ -2160,13 +2163,13 @@ function renderLadder(){
         <div class="ct-head-row"><span class="ct-score-head">Score</span></div>
         <div class="ct-row">
           <span class="ct-tag t1">A</span>
-          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span>`:c.team1.map((id,i)=>`<span class="ct-name">${getPlayer(id)?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${c.id},'team1',${i})" title="Swap player">⇄</button></span>`).join('')}</div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span>`:c.team1.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${getPlayer(id)?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${c.id},'team1',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}">
         </div>
         <div class="ct-vs">VS</div>
         <div class="ct-row">
           <span class="ct-tag t2">B</span>
-          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name">${getPlayer(id)?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${c.id},'team2',${i})" title="Swap player">⇄</button></span>`).join('')}</div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${getPlayer(id)?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${c.id},'team2',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}">
         </div>
         <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
@@ -2568,7 +2571,7 @@ function renderCourts() {
           : (c.tMatchId?`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Match complete</div>`:matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`)}
       </div></div>`;
     }
-    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name">${p?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span>`).join('');
+    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name"><span class="ct-name-row">${p?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(p)}</span></span>`).join('');
     const rowHtml=(tp,tk,tag,tagCls,sid)=>`<div class="ct-row">
       <span class="ct-tag ${tagCls}">${tag}</span>
       <div class="ct-names">${namesHtml(tp,tk)}</div>
