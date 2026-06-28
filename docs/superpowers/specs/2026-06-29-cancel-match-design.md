@@ -13,8 +13,8 @@ Verified existing behavior (do not rebuild):
 
 ## Scope
 
-- Production app: single mode (waiting queue). Gets Sections 1 + 2.
-- Modes app: all modes. Gets Sections 1 + 2 + 3.
+- Production app: single mode (waiting queue). Gets Sections 1 + 2 + 5.
+- Modes app: all modes. Gets Sections 1 + 2 + 3 + 5.
 
 ## Section 1 — Entry point & shared rules (both apps)
 
@@ -60,6 +60,19 @@ The unit here is a team/match, not a loose queued player, so the options are ref
 - **Invariants honored:** `update()` not `set()`; named `'viewer'` Firebase app untouched; anonymous-user auth guards untouched; `{_empty:true}` sentinel for empty arrays; court timers derive from `startedAt`; every new inline-onclick fn exposed on `window`. No em-dashes in user-facing copy.
 - **Tournament/ladder safety:** reuse `tournament.js` pure helpers and the existing `normTournament`/`cleanTournament`, `normLadder`/`cleanLadder` persistence; do not alter the tested scoring/movement math — replay just resets a match to unplayed, skip just flags it as no-result.
 
+## Section 5 — Close-court safety dialog (both apps)
+
+A separate feature from Cancel-match, on the court-remove ("X") control. Today `removeCourt` simply blocks while a match is live ("Submit the score first..."). New behavior:
+
+- **Closing an idle court** (no live match): unchanged, removes directly.
+- **Closing a court with a live match:** opens a confirm dialog instead of blocking. Players on the court **go back to the waiting queue** (the court itself is being removed). The match is never silently recorded.
+- **If a score has been entered** (both score inputs are valid numbers), the dialog asks whether to record it:
+  - **Record score and close** → records the score for whoever is on the court right now (reuses the existing mode-aware `submitScore`), then removes the court. If the score submit is aborted (e.g. the 0-0 guard is declined), the court is kept (close is cancelled).
+  - **Close without recording** → discards, players to the waiting queue, court removed.
+- **If no score entered:** single "Close court (no score)" action + "Keep court". Players to the queue, court removed.
+
+Implementation: enhance `removeCourt(courtId)` to open a new `#closeCourtOverlay` modal with dynamic action buttons; `closeCourtConfirm(action)` ('record' | 'discard') applies it; `closeCloseCourtModal(e)` dismisses. Reuses `submitScore` for the record path (mode-aware in the Modes app, so round-robin/ladder record correctly). Removes from both `courtDefs` and `courts`. All global (regular `<script>`), no `window.` needed.
+
 ### Smoke-test checklist
 - **Queue modes (both apps):** start a match; Cancel → "This match only" → players back in queue, no score/history, court idle and re-generatable. Repeat with "Take out of the queue" (players gone from rotation, still in Players list) and "Remove from session" (players deleted). Confirm leaderboard/match-history unchanged by a cancel. Confirm a normal Submit still credits the current roster (swap one player in first, then submit).
 - **Challenge:** cancel a court with a full queue → court auto-refills.
@@ -67,3 +80,4 @@ The unit here is a team/match, not a loose queued player, so the options are ref
 - **Ladder:** Cancel → "Drop to sitting-out" → players leave rotation into sitting-out; Reset re-seeds cleanly. "Remove from session" → players deleted.
 - **view.html:** open the live mirror during each cancel → idle court + unchanged standings/leaderboard.
 - **Reload mid-session** after a cancel → state restores from Firebase consistently.
+- **Close-court dialog:** close an idle court → removes directly. Close a court with a live match, no score → dialog → "Close court" returns players to the queue and removes the court; "Keep court" aborts. Enter a score, close → dialog offers "Record score and close" (score recorded for current roster, then court gone) and "Close without recording" (discarded, players to queue). Decline the 0-0 guard during record → court kept. Verify in the Modes app that record on a round-robin court routes through the tournament scoring.
