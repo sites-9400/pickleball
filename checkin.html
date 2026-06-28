@@ -24,10 +24,20 @@
   .skills button.on{background:var(--army);color:#fff;border-color:var(--army);}
   .submit{width:100%;margin-top:18px;font-family:var(--font);font-size:1rem;font-weight:800;padding:14px;border:none;border-radius:10px;background:var(--army);color:#fff;cursor:pointer;}
   .submit:disabled{opacity:0.5;cursor:default;}
+  .secondary{background:#fff;color:var(--army);border:1.5px solid var(--army);}
   .msg{text-align:center;padding:24px 10px;}
   .msg .big{font-size:1.15rem;font-weight:800;margin-bottom:8px;}
   .closed{text-align:center;color:var(--muted);padding:30px 10px;font-weight:600;}
   .hidden{display:none;}
+  .roster-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1.5px solid var(--line);border-radius:9px;margin-bottom:8px;cursor:pointer;background:#fff;}
+  .roster-row.sel{border-color:var(--army);background:#eef2e6;}
+  .roster-row.here{opacity:0.55;cursor:default;}
+  .roster-row .nm{font-weight:700;font-size:0.95rem;flex:1;}
+  .roster-row .sk{font-size:0.68rem;font-weight:800;text-transform:uppercase;color:var(--muted);}
+  .roster-row .ck{width:20px;height:20px;border:2px solid var(--line);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#fff;font-weight:900;}
+  .roster-row.sel .ck{background:var(--army);border-color:var(--army);}
+  .here-badge{font-size:0.7rem;font-weight:800;color:var(--army);}
+  .empty-hint{color:var(--muted);font-size:0.9rem;padding:6px 0 2px;}
 </style>
 </head>
 <body>
@@ -38,7 +48,14 @@
   </div>
   <div class="wrap">
     <div class="card" id="card">
-      <div id="formArea">
+      <div id="rosterArea" class="hidden">
+        <label>Tap your name, then check in</label>
+        <div id="rosterList"></div>
+        <div id="rosterEmpty" class="empty-hint hidden">No players added yet. Use "Add me" below.</div>
+        <button class="submit" id="checkinBtn" disabled>Check in</button>
+        <button class="submit secondary" id="addToggleBtn">My name isn't listed - add me</button>
+      </div>
+      <div id="formArea" class="hidden">
         <label for="nameInput">Your name</label>
         <input type="text" id="nameInput" maxlength="40" placeholder="e.g. Maria S" autocomplete="off">
         <label>Skill level</label>
@@ -48,11 +65,13 @@
           <button type="button" data-skill="advanced">Advanced</button>
         </div>
         <button class="submit" id="submitBtn">Check in</button>
+        <button class="submit secondary" id="backToRosterBtn">Back to list</button>
       </div>
       <div class="msg hidden" id="doneArea">
         <div class="big" id="doneName">You're checked in!</div>
-        <div style="color:var(--muted);font-size:0.9rem;">The organizer will get you into a game.</div>
-        <button class="submit" id="againBtn" style="margin-top:20px;">Check in someone else</button>
+        <div id="doneNames" style="color:var(--muted);font-size:0.9rem;"></div>
+        <a id="viewLink" href="#" target="_blank" rel="noopener" class="submit" style="display:block;text-decoration:none;">See live courts &amp; standings</a>
+        <button class="submit secondary" id="againBtn">Check in more</button>
       </div>
       <div class="closed hidden" id="closedArea">Check-in is closed by the organizer.</div>
     </div>
@@ -74,27 +93,89 @@ const db = getDatabase(app);
 const auth = getAuth(app);
 
 const SID = new URLSearchParams(window.location.search).get('session');
+const SKILLS = ['beginner','intermediate','advanced'];
 let skill = 'intermediate';
+let roster = [];
+let checkinOpen = false;
+const selected = new Set();
 
+const rosterArea = document.getElementById('rosterArea');
 const formArea = document.getElementById('formArea');
 const doneArea = document.getElementById('doneArea');
 const closedArea = document.getElementById('closedArea');
 
-function showClosed(){ formArea.classList.add('hidden'); doneArea.classList.add('hidden'); closedArea.classList.remove('hidden'); }
-function showForm(){ formArea.classList.remove('hidden'); doneArea.classList.add('hidden'); closedArea.classList.add('hidden'); }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function hideAll(){ rosterArea.classList.add('hidden'); formArea.classList.add('hidden'); doneArea.classList.add('hidden'); closedArea.classList.add('hidden'); }
+function showRoster(){ hideAll(); rosterArea.classList.remove('hidden'); renderRoster(); }
+function showForm(){ hideAll(); formArea.classList.remove('hidden'); }
+function showClosed(){ hideAll(); closedArea.classList.remove('hidden'); }
+
+function readPlayers(val){
+  if(!val) return [];
+  const arr = Array.isArray(val) ? val : Object.values(val);
+  return arr.filter(p => p && typeof p.name === 'string' && p.name.length)
+            .map(p => ({ name: p.name, skill: p.skill, present: !!p.present }));
+}
+
+function updateCheckinBtn(){
+  const btn = document.getElementById('checkinBtn');
+  btn.disabled = selected.size === 0;
+  btn.textContent = selected.size ? `Check in (${selected.size})` : 'Check in';
+}
+
+function renderRoster(){
+  const list = document.getElementById('rosterList');
+  list.innerHTML = roster.map((p, i) => {
+    const sel = selected.has(p.name);
+    const cls = p.present ? 'roster-row here' : (sel ? 'roster-row sel' : 'roster-row');
+    const sk = SKILLS.includes(p.skill) ? p.skill.slice(0,3) : 'int';
+    const right = p.present ? '<span class="here-badge">Here ✓</span>' : `<span class="ck">${sel ? '✓' : ''}</span>`;
+    return `<div class="${cls}" data-i="${i}"><span class="nm">${esc(p.name)}</span><span class="sk">${sk}</span>${right}</div>`;
+  }).join('');
+  document.getElementById('rosterEmpty').classList.toggle('hidden', roster.length > 0);
+  list.querySelectorAll('.roster-row:not(.here)').forEach(row => {
+    row.addEventListener('click', () => {
+      const p = roster[+row.getAttribute('data-i')];
+      if(!p) return;
+      if(selected.has(p.name)) selected.delete(p.name); else selected.add(p.name);
+      renderRoster();
+    });
+  });
+  updateCheckinBtn();
+}
 
 document.querySelectorAll('#skills button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('#skills button').forEach(x => x.classList.remove('on'));
   b.classList.add('on'); skill = b.getAttribute('data-skill');
 }));
 
-document.getElementById('againBtn').addEventListener('click', () => {
-  document.getElementById('nameInput').value = '';
-  document.getElementById('submitBtn').disabled = false;
-  skill = 'intermediate';
-  document.querySelectorAll('#skills button').forEach(x => x.classList.remove('on'));
-  document.querySelector('#skills button[data-skill="intermediate"]').classList.add('on');
-  showForm();
+document.getElementById('addToggleBtn').addEventListener('click', showForm);
+document.getElementById('backToRosterBtn').addEventListener('click', showRoster);
+
+function showDone(names){
+  document.getElementById('doneName').textContent = names.length > 1 ? "You're checked in!" : `You're checked in, ${names[0]}!`;
+  document.getElementById('doneNames').textContent = names.join(', ');
+  document.getElementById('viewLink').href = `view.html?session=${encodeURIComponent(SID)}`;
+  hideAll(); doneArea.classList.remove('hidden');
+}
+
+document.getElementById('checkinBtn').addEventListener('click', async () => {
+  if(!selected.size) return;
+  const btn = document.getElementById('checkinBtn');
+  btn.disabled = true;
+  const names = [...selected];
+  try {
+    await Promise.all(names.map(nm => {
+      const p = roster.find(r => r.name === nm);
+      const sk = (p && SKILLS.includes(p.skill)) ? p.skill : 'intermediate';
+      return push(ref(db, `sessions/${SID}/checkins`), { name: nm, skill: sk, ts: Date.now() });
+    }));
+    selected.clear();
+    showDone(names);
+  } catch(e){
+    btn.disabled = false;
+    alert('Could not check in. Check-in may be closed. Please ask the organizer.');
+  }
 });
 
 document.getElementById('submitBtn').addEventListener('click', async () => {
@@ -104,21 +185,31 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   btn.disabled = true;
   try {
     await push(ref(db, `sessions/${SID}/checkins`), { name, skill, ts: Date.now() });
-    document.getElementById('doneName').textContent = `You're checked in, ${name}!`;
-    formArea.classList.add('hidden'); doneArea.classList.remove('hidden');
+    showDone([name]);
   } catch(e){
     btn.disabled = false;
     alert('Could not check in. Check-in may be closed. Please ask the organizer.');
   }
 });
 
+document.getElementById('againBtn').addEventListener('click', () => {
+  document.getElementById('nameInput').value = '';
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('checkinBtn').disabled = true;
+  skill = 'intermediate';
+  document.querySelectorAll('#skills button').forEach(x => x.classList.remove('on'));
+  document.querySelector('#skills button[data-skill="intermediate"]').classList.add('on');
+  if(checkinOpen) showRoster(); else showClosed();
+});
+
 function start(){
   if(!SID){ document.getElementById('card').innerHTML = '<div class="closed">This link is missing a session. Ask the organizer for the correct link.</div>'; return; }
-  // Live-gate on checkinOpen + show session name
   onValue(ref(db, `sessions/${SID}/name`), s => { const n = s.val(); if(n) document.getElementById('sessionName').textContent = n; });
+  onValue(ref(db, `sessions/${SID}/players`), s => { roster = readPlayers(s.val()); if(!rosterArea.classList.contains('hidden')) renderRoster(); });
   onValue(ref(db, `sessions/${SID}/checkinOpen`), s => {
-    if(s.val() === true){ if(doneArea.classList.contains('hidden')) showForm(); }
-    else { showClosed(); }
+    checkinOpen = s.val() === true;
+    if(!checkinOpen){ showClosed(); return; }
+    if(doneArea.classList.contains('hidden') && formArea.classList.contains('hidden')) showRoster();
   });
 }
 signInAnonymously(auth).then(start).catch(() => start());
