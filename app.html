@@ -1037,16 +1037,19 @@ input:focus, textarea:focus { border-color: var(--army); }
     <!-- SHARE CARD — always visible once session is active -->
     <div class="share-card" id="shareCard" style="display:none;">
       <div class="share-card-title">Share with Players</div>
-      <div style="display:flex;justify-content:center;margin-bottom:10px;">
-        <div style="background:white;border-radius:10px;padding:8px;line-height:0;display:inline-block;">
-          <div id="qrContainer"></div>
+      <div id="shareQrWrap" style="display:none;">
+        <div style="display:flex;justify-content:center;margin-bottom:10px;">
+          <div style="background:white;border-radius:10px;padding:8px;line-height:0;display:inline-block;">
+            <div id="qrContainer"></div>
+          </div>
         </div>
+        <div style="text-align:center;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;opacity:0.65;margin-bottom:12px;">Scan to view live</div>
       </div>
-      <div style="text-align:center;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;opacity:0.65;margin-bottom:12px;">Scan to view live</div>
       <div class="share-link-label">View Link</div>
       <div class="share-link-box" id="shareLinkDisplay" onclick="copyViewLink()">Generating...</div>
       <div class="share-btns">
         <button class="share-btn" onclick="copyViewLink()">📋 Copy Link</button>
+        <button class="share-btn" onclick="var w=document.getElementById('shareQrWrap');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
       </div>
     </div>
 
