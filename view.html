@@ -46,6 +46,8 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 .player-bullet-v{width:7px;height:7px;border-radius:50%;background:var(--army-light);flex-shrink:0;}
 .player-chip-avatar{width:24px;height:24px;border-radius:50%;color:white;font-size:0.62rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
 .player-chip-name{font-size:1.02rem;font-weight:600;color:var(--ink);min-width:0;overflow-wrap:break-word;}
+.player-chip-col{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:0;}
+.player-chip-lvl{font-size:0.6rem;font-weight:800;letter-spacing:0.06em;color:var(--muted);}
 .vs-view{font-size:0.85rem;font-weight:900;color:var(--muted);letter-spacing:0.06em;text-align:center;}
 .court-idle-view{background:var(--surface);border-radius:12px;overflow:hidden;border:1.5px dashed var(--line);}
 .court-idle-body{padding:16px;text-align:center;color:var(--muted);font-size:0.82rem;font-weight:500;letter-spacing:0.01em;}
@@ -489,7 +491,7 @@ function renderCourts(s) {
     }
     const teamView=(tp,label)=>`<div class="team-view">
       <div class="team-view-label">${label}</div>
-      ${tp.map(p=>`<div class="player-chip"><span class="player-bullet-v"></span><span class="player-chip-name">${p?.name||'?'}</span></div>`).join('')}
+      ${tp.map(p=>`<div class="player-chip"><span class="player-bullet-v"></span><span class="player-chip-col"><span class="player-chip-name">${p?.name||'?'}</span><span class="player-chip-lvl">${({beginner:'BEG',intermediate:'INT',advanced:'ADV'})[(p&&p.skill)||'intermediate']}</span></span></div>`).join('')}
     </div>`;
     return `<div class="court-view">${hdr}<div class="court-view-body">
       <div class="match-view">${teamView(t1,'Team A')}<div class="vs-view">VS</div>${teamView(t2,'Team B')}</div>
