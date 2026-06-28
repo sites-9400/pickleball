@@ -15,9 +15,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);display:flex;
 
 .card{background:var(--surface);border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:1px solid var(--line);}
 
-.logo-wrap{display:flex;align-items:center;justify-content:center;margin-bottom:28px;}
-.logo-circle{width:52px;height:52px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.brand{margin-left:12px;}
+.logo-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:28px;}
+.logo-circle{width:96px;height:96px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-bottom:12px;}
+.brand{text-align:center;}
 .brand-name{font-size:1.25rem;font-weight:900;letter-spacing:0.01em;color:var(--ink);line-height:1;}
 .brand-sub{font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
 
@@ -64,7 +64,7 @@ input:focus{border-color:var(--army);}
 
 <div class="card">
   <div class="logo-wrap">
-    <div class="logo-circle" style="padding:0;background:transparent;overflow:hidden;"><img src="logo.png" alt="Paddle District" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" onerror="this.style.display='none'"></div>
+    <div class="logo-circle" style="padding:0;background:transparent;"><img src="logo.png" alt="Paddle District" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display='none'"></div>
     <div class="brand">
       <div class="brand-name">Paddle District</div>
       <div class="brand-sub">Pickleball Community</div>
