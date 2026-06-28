@@ -2042,7 +2042,7 @@ function submitScore(courtId) {
       _slot.team2.forEach(id => { const p = getPlayer(id); if (p) { if (bWin) p.wins++; else if (aWin) p.losses++; p.points += bPts; p.pointsAgainst += aPts; } });
       gameHistory.unshift({ round: m.round, court: _slot.id, courtName: _slot.name || ('Court ' + _slot.id),
         team1: _slot.team1.map(id => getPlayer(id)?.name || '?'), team2: _slot.team2.map(id => getPlayer(id)?.name || '?'),
-        team1Ids: [..._slot.team1], team2Ids: [..._slot.team2],
+        team1Ids: [..._slot.team1], team2Ids: [..._slot.team2], tMatchId: _slot.tMatchId,
         score1: s1, score2: s2 });
     }
     _slot.score1 = s1; _slot.score2 = s2; _slot.submitted = true;
@@ -2965,6 +2965,11 @@ function commitEditScore(){
   applyGameStats(t1p,t2p,o1,o2,-1);
   applyGameStats(t1p,t2p,n1,n2,+1);
   g.score1=n1; g.score2=n2;
+  // Round-robin/bracket: also correct the tournament match so standings recompute
+  if(g.tMatchId && tournament && tournament.matches){
+    const tm=tournament.matches.find(x=>x.id===g.tMatchId);
+    if(tm){ tm.score1=n1; tm.score2=n2; }
+  }
   const missing=[...t1p,...t2p].filter(p=>!p).length;
   renderRankings(); renderGameHistory(); saveState();
   closeEditScore();
