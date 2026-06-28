@@ -1192,7 +1192,7 @@ input:focus, textarea:focus { border-color: var(--army); }
     <div class="swap-fate" id="swapFate" style="display:none;flex-direction:column;gap:4px;margin:8px 0;padding:8px;background:rgba(0,0,0,0.05);border-radius:6px;">
       <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:4px;">Outgoing player</div>
       <label style="font-size:0.8rem;font-weight:600;"><input type="radio" name="swapFate" value="queue" checked> Send to waiting queue</label>
-      <label style="font-size:0.8rem;font-weight:600;"><input type="radio" name="swapFate" value="remove"> Remove from session</label>
+      <label style="font-size:0.8rem;font-weight:600;"><input type="radio" name="swapFate" value="remove"> Put on hold (keep in session)</label>
     </div>
     <div id="swapOptions"></div>
     <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeSwapModal()">Cancel</button>
@@ -1702,11 +1702,8 @@ function setSkill(id){
 window.setSkill = setSkill;
 function removePlayer(id) {
   const p=getPlayer(id);
-  const inMatch=courts.find(c=>!c.submitted&&(c.team1.includes(id)||c.team2.includes(id)));
-  if(inMatch){
-    if(!confirm(`${p.name} is in an active match on ${inMatch.name||'a court'}. Remove anyway?`)) return;
-    courts.forEach(c=>{c.team1=c.team1.filter(pid=>pid!==id);c.team2=c.team2.filter(pid=>pid!==id);});
-  }
+  if(!confirm(`Delete ${p?.name||'this player'} permanently? This removes their stats. To keep them for later, tap "Here" to put them on hold instead.`)) return;
+  courts.forEach(c=>{c.team1=c.team1.filter(pid=>pid!==id);c.team2=c.team2.filter(pid=>pid!==id);});
   // Remove from matchQueue
   matchQueue=matchQueue.filter(m=>!m.team1.includes(id)&&!m.team2.includes(id));
   players=players.filter(pl=>pl.id!==id);
@@ -1738,8 +1735,8 @@ function renderPlayers() {
       <div class="status-dot ${p.present?'present':''}"></div>
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
-      <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})">${p.present?'Here ✓':'Absent'}</button>
-      <button class="remove-btn" onclick="removePlayer(${p.id})">✕</button>
+      <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})" title="${p.present?'On court - tap to put on hold':'On hold - tap to add back to queue'}">${p.present?'Here ✓':'Add to queue'}</button>
+      <button class="remove-btn" onclick="removePlayer(${p.id})" title="Delete permanently">🗑</button>
     </div>`).join('');
   renderCheckinPanel();
 }
@@ -2456,12 +2453,11 @@ function cancelMatch(courtId) {
   } else if (variant === 'ladder') {
     opts = `
       <label style="${optStyle}"><input type="radio" name="cancelFate" value="sitout" checked> Drop players to sitting out (tap Reset to re-seed)</label>
-      <label style="${optStyle}"><input type="radio" name="cancelFate" value="remove"> Remove players from the session</label>`;
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="hold"> Put players on hold (keep in session, off play)</label>`;
   } else {
     opts = `
       <label style="${optStyle}"><input type="radio" name="cancelFate" value="queue" checked> This match only (players go back to the waiting queue)</label>
-      <label style="${optStyle}"><input type="radio" name="cancelFate" value="bench"> Take players out of the queue (sit out, stay in session)</label>
-      <label style="${optStyle}"><input type="radio" name="cancelFate" value="remove"> Remove players from the session</label>`;
+      <label style="${optStyle}"><input type="radio" name="cancelFate" value="bench"> Put players on hold (keep in session, off the queue)</label>`;
   }
   document.getElementById('cancelOptions').innerHTML = opts;
   document.getElementById('cancelOverlay').classList.remove('hidden');
@@ -2500,24 +2496,20 @@ function confirmCancel() {
   }
 
   if (variant === 'ladder') {
-    if (fate === 'remove') {
-      players = players.filter(pl => !ids.includes(pl.id));
+    if (fate === 'hold') {
+      ids.forEach(id => { const p = getPlayer(id); if (p) p.present = false; });
       queueOrder = queueOrder.filter(q => !ids.includes(q));
     }
     // sitout: players stay present but become unplaced (court removed) -> they render in "Sitting out"
     courts = courts.filter(ct => ct.id !== courtId);
     closeCancelModal();
     renderCourts(); renderPlayers(); saveState();
-    showToast(fate === 'remove' ? 'Players removed.' : 'Players moved to sitting out. Tap Reset to re-seed.');
+    showToast(fate === 'hold' ? 'Players put on hold.' : 'Players moved to sitting out. Tap Reset to re-seed.');
     return;
   }
 
   // queue variant (waittime / balanced / random / manual / challenge)
-  if (fate === 'remove') {
-    players = players.filter(pl => !ids.includes(pl.id));
-    queueOrder = queueOrder.filter(q => !ids.includes(q));
-    matchQueue = matchQueue.filter(m => ![...m.team1, ...m.team2].some(id => ids.includes(id)));
-  } else if (fate === 'bench') {
+  if (fate === 'bench') { // put on hold
     ids.forEach(id => { const p = getPlayer(id); if (p) p.present = false; });
     queueOrder = queueOrder.filter(q => !ids.includes(q));
   } else { // queue
