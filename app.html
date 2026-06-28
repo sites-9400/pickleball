@@ -1079,6 +1079,7 @@ input:focus, textarea:focus { border-color: var(--army); }
         <div class="share-link-box" id="checkinLinkDisplay" onclick="copyCheckinLink()">Generating...</div>
         <button class="checkin-toggle" style="margin-top:8px;width:100%;" onclick="var w=document.getElementById('checkinQrContainer');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
         <div class="checkin-qr" id="checkinQrContainer" style="display:none;"></div>
+        <div id="checkinPending"></div>
       </div>
 
     <div class="card">
@@ -1314,6 +1315,7 @@ let sessionDate = '';
 let sessionEnded = false;
 let sessionEndTime = null;
 let checkinOpen = true;
+let pendingCheckins = {};
 let sessionTimerInterval = null;
 let courtTimerInterval = null;
 
@@ -1794,7 +1796,36 @@ function renderCheckinPanel(){
     btn.textContent = checkinOpen ? 'Open' : 'Closed';
     btn.className = 'checkin-toggle ' + (checkinOpen ? 'open' : 'closed');
   }
+  const pendEl=document.getElementById('checkinPending');
+  if(pendEl){
+    const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const pend=Object.entries(pendingCheckins);
+    pendEl.innerHTML = pend.length
+      ? `<div style="margin-top:12px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Pending approval</div>`+pend.map(([k,e])=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);"><span style="flex:1;min-width:0;font-weight:700;">${esc(e.name)} <span style="font-size:0.6rem;font-weight:800;color:#C0392B;text-transform:uppercase;letter-spacing:0.05em;">not on the list</span></span><button onclick="approveCheckin('${k}')" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:none;background:var(--army);color:#fff;cursor:pointer;">Approve</button><button onclick="rejectCheckin('${k}')" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:1.5px solid var(--line);background:none;color:var(--muted);cursor:pointer;">Reject</button></div>`).join('')
+      : '';
+  }
   _genCheckinQR();
+}
+function approveCheckin(key){
+  const entry=pendingCheckins[key]; if(!entry) return;
+  const res=window.checkinToPlayer ? window.checkinToPlayer(entry, players) : null;
+  if(res && res.markPresentName){
+    const ex=players.find(p=>p&&typeof p.name==='string'&&p.name.toLowerCase()===res.markPresentName.toLowerCase());
+    if(ex){ ex.present=true; if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
+  } else if(res && res.player){
+    const p=res.player; p.id=++playerIdCounter; players.push(p); if(!queueOrder.includes(p.id)) queueOrder.push(p.id);
+  }
+  delete pendingCheckins[key];
+  window._removeCheckin && window._removeCheckin(key);
+  rebuildMatchQueue(); renderPlayers(); renderQueue(); renderCheckinPanel(); saveState();
+  showToast(`${entry.name} approved.`);
+}
+function rejectCheckin(key){
+  const entry=pendingCheckins[key]; if(!entry) return;
+  delete pendingCheckins[key];
+  window._removeCheckin && window._removeCheckin(key);
+  renderCheckinPanel();
+  showToast(`${entry.name} declined.`);
 }
 function _genCheckinQR(){
   if(!window.QRCode || !window.checkinUrl){ setTimeout(_genCheckinQR, 300); return; }
@@ -3056,12 +3087,10 @@ window._importCheckin = function(key, entry) {
     window._removeCheckin && window._removeCheckin(key);
     return;
   }
-  const p = res.player; p.id = ++playerIdCounter;
-  players.push(p);
-  if (!queueOrder.includes(p.id)) queueOrder.push(p.id);
-  rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
-  showToast(`${p.name} checked in.`);
-  window._removeCheckin && window._removeCheckin(key);
+  // Not on the roster -> hold for admin approval (do not add or delete yet)
+  pendingCheckins[key] = entry;
+  renderCheckinPanel();
+  showToast(`${(entry&&entry.name)||'Someone'} wants to check in - needs approval.`);
 };
 </script>
 
