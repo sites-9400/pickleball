@@ -98,6 +98,10 @@ header h1 {
   font-weight: 800;
   letter-spacing: 0.02em;
   flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .session-badge {
   font-size: 0.72rem;
@@ -1588,9 +1592,9 @@ function applySessionUI() {
   const bar = document.getElementById('sessionBar');
   bar.classList.remove('hidden');
   const dateStr = new Date(sessionStartTime).toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'});
-  document.getElementById('sessionInfo').textContent = `${sessionName} · ${dateStr}`;
+  document.getElementById('sessionInfo').textContent = `${sessionName} · ${dateStr} · ${modeLabel()}`;
   const hdr = document.getElementById('headerSessionName');
-  if (hdr) hdr.textContent = `${sessionName || 'Open Play'} (${modeLabel()})`;
+  if (hdr) hdr.textContent = sessionName || 'Open Play';
   const btn = document.getElementById('sessionActionBtn');
   const newBtn = document.getElementById('sessionNewBtn');
   if (sessionEnded) {
@@ -1621,6 +1625,7 @@ function updateTabOffset() {
   const barH = barEl && !barEl.classList.contains('hidden') ? barEl.offsetHeight : 0;
   const bannerH = offlineBanner && offlineBanner.classList.contains('visible') ? offlineBanner.offsetHeight : 0;
   const totalH = headerH + barH + bannerH;
+  if (barEl && !barEl.classList.contains('hidden')) barEl.style.top = (headerH + bannerH) + 'px';
   if (tabs) tabs.style.top = totalH + 'px';
 }
 function startSession() {
