@@ -96,9 +96,9 @@ export function checkinToPlayer(entry, existingPlayers) {
   if (!name) return { skip: true, reason: 'invalid' };
   const skills = ['beginner', 'intermediate', 'advanced'];
   const skill = (entry && skills.includes(entry.skill)) ? entry.skill : 'intermediate';
-  const dup = (existingPlayers || []).some(p =>
+  const match = (existingPlayers || []).find(p =>
     p && typeof p.name === 'string' && p.name.toLowerCase() === name.toLowerCase());
-  if (dup) return { skip: true, reason: 'duplicate' };
+  if (match) return { markPresentName: match.name };
   return { player: {
     name, present: true, gamesPlayed: 0, wins: 0, losses: 0,
     points: 0, pointsAgainst: 0, lastPlayedRound: -1, skill, via: 'qr'

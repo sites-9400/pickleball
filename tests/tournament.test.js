@@ -192,10 +192,10 @@ test('checkinToPlayer trims the name', () => {
   assert.equal(checkinToPlayer({name:'  Ana T  ', skill:'beginner', ts:1}, []).player.name, 'Ana T');
 });
 
-test('checkinToPlayer skips duplicate names case-insensitively', () => {
+test('checkinToPlayer marks an existing name present (case-insensitive)', () => {
   const existing = [{name:'Maria S'}];
   const r = checkinToPlayer({name:'maria s', skill:'beginner', ts:1}, existing);
-  assert.deepEqual(r, {skip:true, reason:'duplicate'});
+  assert.deepEqual(r, {markPresentName:'Maria S'});
 });
 
 test('checkinToPlayer skips empty/whitespace names', () => {
