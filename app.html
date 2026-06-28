@@ -2153,13 +2153,13 @@ function renderLadder(){
         <div class="ct-head-row"><span class="ct-score-head">Score</span></div>
         <div class="ct-row">
           <span class="ct-tag t1">A</span>
-          <div class="ct-names"><span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span></div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span>`:c.team1.map((id,i)=>`<span class="ct-name">${getPlayer(id)?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${c.id},'team1',${i})" title="Swap player">⇄</button></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}">
         </div>
         <div class="ct-vs">VS</div>
         <div class="ct-row">
           <span class="ct-tag t2">B</span>
-          <div class="ct-names"><span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span></div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name">${getPlayer(id)?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${c.id},'team2',${i})" title="Swap player">⇄</button></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}">
         </div>
         <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
@@ -2566,7 +2566,7 @@ function renderCourts() {
           : (c.tMatchId?`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Match complete</div>`:matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`)}
       </div></div>`;
     }
-    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name">${p?.name||'?'}${!c.tMatchId?`<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button>`:''}</span>`).join('');
+    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name">${p?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span>`).join('');
     const rowHtml=(tp,tk,tag,tagCls,sid)=>`<div class="ct-row">
       <span class="ct-tag ${tagCls}">${tag}</span>
       <div class="ct-names">${namesHtml(tp,tk)}</div>
