@@ -2924,8 +2924,18 @@ function confirmLeave() {
 window._importCheckin = function(key, entry) {
   if (!entry) { window._removeCheckin && window._removeCheckin(key); return; }
   const res = window.checkinToPlayer ? window.checkinToPlayer(entry, players) : {skip:true, reason:'invalid'};
+  if (res.markPresentName) {
+    const ex = players.find(p => p && typeof p.name === 'string' && p.name.toLowerCase() === res.markPresentName.toLowerCase());
+    if (ex) {
+      ex.present = true;
+      if (!queueOrder.includes(ex.id)) queueOrder.push(ex.id);
+      rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
+      showToast(`${ex.name} marked here.`);
+    }
+    window._removeCheckin && window._removeCheckin(key);
+    return;
+  }
   if (res.skip) {
-    if (res.reason === 'duplicate') showToast(`${entry.name} is already checked in.`);
     if (res.reason === 'invalid') console.warn('[checkin] skipped invalid entry', key, entry);
     window._removeCheckin && window._removeCheckin(key);
     return;
