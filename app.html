@@ -1538,7 +1538,7 @@ function applySessionUI() {
   const bar = document.getElementById('sessionBar');
   bar.classList.remove('hidden');
   const dateStr = new Date(sessionStartTime).toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'});
-  document.getElementById('sessionInfo').textContent = `${sessionName} · ${dateStr}`;
+  document.getElementById('sessionInfo').textContent = `${sessionName} · ${dateStr} · ${modeLabel()}`;
   const hdr = document.getElementById('headerSessionName');
   if (hdr) hdr.textContent = sessionName || 'Open Play';
   const btn = document.getElementById('sessionActionBtn');
