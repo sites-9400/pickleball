@@ -36,7 +36,7 @@ header h1{font-size:1rem;font-weight:800;letter-spacing:0.02em;flex:1;}
 .btn-full{width:100%;}
 input[type="text"],input[type="date"]{font-family:var(--font);font-size:0.9rem;font-weight:500;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;transition:border-color 0.15s;width:100%;}
 input:focus{border-color:var(--army);}
-.mode-select{font-family:var(--font);font-size:0.85rem;font-weight:600;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;width:100%;max-width:100%;cursor:pointer;}
+.mode-select{font-family:var(--font);font-size:0.85rem;font-weight:600;padding:11px 36px 11px 13px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238FB339' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 12px center;color:var(--ink);outline:none;width:100%;max-width:100%;cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appearance:none;}
 .mode-select:focus{border-color:var(--army);}
 .mode-field{flex:1;min-width:0;}
 .mode-label{font-size:0.64rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;display:block;}
@@ -128,7 +128,7 @@ input:focus{border-color:var(--army);}
       </div>
     </div>
     <div class="mode-desc" id="modeDesc"></div>
-    <button class="btn btn-accent btn-full" onclick="createSession()">⚡ Start New Session</button>
+    <button class="btn btn-accent btn-full" id="createBtn" onclick="createSession()">⚡ Start New Session</button>
   </div>
 
   <div id="liveSessionBanner" style="display:none;margin-bottom:16px;"></div>
@@ -420,12 +420,24 @@ const MODE_DESC = {
   manual: 'You pick every match yourself, court by court.',
   bracket: 'Fixed teams play a single or double elimination bracket. (Bracket play arrives in a later phase.)'
 };
+const MM_SHORT = {
+  roundrobin:'Round Robin', ladder:'King of the Court', challenge:'Challenge Courts', random:'Numbering',
+  waittime:'By Wait Time', balanced:'Balanced', manual:'Manual', bracket:'Bracket'
+};
 function updateModeDesc(){
   const sel=document.getElementById('newSessionMatchmaking');
   const el=document.getElementById('modeDesc');
   if(sel&&el) el.textContent=MODE_DESC[sel.value]||'';
+  const fmtSel=document.getElementById('newSessionFormat');
+  const btn=document.getElementById('createBtn');
+  if(btn&&sel&&fmtSel){
+    const fmt = fmtSel.value==='singles' ? 'Singles' : 'Doubles';
+    const mm = MM_SHORT[sel.value] || 'Session';
+    btn.textContent = `⚡ Start ${fmt} ${mm}`;
+  }
 }
 document.getElementById('newSessionMatchmaking')?.addEventListener('change', updateModeDesc);
+document.getElementById('newSessionFormat')?.addEventListener('change', updateModeDesc);
 updateModeDesc();
 </script>
 </body>
