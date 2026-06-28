@@ -202,3 +202,15 @@ test('checkinToPlayer skips empty/whitespace names', () => {
   assert.deepEqual(checkinToPlayer({name:'   ', skill:'beginner', ts:1}, []), {skip:true, reason:'invalid'});
   assert.deepEqual(checkinToPlayer({skill:'beginner', ts:1}, []), {skip:true, reason:'invalid'});
 });
+
+test('computeStandings ignores skipped matches', () => {
+  const matches = [
+    { teamA: 0, teamB: 1, score1: 11, score2: 5, submitted: true },
+    { teamA: 0, teamB: 1, score1: 11, score2: 0, submitted: true, skipped: true },
+  ];
+  const rows = computeStandings(2, matches);
+  const t0 = rows.find(r => r.team === 0);
+  assert.equal(t0.played, 1);
+  assert.equal(t0.wins, 1);
+  assert.equal(t0.pointsFor, 11);
+});

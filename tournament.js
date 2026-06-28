@@ -36,7 +36,7 @@ export function computeStandings(teamCount, matches) {
     team, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, diff: 0, played: 0,
   }));
   for (const m of matches) {
-    if (!m.submitted) continue;
+    if (!m.submitted || m.skipped) continue;
     const a = rows[m.teamA], b = rows[m.teamB];
     if (!a || !b) continue;
     a.played++; b.played++;
