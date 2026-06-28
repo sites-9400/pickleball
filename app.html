@@ -934,6 +934,9 @@ input:focus, textarea:focus { border-color: var(--army); }
 .share-card.compact .share-compact-body{min-width:0;flex:1;}
 .share-card.compact .share-card-title{margin-bottom:8px;}
 .share-card.compact .share-link-box{margin-bottom:0;}
+.share-card.compact{padding:10px 14px;margin-bottom:10px;}
+.share-card.compact .share-card-title{margin-bottom:5px;}
+.share-card.compact .share-btn{font-size:0.66rem;font-weight:700;padding:4px 10px;margin-top:6px;background:rgba(255,255,255,0.18);color:#fff;border:none;border-radius:6px;cursor:pointer;}
 
 
 
@@ -1538,9 +1541,9 @@ function applySessionUI() {
   const bar = document.getElementById('sessionBar');
   bar.classList.remove('hidden');
   const dateStr = new Date(sessionStartTime).toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'});
-  document.getElementById('sessionInfo').textContent = `${sessionName} · ${dateStr} · ${modeLabel()}`;
+  document.getElementById('sessionInfo').textContent = `${sessionName} · ${dateStr}`;
   const hdr = document.getElementById('headerSessionName');
-  if (hdr) hdr.textContent = sessionName || 'Open Play';
+  if (hdr) hdr.textContent = `${sessionName || 'Open Play'} (${modeLabel()})`;
   const btn = document.getElementById('sessionActionBtn');
   const newBtn = document.getElementById('sessionNewBtn');
   if (sessionEnded) {
