@@ -2702,7 +2702,7 @@ function renderCourts() {
     const rowHtml=(tp,tk,tag,tagCls,sid)=>`<div class="ct-row">
       <span class="ct-tag ${tagCls}">${tag}</span>
       <div class="ct-names">${namesHtml(tp,tk)}</div>
-      <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="${sid}_${def.id}" oninput="updateScore(${def.id})">
+      <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="${sid}_${def.id}" value="${(c[sid]!==''&&c[sid]!=null)?c[sid]:''}" oninput="updateScore(${def.id})">
     </div>`;
     const isHolding = mm()==='challenge' && (!c.team2 || !c.team2.length);
     return `<div class="court-card">${header}<div class="court-body">
