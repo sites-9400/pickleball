@@ -279,8 +279,8 @@ header h1 {
 .t-free-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .t-free .t-chip{background:var(--gold);color:#222}
 .t-courts{margin-top:10px}
-.t-court-chip{background:var(--ink,#2b2b2b);color:#fff;cursor:default}
-.t-court-chip .t-x{color:#ddd}
+.t-court-chip{background:var(--surface2);color:var(--ink);cursor:default;border:1px solid var(--line)}
+.t-court-chip .t-x{color:var(--muted)}
 .t-empty{color:var(--muted);font-size:14px}
 .t-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;text-decoration:underline}
 .t-setup-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
@@ -1300,6 +1300,7 @@ let courts = [];
 let courtDefs = [];
 let matchQueue = [];
 let gameHistory = [];
+let historyFilter = 'all';   // 'all' or a player id — filters Game History to one player
 let globalRound = 0;
 let playerIdCounter = 0;
 let courtIdCounter = 0;
@@ -1904,7 +1905,22 @@ function chooseMatchPlayers(){
 function fillChallengeCourts(){
   if(mm()!=='challenge') return false;
   let changed=false;
-  const ts=teamSize();
+  const ts=teamSize(), need=matchSize();
+  const now=Date.now();
+  // 1) Seed any court that has no king yet (no live slot) with two fresh teams from the free pool.
+  courtDefs.forEach(def=>{
+    const existing=courts.find(ct=>ct.id===def.id);
+    if(existing && !existing.submitted) return;   // already has a live match
+    const free=getFreeWaiting().map(p=>p.id);
+    if(free.length>=need){
+      globalRound++;
+      const slot={id:def.id,name:def.name,team1:free.slice(0,ts),team2:free.slice(ts,ts*2),score1:'',score2:'',submitted:false,round:globalRound,startedAt:now,awaitingChallengers:false};
+      const idx=courts.findIndex(ct=>ct.id===def.id);
+      if(idx>=0) courts[idx]=slot; else courts.push(slot);
+      changed=true;
+    }
+  });
+  // 2) Fill the challenger slot on any court whose king is waiting for an opponent.
   courts.forEach(c=>{
     if(c.submitted) return;
     if(c.team2 && c.team2.length>0) return; // already has an opponent
@@ -1912,10 +1928,11 @@ function fillChallengeCourts(){
     if(queueIds.length>=ts){
       c.team2=queueIds.slice(0,ts);
       c.awaitingChallengers=false;
-      c.startedAt=Date.now();
+      c.startedAt=now;
       changed=true;
     }
   });
+  if(changed && !courtTimerInterval) courtTimerInterval=setInterval(tickCourtTimers,1000);
   return changed;
 }
 function rebuildMatchQueue() {
@@ -1931,30 +1948,40 @@ function rebuildMatchQueue() {
   );
   // Manual/Ladder modes don't auto-build the queue (Stage 2).
   if(mm()==='manual' || mm()==='ladder' || mm()==='roundrobin' || mm()==='bracket') return;
+  // Challenge courts seat challengers directly from the free waiting pool
+  // (fillChallengeCourts / resolveChallengeCourt). A persistent matchQueue would
+  // reserve waiting players and starve that pool, so keep it empty here and let the
+  // courts self-seed from getFreeWaiting instead.
+  if(mm()==='challenge'){
+    matchQueue=[];
+    fillChallengeCourts();
+    return;
+  }
   const MAX_QUEUED=3;
   while(matchQueue.length<MAX_QUEUED){
     const m=chooseMatchPlayers();
     if(!m) break;
     matchQueue.push({id:++mqIdCounter,team1:m.team1,team2:m.team2});
   }
-  // Step 4: fill any holding challenge courts after queue is rebuilt
-  if(mm()==='challenge'){
-    if(fillChallengeCourts()){
-      // re-clean matchQueue since challengers are now seated on courts
-      const nowOnCourt=new Set();
-      courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>nowOnCourt.add(id)));
-      matchQueue=matchQueue.filter(m=>[...m.team1,...m.team2].every(id=>!nowOnCourt.has(id)));
-    }
-  }
 }
 
 // ===== COURT MANAGEMENT =====
+// Default name = lowest "Court N" not currently in use, so deleting courts and
+// adding new ones reuses freed numbers instead of climbing forever.
+function nextCourtName() {
+  const taken=new Set(courtDefs.map(d=>d.name.trim().toLowerCase()));
+  let n=1;
+  while(taken.has(`court ${n}`)) n++;
+  return `Court ${n}`;
+}
 function addCourt() {
   const input=document.getElementById('newCourtName');
-  const name=input.value.trim()||`Court ${courtIdCounter+1}`;
+  const name=input.value.trim()||nextCourtName();
   if(courtDefs.find(d=>d.name.toLowerCase()===name.toLowerCase())){showToast(`"${name}" already exists.`);return;}
   const id=++courtIdCounter;
   courtDefs.push({id,name});
+  // Challenge courts self-seed from the free pool; seed the new court right away.
+  if(mm()==='challenge') rebuildMatchQueue();
   input.value=''; renderCourts(); saveState(); showToast(`${name} added!`);
 }
 let closeCourtContext = null;
@@ -2450,6 +2477,16 @@ function _openSwapOptions(outgoingId) {
   const overrideCands=presentPlayers().filter(p=>p.id!==outgoingId&&!sameCourtIds.has(p.id)).map(p=>({id:p.id, name:p.name, playing:onCourtIds.has(p.id)}));
   const autoId=window.bestSkillMatch?(window.bestSkillMatch(outgoing?.skill||'intermediate', queueCands)):null;
   const chip=(id,name,tag)=>`<div class="swap-option" onclick="confirmSwap(${id})">${name}${tag?` <span style="color:var(--muted);font-size:0.7rem;">${tag}</span>`:''}</div>`;
+  // Trade section (court swaps, doubles+): switch sides with a player on the OTHER team of this court. Match-scoped, no queue needed.
+  let tradeHtml='';
+  if(swapContext&&swapContext.type==='court'&&teamSize()>1){
+    const sc=courts.find(ct=>ct.id===swapContext.courtId);
+    if(sc){
+      const otherKey=swapContext.team==='team1'?'team2':'team1';
+      const otherTeam=(sc[otherKey]||[]).filter(id=>id!=null);
+      if(otherTeam.length) tradeHtml=`<div class="swap-section-label">Trade sides (this court)</div>${otherTeam.map(id=>chip(id,getPlayer(id)?.name||'?','trade')).join('')}`;
+    }
+  }
   const autoHtml = autoId!=null
     ? `<div class="swap-section-label">Auto-generate (best skill match)</div>${chip(autoId, getPlayer(autoId)?.name||'?','auto')}`
     : '';
@@ -2457,7 +2494,7 @@ function _openSwapOptions(outgoingId) {
     ? `<div class="swap-section-label">Pick from waiting queue</div>${queueCands.map(c=>chip(c.id,c.name,'')).join('')}`
     : '<div class="swap-section-label">Pick from waiting queue</div><div style="color:var(--muted);font-size:0.8rem;padding:8px;">Queue is empty.</div>';
   const overrideHtml = `<div class="swap-section-label">Override (any checked-in player)</div>${overrideCands.map(c=>chip(c.id,c.name,c.playing?'playing':'')).join('')}`;
-  document.getElementById('swapOptions').innerHTML = autoHtml + queueHtml + overrideHtml;
+  document.getElementById('swapOptions').innerHTML = tradeHtml + autoHtml + queueHtml + overrideHtml;
   document.getElementById('swapOverlay').classList.remove('hidden');
 }
 function confirmSwap(incomingId) {
@@ -2468,6 +2505,16 @@ function confirmSwap(incomingId) {
     const {courtId,team,playerIndex}=swapContext;
     const c=courts.find(ct=>ct.id===courtId); if(!c){closeSwapModal();return;}
     const outgoingId=c[team][playerIndex]; const outgoing=getPlayer(outgoingId);
+    // Trade: incoming is already seated on THIS court -> switch the two players' sides (match-scoped, no queue change).
+    const tradeKey = c.team1.indexOf(incomingId)>=0 ? 'team1' : (c.team2.indexOf(incomingId)>=0 ? 'team2' : null);
+    if(tradeKey){
+      const tradeIdx=c[tradeKey].indexOf(incomingId);
+      c[team][playerIndex]=incomingId;
+      c[tradeKey][tradeIdx]=outgoingId;
+      closeSwapModal(); renderCourts(); saveState();
+      showToast(`Traded ${outgoing?.name} ↔ ${incoming?.name}`);
+      return;
+    }
     // Check if incoming is currently seated on another non-submitted court
     let sourceCourt=null, sourceTeamKey=null, sourceIdx=-1;
     courts.filter(ct=>!ct.submitted&&ct.id!==courtId).forEach(ct=>{
@@ -2723,6 +2770,13 @@ function tLockTeams() {
   saveState(); renderCourts();
   showToast('Teams locked. Choose options and start.');
 }
+function tUnlockTeams() {
+  // Go back to editing teams before the round robin has started.
+  const t = ensureTournament();
+  if (t.started) return;     // once matches exist, editing teams isn't allowed here
+  t.locked = false;
+  saveState(); renderCourts();
+}
 function renderTournamentSetup() {
   const host = document.getElementById('courtList');   // Courts tab dynamic container
   const t = ensureTournament();
@@ -2766,6 +2820,7 @@ window.tAssignPlayer = tAssignPlayer;
 window.tNewTeam = tNewTeam;
 window.tRemoveTeam = tRemoveTeam;
 window.tLockTeams = tLockTeams;
+window.tUnlockTeams = tUnlockTeams;
 
 // ===== TOURNAMENT PLAY (round-robin) =====
 function renderTournamentStartControls(t) {
@@ -2778,6 +2833,7 @@ function renderTournamentStartControls(t) {
           <option value="2"${t.passes===2?' selected':''}>Double (play each twice)</option>
         </select>
       </label>
+      <button class="btn" onclick="tUnlockTeams()">Edit teams</button>
       <button class="btn btn-primary" onclick="startRoundRobin()">Start round robin</button>
     </div>`;
 }
@@ -3011,13 +3067,38 @@ function commitEditScore(){
   closeEditScore();
   showToast(missing?`Score updated. ${missing} player(s) left the session; their rankings were not changed.`:'Score updated!');
 }
+function setHistoryFilter(v){ historyFilter = v; renderGameHistory(); }
+function historyEntryHasPlayer(g, pid){
+  const key=String(pid);
+  return [...(g.team1Ids||[]), ...(g.team2Ids||[])].map(String).includes(key);
+}
 function renderGameHistory() {
   const el=document.getElementById('gameHistory');
   if(!gameHistory.length){el.innerHTML='<div class="empty-state"><div class="icon">📋</div>No games played yet.</div>';return;}
-  el.innerHTML=gameHistory.map((g,idx)=>{
+  // Players that appear anywhere in the history -> filter dropdown options.
+  const idsInHistory=new Set();
+  gameHistory.forEach(g=>[...(g.team1Ids||[]),...(g.team2Ids||[])].forEach(id=>idsInHistory.add(String(id))));
+  if(historyFilter!=='all' && !idsInHistory.has(String(historyFilter))) historyFilter='all';   // selected player left / cleared
+  const filterPlayers=players.filter(p=>idsInHistory.has(String(p.id))).sort((a,b)=>a.name.localeCompare(b.name));
+  const options=`<option value="all">All players</option>`+filterPlayers.map(p=>`<option value="${p.id}"${String(historyFilter)===String(p.id)?' selected':''}>${p.name}</option>`).join('');
+  const filterBar=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><label style="font-size:0.78rem;font-weight:600;color:var(--muted);">Filter</label><select id="historyFilter" onchange="setHistoryFilter(this.value)" style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input-bg);color:var(--ink);font-weight:600;font-size:0.85rem;">${options}</select></div>`;
+  // Keep the ORIGINAL index so Edit targets the right entry after filtering.
+  const items=gameHistory.map((g,idx)=>({g,idx})).filter(x=>historyFilter==='all' || historyEntryHasPlayer(x.g, historyFilter));
+  let summary='';
+  if(historyFilter!=='all'){
+    const nm=getPlayer(Number(historyFilter))?.name||'Player';
+    let w=0,l=0;
+    items.forEach(({g})=>{
+      const onT1=(g.team1Ids||[]).map(String).includes(String(historyFilter));
+      if(g.score1>g.score2){ onT1?w++:l++; } else if(g.score2>g.score1){ onT1?l++:w++; }
+    });
+    summary=`<div style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:10px;">${nm} — ${items.length} game${items.length!==1?'s':''} · ${w} W / ${l} L</div>`;
+  }
+  const list = items.length ? items.map(({g,idx})=>{
     const winner=g.score1>g.score2?g.team1:g.score2>g.score1?g.team2:null;
     return `<div class="history-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:0.72rem;font-weight:600;color:var(--muted);">Rd ${g.round} · ${g.courtName||'Court '+g.court}</span><span style="display:flex;align-items:center;gap:8px;"><span class="history-score">${g.score1} – ${g.score2}</span><button class="hist-edit-btn" onclick="openEditScore(${idx})" title="Edit score">✏️</button></span></div><div class="history-players">${g.team1.join(' & ')} vs ${g.team2.join(' & ')}</div>${winner?`<span class="badge badge-gold" style="margin-top:5px;">🏆 ${winner.join(' & ')}</span>`:`<span class="badge" style="background:var(--surface2);color:var(--muted);margin-top:5px;">Tie</span>`}</div>`;
-  }).join('');
+  }).join('') : `<div class="empty-state" style="padding:16px 0;"><div class="icon">📋</div>No games for this player yet.</div>`;
+  el.innerHTML = filterBar + summary + list;
 }
 
 // ===== TABS =====
