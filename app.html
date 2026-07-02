@@ -1982,6 +1982,8 @@ function addCourt() {
   courtDefs.push({id,name});
   // Challenge courts self-seed from the free pool; seed the new court right away.
   if(mm()==='challenge') rebuildMatchQueue();
+  // Round robin / bracket: pull the next scheduled match onto the new court.
+  else if((mm()==='roundrobin'||mm()==='bracket') && tournament && tournament.started) fillCourtsFromTournament();
   input.value=''; renderCourts(); saveState(); showToast(`${name} added!`);
 }
 let closeCourtContext = null;
@@ -2673,11 +2675,14 @@ function renderCourts() {
       <button class="remove-court-btn" onclick="removeCourt(${def.id})">✕</button>
     </div>`;
     if(!c){
+      const idleMsg = (mm()==='roundrobin'||mm()==='bracket')
+        ? `<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">${tournament&&tournament.matches&&tournament.matches.some(m=>!m.submitted)?'Waiting for the next scheduled match — a team is still finishing.':'All scheduled matches are done.'}</div>`
+        : mm()==='manual'
+          ? (freeForManual().length>=matchSize()?`<button class="btn btn-accent" onclick="openManualPick(${def.id})">⚡ Pick Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} free players</div>`)
+          : (matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} waiting players</div>`);
       return `<div class="court-idle-card">${header}<div class="court-body" style="text-align:center;padding:20px 16px;">
         <div style="color:var(--muted);font-size:0.85rem;font-weight:500;margin-bottom:14px;">No match assigned yet</div>
-        ${mm()==='manual'
-          ? (freeForManual().length>=matchSize()?`<button class="btn btn-accent" onclick="openManualPick(${def.id})">⚡ Pick Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} free players</div>`)
-          : (matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} waiting players</div>`)}
+        ${idleMsg}
       </div></div>`;
     }
     const t1=c.team1.map(id=>getPlayer(id));
