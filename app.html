@@ -1752,9 +1752,22 @@ function setSkill(id){
   const p=getPlayer(id); if(!p) return;
   const i=order.indexOf(p.skill||'intermediate');
   p.skill=order[(i+1)%order.length];
-  renderPlayers(); saveState();
+  rebalanceQueuedMatches();   // upcoming matches reflect the new rank; active courts stay as dealt
+  renderPlayers(); renderQueue(); saveState();
 }
 window.setSkill = setSkill;
+// Re-pair the queued (not-yet-on-court) balanced matches using players' current ranks.
+// Keeps the same foursomes; only re-snakes the teams. No effect outside Balanced doubles.
+function rebalanceQueuedMatches(){
+  if(mm()!=='balanced' || teamSize()!==2) return;
+  matchQueue.forEach(m=>{
+    const ids=[...m.team1, ...m.team2];
+    if(ids.length!==4) return;
+    const four=ids.map(pid=>({id:pid, skill:getPlayer(pid)?.skill||'intermediate'}));
+    const { team1, team2 } = window.skillBalancedTeams(four, 2);
+    m.team1=team1; m.team2=team2;
+  });
+}
 function removePlayer(id) {
   const p=getPlayer(id);
   if(!confirm(`Delete ${p?.name||'this player'} permanently? This removes their stats. To keep them for later, tap "Here" to put them on hold instead.`)) return;
