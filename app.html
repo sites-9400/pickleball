@@ -1797,9 +1797,8 @@ function renderPlayers() {
 }
 
 function renderCheckinPanel(){
-  const box=document.getElementById('checkinLinkDisplay');
   const btn=document.getElementById('checkinToggleBtn');
-  if(box && window.checkinUrl) box.textContent=window.checkinUrl();
+  _setCheckinLinkText();
   if(btn){
     btn.textContent = checkinOpen ? 'Open' : 'Closed';
     btn.className = 'checkin-toggle ' + (checkinOpen ? 'open' : 'closed');
@@ -1834,6 +1833,15 @@ function rejectCheckin(key){
   window._removeCheckin && window._removeCheckin(key);
   renderCheckinPanel();
   showToast(`${entry.name} declined.`);
+}
+// Fill the check-in link box, retrying until window.checkinUrl (defined in the module
+// script, which runs after this classic script) is available — mirrors the QR retry so
+// the box never gets stuck showing "Generating...".
+function _setCheckinLinkText(){
+  const box=document.getElementById('checkinLinkDisplay');
+  if(!box) return;
+  if(!window.checkinUrl){ setTimeout(_setCheckinLinkText, 300); return; }
+  box.textContent=window.checkinUrl();
 }
 function _genCheckinQR(){
   if(!window.QRCode || !window.checkinUrl){ setTimeout(_genCheckinQR, 300); return; }
