@@ -1219,7 +1219,9 @@ input:focus, textarea:focus { border-color: var(--army); }
       <label style="font-size:0.8rem;font-weight:600;"><input type="radio" name="swapFate" value="queue" checked> Send to waiting queue</label>
       <label style="font-size:0.8rem;font-weight:600;"><input type="radio" name="swapFate" value="remove"> Put on hold (keep in session)</label>
     </div>
+    <input id="swapSearch" type="text" placeholder="Search players…" autocomplete="off" oninput="filterSwapOptions()" style="width:100%;box-sizing:border-box;padding:8px 10px;margin:4px 0 8px;border-radius:8px;border:1px solid var(--line);background:var(--input-bg);color:var(--ink);font-size:0.9rem;">
     <div id="swapOptions"></div>
+    <div id="swapNoMatch" class="hidden" style="text-align:center;color:var(--muted);font-size:0.82rem;padding:10px 0;">No players match your search.</div>
     <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeSwapModal()">Cancel</button>
   </div>
 </div>
@@ -2497,7 +2499,33 @@ function _openSwapOptions(outgoingId) {
     : '<div class="swap-section-label">Pick from waiting queue</div><div style="color:var(--muted);font-size:0.8rem;padding:8px;">Queue is empty.</div>';
   const overrideHtml = `<div class="swap-section-label">Override (any checked-in player)</div>${overrideCands.map(c=>chip(c.id,c.name,c.playing?'playing':'')).join('')}`;
   document.getElementById('swapOptions').innerHTML = tradeHtml + autoHtml + queueHtml + overrideHtml;
+  const searchEl=document.getElementById('swapSearch'); if(searchEl) searchEl.value='';
+  filterSwapOptions();
   document.getElementById('swapOverlay').classList.remove('hidden');
+}
+// Live-filter the swap options by player name; hides section labels whose options are all filtered out.
+function filterSwapOptions(){
+  const q=(document.getElementById('swapSearch')?.value||'').trim().toLowerCase();
+  const container=document.getElementById('swapOptions'); if(!container) return;
+  const kids=[...container.children];
+  let anyMatch=false;
+  kids.forEach(el=>{
+    if(el.classList.contains('swap-option')){
+      const show = !q || el.textContent.toLowerCase().includes(q);
+      el.style.display = show ? '' : 'none';
+      if(show) anyMatch=true;
+    }
+  });
+  // Hide a section label when no visible option follows it (before the next label).
+  for(let i=0;i<kids.length;i++){
+    if(!kids[i].classList.contains('swap-section-label')) continue;
+    let visible=false;
+    for(let j=i+1;j<kids.length && !kids[j].classList.contains('swap-section-label');j++){
+      if(kids[j].classList.contains('swap-option') && kids[j].style.display!=='none'){ visible=true; break; }
+    }
+    kids[i].style.display = visible ? '' : 'none';
+  }
+  const nm=document.getElementById('swapNoMatch'); if(nm) nm.classList.toggle('hidden', anyMatch || !q);
 }
 function confirmSwap(incomingId) {
   if(!swapContext) return;
