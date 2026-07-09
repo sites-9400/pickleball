@@ -1866,6 +1866,7 @@ function renderPlayers() {
   players.forEach(p=>{ sc[p.skill||'intermediate']++; });
   const scEl=document.getElementById('skillCounts'); if(scEl) scEl.textContent=`${sc.beginner} Beginner · ${sc.intermediate} Intermediate · ${sc.advanced} Advanced`;
   document.getElementById('sessionBadge').textContent=`${presentPlayers().length} playing`;
+  renderCheckinPanel(); // before the early returns — a fresh session (0 players) must still render the check-in link/QR
   if(!players.length){list.innerHTML='<div class="empty-state"><div class="icon">👥</div>No players yet. Add some above!</div>';return;}
   if(!filtered.length){list.innerHTML='<div class="empty-state"><div class="icon">🔍</div>No players match your search.</div>';return;}
   list.innerHTML=filtered.map(p=>`
@@ -1878,7 +1879,6 @@ function renderPlayers() {
       <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})" title="${p.present?'On court - tap to put on hold':'On hold - tap to add back to queue'}">${p.present?'Here ✓':'Add to queue'}</button>
       <button class="remove-btn" onclick="removePlayer(${p.id})" title="Delete permanently">🗑</button>
     </div>`).join('');
-  renderCheckinPanel();
 }
 
 function renderCheckinPanel(){
