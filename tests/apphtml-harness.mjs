@@ -1,0 +1,84 @@
+// Loads app.html's classic <script> block into a Node VM with a mocked DOM,
+// so tests can drive the real functions offline (the live app is Firebase-gated).
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import * as T from '../tournament.js';
+import * as C from '../cohost.js';
+
+const APP = join(dirname(fileURLToPath(import.meta.url)), '..', 'app.html');
+
+export function loadApp() {
+  const html = readFileSync(APP, 'utf8');
+  const start = html.indexOf('<script>\n// ===== STATE =====');
+  if (start < 0) throw new Error('classic script block not found in app.html');
+  const end = html.indexOf('</script>', start);
+  const code = html.slice(start + '<script>'.length, end);
+
+  const captured = {};   // id -> last innerHTML written
+  const els = {};        // id -> fake element
+  function fakeEl(id) {
+    return {
+      id, style: {}, dataset: {}, value: '', textContent: '',
+      classList: {
+        _set: new Set(),
+        add(c) { this._set.add(c); },
+        remove(c) { this._set.delete(c); },
+        toggle(c) { this._set.has(c) ? this._set.delete(c) : this._set.add(c); return this._set.has(c); },
+        contains(c) { return this._set.has(c); },
+      },
+      setAttribute() {}, getAttribute() { return null; },
+      querySelector() { return null; }, querySelectorAll() { return []; },
+      addEventListener() {},
+      set innerHTML(v) { captured[id] = v; },
+      get innerHTML() { return captured[id] || ''; },
+    };
+  }
+  const documentMock = {
+    getElementById: id => (els[id] ||= fakeEl(id)),
+    querySelector: () => fakeEl('_q'),
+    querySelectorAll: () => [],
+    createElement: () => fakeEl('_c'),
+    documentElement: fakeEl('_root'),
+    activeElement: null,
+    body: { appendChild() {} },
+  };
+  const windowMock = {
+    addEventListener() {},
+    location: { pathname: '/app.html', origin: 'https://example.test', href: '' },
+    computeIdentity: C.computeIdentity, accessState: C.accessState,
+    joinEligibility: C.joinEligibility, genCohostToken: C.genCohostToken,
+    buildCohostLink: C.buildCohostLink,
+    skillBalancedTeams: T.skillBalancedTeams, bestSkillMatch: T.bestSkillMatch,
+    checkinToPlayer: T.checkinToPlayer, resolveChallengeCourt: T.resolveChallengeCourt,
+    buildTeams: T.buildTeams, generateRoundRobin: T.generateRoundRobin,
+    computeStandings: T.computeStandings, nextEligibleMatch: T.nextEligibleMatch,
+  };
+  const ctx = vm.createContext({
+    document: documentMock, window: windowMock,
+    localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
+    navigator: { clipboard: { writeText() { return Promise.resolve(); } } },
+    setInterval() { return 1; }, clearInterval() {},
+    setTimeout() { return 1; }, clearTimeout() {},
+    confirm() { return true; }, prompt() {},
+    console, Date, Math, JSON, Object, Array, String, Number, Promise,
+    ResizeObserver: class { observe() {} },
+  });
+  vm.runInContext(code, ctx);
+  vm.runInContext('showToast = () => {};', ctx);
+  const run = js => vm.runInContext(js, ctx);
+  return { run, captured, els, windowMock };
+}
+
+// Minimal-but-valid remote snapshot; override fields per test.
+export function snap(over = {}) {
+  return {
+    ownerId: 'owner1', name: 'Test Session', sessionName: 'Test Session',
+    sessionStartTime: 1700000000000, sessionEnded: false, checkinOpen: true,
+    players: { _empty: true }, courts: { _empty: true }, courtDefs: { _empty: true },
+    matchQueue: { _empty: true }, gameHistory: { _empty: true }, queueOrder: { _empty: true },
+    globalRound: 0, playerIdCounter: 0, courtIdCounter: 0, mqIdCounter: 0,
+    ...over,
+  };
+}

@@ -1040,6 +1040,8 @@ input:focus, textarea:focus { border-color: var(--army); }
 
 <div class="container">
 
+  <div id="accessBanner" style="display:none;max-width:640px;margin:12px auto 0;padding:10px 14px;border-radius:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--line);font-weight:700;font-size:0.8rem;text-align:center;"></div>
+
   <!-- PLAYERS TAB -->
   <div class="tab-panel active" id="tab-players">
 
@@ -1322,6 +1324,10 @@ let sessionDate = '';
 let sessionEnded = false;
 let sessionEndTime = null;
 let checkinOpen = true;
+let cohosts = {};          // uid -> {name, addedAt} (raw Firebase map, owner-managed)
+let cohostOpen = false;
+let _access = 'owner';     // 'owner' | 'cohost' | 'revoked' | 'viewer' — recomputed per snapshot
+let _wasCohost = false;    // once a cohost, losing membership means 'revoked' (not 'viewer')
 let pendingCheckins = {};
 let sessionTimerInterval = null;
 let courtTimerInterval = null;
@@ -1384,6 +1390,7 @@ function cleanForFirebase(arr) {
   return arr;
 }
 function saveState() {
+  if (_access === 'viewer' || _access === 'revoked') return; // rules would reject; don't spam errors
   const data = {
     players:    cleanForFirebase(players),
     courts:     cleanForFirebase(courts),
@@ -1532,6 +1539,15 @@ window._fbApplyRemote = function(s) {
   const _hadCheckinOpen = (s.checkinOpen !== undefined);
   checkinOpen       = (s.checkinOpen !== false); // default open; only an explicit false closes it
 
+  cohosts     = (s.cohosts && typeof s.cohosts === 'object') ? s.cohosts : {};
+  cohostOpen  = s.cohostOpen === true;
+  if (window._uid && window.computeIdentity) {
+    const _ident = window.computeIdentity(window._uid, sessionOwnerId, cohosts);
+    if (_ident.isCohost) _wasCohost = true;
+    _access = window.accessState({ ..._ident, wasCohost: _wasCohost });
+  }
+  renderAccessBanner();
+
   applySessionUI();
   // Rebuild match queue from current state (removes stale/absent players)
   rebuildMatchQueue();
@@ -1615,8 +1631,25 @@ function applySessionUI() {
     if (newBtn) newBtn.style.display = 'none';
     if (!sessionTimerInterval) sessionTimerInterval = setInterval(updateSessionClock, 1000);
   }
+  // Owner-only End/New Session controls (UI-enforced per cohost spec §3)
+  if (_access !== 'owner') {
+    if (btn) btn.style.display = 'none';
+    if (newBtn) newBtn.style.display = 'none';
+  } else if (btn) {
+    btn.style.display = '';
+  }
   updateSessionClock();
   updateTabOffset();
+}
+function renderAccessBanner() {
+  const b = document.getElementById('accessBanner');
+  if (!b) return;
+  const msg = _access === 'revoked' ? "You're no longer a co-host — this session is now view-only."
+            : _access === 'viewer'  ? "View only — you don't have admin access to this session."
+            : _access === 'cohost'  ? "Co-hosting this session — only the owner can end or delete it."
+            : '';
+  b.textContent = msg;
+  b.style.display = msg ? '' : 'none';
 }
 function updateSessionClock() {
   if (!sessionStartTime) return;
@@ -3244,6 +3277,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebas
 import { getDatabase, ref, set, update, onValue, get, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch, checkinToPlayer } from './tournament.js';
+import { computeIdentity, accessState, joinEligibility, genCohostToken, buildCohostLink } from './cohost.js';
+window.computeIdentity = computeIdentity;
+window.accessState = accessState;
+window.joinEligibility = joinEligibility;
+window.genCohostToken = genCohostToken;
+window.buildCohostLink = buildCohostLink;
 window.buildTeams = buildTeams;
 window.generateRoundRobin = generateRoundRobin;
 window.computeStandings = computeStandings;
@@ -3290,6 +3329,7 @@ let _authUser = undefined;
 onAuthStateChanged(_auth, user => {
   _authUser = user && !user.isAnonymous ? user : null;
   if (_authUser) {
+    window._uid = user.uid;
     _attachCheckinListener();
     // Register this session under user profile — device-independent recovery.
     // OWNED sessions only: anyone can open a session link (reads are open), and
