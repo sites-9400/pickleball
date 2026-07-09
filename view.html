@@ -164,6 +164,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 
 <!-- QR Code library (global, loaded before the module) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="common.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
@@ -206,35 +207,10 @@ let connectTimeout = setTimeout(() => {
   </div>`;
 }, 10000);
 
-const escapeHtml = str => String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const initials = name => escapeHtml(name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2));
-const normArr = val => {
-  if (!val) return [];
-  if (Array.isArray(val)) return val;
-  if (val._empty === true) return [];
-  const keys = Object.keys(val).filter(k => k !== '_empty');
-  if (!keys.length) return [];
-  if (keys.every(k => !isNaN(parseInt(k)))) return keys.sort((a,b)=>parseInt(a)-parseInt(b)).map(k=>val[k]);
-  return Object.values(val);
-};
-const normCourts = val => normArr(val).map(c=>({...c,team1:normArr(c.team1),team2:normArr(c.team2)}));
-const normMQ = val => normArr(val).map(m=>({...m,team1:normArr(m.team1),team2:normArr(m.team2)}));
-const normGH = val => normArr(val).map(g=>({...g,team1:normArr(g.team1),team2:normArr(g.team2)}));
-const avatarColor = name => {
-  const colors=['#4A5C2F','#2E5E6E','#5C2F5E','#8B4020','#2F5E4A','#5E4A2F'];
-  let hash=0; for(let c of name) hash=(hash*31+c.charCodeAt(0))%colors.length;
-  return colors[Math.abs(hash)];
-};
-const fmt = ms => {
-  const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-};
-const fmtCourt = startedAt => {
-  if(!startedAt) return '00:00';
-  const s=Math.floor((Date.now()-startedAt)/1000),m=Math.floor(s/60),sec=s%60;
-  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-};
-const isWarn = startedAt => startedAt && (Date.now()-startedAt)>20*60*1000;
+// escapeHtml/initials/avatarColor and the norm* helpers come from common.js
+// (classic script above) — this page's historical short names alias them.
+const fmt = formatDuration, fmtCourt = formatCourtTimer, isWarn = isCourtWarn;
+const normMQ = normMatchQueue, normGH = normGameHistory;
 
 function toggleTheme() {
   const html=document.documentElement;

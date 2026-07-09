@@ -11,7 +11,9 @@ Pickleball open-play organizer — a static, single-page-per-screen app
 - `view.html` — public read-only live view (projector/phone)
 - `checkin.html` — anonymous player self-check-in
 
-Shared logic lives in `tournament.js` and `cohost.js` (ES modules).
+Shared logic lives in `tournament.js` and `cohost.js` (ES modules) and
+`common.js` (classic script of page helpers — escaping, Firebase array
+normalizers, formatters — loaded before each page's own code).
 
 ## Tests
 

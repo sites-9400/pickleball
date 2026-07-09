@@ -1302,6 +1302,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 
 <div class="toast" id="toast"></div>
 
+<script src="common.js"></script>
 <script>
 // ===== STATE =====
 let players = [];
@@ -1355,8 +1356,8 @@ function loadTheme() {
 // HTML-escape — applied to every user-supplied string (player/court/session names)
 // interpolated into innerHTML. Check-in names come from anonymous users, so any
 // unescaped render is an XSS vector into the admin's authenticated session.
-function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function initials(name) { return esc(name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)); }
+// esc/initials/avatarColor/formatDuration/formatCourtTimer/isCourtWarn and the
+// norm* Firebase normalizers are shared page helpers — see common.js.
 function showToast(msg, dur=2500) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -1369,22 +1370,6 @@ function shuffle(arr) {
   for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
-function avatarColor(name) {
-  const colors=['#4A5C2F','#2E5E6E','#5C2F5E','#8B4020','#2F5E4A','#5E4A2F'];
-  let hash=0; for(let c of name) hash=(hash*31+c.charCodeAt(0))%colors.length;
-  return colors[Math.abs(hash)];
-}
-function formatDuration(ms) {
-  const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-}
-function formatCourtTimer(startedAt) {
-  if (!startedAt) return '00:00';
-  const ms=Date.now()-startedAt, s=Math.floor(ms/1000), m=Math.floor(s/60), sec=s%60;
-  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-}
-function isCourtWarn(startedAt) { return startedAt && (Date.now()-startedAt) > 20*60*1000; }
-
 // ===== FIREBASE SYNC =====
 // Write queue — holds saves that arrive before Firebase module loads
 window._pendingWrite = null;
@@ -1419,27 +1404,6 @@ function saveState() {
   } else {
     window._pendingWrite = data;
   }
-}
-
-// normalize Firebase data — arrays may come back as objects with numeric keys
-function normArr(val) {
-  if (!val) return [];
-  if (Array.isArray(val)) return val;
-  // Filter out {_empty:true} sentinel used to preserve empty arrays in Firebase
-  if (val._empty === true) return [];
-  const keys = Object.keys(val).filter(k => k !== '_empty');
-  if (!keys.length) return [];
-  if (keys.every(k => !isNaN(parseInt(k)))) return keys.sort((a,b)=>parseInt(a)-parseInt(b)).map(k=>val[k]);
-  return Object.values(val); // return as-is for non-numeric-keyed objects
-}
-
-// Deep-normalize courts — team1/team2 are arrays that Firebase may objectify
-function normCourts(val) {
-  return normArr(val).map(c => ({
-    ...c,
-    team1: normArr(c.team1),
-    team2: normArr(c.team2),
-  }));
 }
 
 // Ladder (King of the Court) — bench is an array of teams (each team an array of player ids)
@@ -1490,26 +1454,6 @@ function cleanTournament(t) {
           score1: m.score1 === '' ? -1 : m.score1, score2: m.score2 === '' ? -1 : m.score2, submitted: !!m.submitted, skipped: !!m.skipped }))
       : {_empty:true},
   };
-}
-
-// Deep-normalize matchQueue
-function normMatchQueue(val) {
-  return normArr(val).map(m => ({
-    ...m,
-    team1: normArr(m.team1),
-    team2: normArr(m.team2),
-  }));
-}
-
-// Deep-normalize gameHistory — team1/team2 are arrays of names
-function normGameHistory(val) {
-  return normArr(val).map(g => ({
-    ...g,
-    team1: normArr(g.team1),
-    team2: normArr(g.team2),
-    team1Ids: normArr(g.team1Ids),
-    team2Ids: normArr(g.team2Ids),
-  }));
 }
 
 // Called by Firebase listener whenever remote state arrives

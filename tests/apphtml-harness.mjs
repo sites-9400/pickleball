@@ -8,6 +8,7 @@ import * as T from '../tournament.js';
 import * as C from '../cohost.js';
 
 const APP = join(dirname(fileURLToPath(import.meta.url)), '..', 'app.html');
+const COMMON = join(dirname(fileURLToPath(import.meta.url)), '..', 'common.js');
 
 export function loadApp() {
   const html = readFileSync(APP, 'utf8');
@@ -74,6 +75,8 @@ export function loadApp() {
     console, Date, Math, JSON, Object, Array, String, Number, Promise,
     ResizeObserver: class { observe() {} },
   });
+  // common.js loads as a classic script before the page script, same as the page
+  vm.runInContext(readFileSync(COMMON, 'utf8'), ctx);
   vm.runInContext(code, ctx);
   vm.runInContext('showToast = () => {};', ctx);
   const run = js => vm.runInContext(js, ctx);

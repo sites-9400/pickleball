@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import * as T from '../tournament.js';
 
 const VIEW = join(dirname(fileURLToPath(import.meta.url)), '..', 'view.html');
+const COMMON = join(dirname(fileURLToPath(import.meta.url)), '..', 'common.js');
 
 export function loadView({ computeStandings = T.computeStandings } = {}) {
   const html = readFileSync(VIEW, 'utf8');
@@ -62,6 +63,8 @@ export function loadView({ computeStandings = T.computeStandings } = {}) {
     onAuthStateChanged() {},
     computeStandings,
   });
+  // common.js loads as a classic script before the page script, same as the page
+  vm.runInContext(readFileSync(COMMON, 'utf8'), ctx);
   vm.runInContext(code, ctx);
   const run = js => vm.runInContext(js, ctx);
   const call = (fn, ...args) => {
