@@ -986,6 +986,16 @@ input:focus, textarea:focus { border-color: var(--army); }
 .loading-spinner{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .loading-label{font-size:0.85rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;}
+/* ===== Utilities extracted from repeated inline styles (declarations unchanged).
+   Kept last so they win over .btn/.btn-outline at equal specificity. ===== */
+.btn-danger { background:#c0392b; color:#fff; border:none; }
+.btn-outline-danger { margin-top:6px; color:#c0392b; border-color:#c0392b; }
+.court-hint { font-size:0.78rem; color:var(--muted); font-weight:500; }
+.court-hint-center { text-align:center; font-size:0.78rem; font-weight:500; color:var(--muted); padding:4px 0; }
+.panel-subhead { margin-top:12px; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+.panel-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); }
+.panel-row-name { flex:1; min-width:0; font-weight:700; }
+.pill-btn { font-size:0.72rem; font-weight:700; padding:5px 11px; border-radius:6px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -1229,7 +1239,7 @@ input:focus, textarea:focus { border-color: var(--army); }
     <div class="modal-title">Cancel match</div>
     <div class="modal-sub" id="cancelSub"></div>
     <div id="cancelOptions" style="display:flex;flex-direction:column;gap:6px;margin:10px 0;"></div>
-    <button class="btn btn-full" style="background:#c0392b;color:#fff;border:none;" onclick="confirmCancel()">Cancel this match</button>
+    <button class="btn btn-full btn-danger" onclick="confirmCancel()">Cancel this match</button>
     <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="closeCancelModal()">Keep playing</button>
   </div>
 </div>
@@ -1848,7 +1858,7 @@ function renderCheckinPanel(){
     const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const pend=Object.entries(pendingCheckins);
     pendEl.innerHTML = pend.length
-      ? `<div style="margin-top:12px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Pending approval</div>`+pend.map(([k,e])=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);"><span style="flex:1;min-width:0;font-weight:700;">${esc(e.name)} <span style="font-size:0.6rem;font-weight:800;color:#C0392B;text-transform:uppercase;letter-spacing:0.05em;">not on the list</span></span><button onclick="approveCheckin('${k}')" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:none;background:var(--army);color:#fff;cursor:pointer;">Approve</button><button onclick="rejectCheckin('${k}')" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:1.5px solid var(--line);background:none;color:var(--muted);cursor:pointer;">Reject</button></div>`).join('')
+      ? `<div class="panel-subhead">Pending approval</div>`+pend.map(([k,e])=>`<div class="panel-row"><span class="panel-row-name">${esc(e.name)} <span style="font-size:0.6rem;font-weight:800;color:#C0392B;text-transform:uppercase;letter-spacing:0.05em;">not on the list</span></span><button onclick="approveCheckin('${k}')" class="pill-btn" style="border:none;background:var(--army);color:#fff;">Approve</button><button onclick="rejectCheckin('${k}')" class="pill-btn" style="border:1.5px solid var(--line);background:none;color:var(--muted);">Reject</button></div>`).join('')
       : '';
   }
   _genCheckinQR();
@@ -1921,8 +1931,8 @@ function renderCohostPanel() {
   if (list) {
     const entries = Object.entries(cohosts || {});
     list.innerHTML = entries.length
-      ? `<div style="margin-top:12px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Co-hosts</div>` +
-        entries.map(([uid, c]) => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);"><span style="flex:1;min-width:0;font-weight:700;">${esc((c && c.name) || 'Co-host')}</span><button onclick="removeCohost('${uid}')" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:1.5px solid var(--line);background:none;color:#C0392B;cursor:pointer;">Remove</button></div>`).join('')
+      ? `<div class="panel-subhead">Co-hosts</div>` +
+        entries.map(([uid, c]) => `<div class="panel-row"><span class="panel-row-name">${esc((c && c.name) || 'Co-host')}</span><button onclick="removeCohost('${uid}')" class="pill-btn" style="border:1.5px solid var(--line);background:none;color:#C0392B;">Remove</button></div>`).join('')
       : '';
   }
 }
@@ -2158,9 +2168,9 @@ function removeCourt(courtId) {
   let actions = '';
   if (recordable) {
     actions += `<button class="btn btn-full" style="background:#1e8e3e;color:#fff;border:none;" onclick="closeCourtConfirm('record')">Record score (${s1} - ${s2}) and close</button>`;
-    actions += `<button class="btn btn-full" style="background:#c0392b;color:#fff;border:none;" onclick="closeCourtConfirm('discard')">Close without recording</button>`;
+    actions += `<button class="btn btn-full btn-danger" onclick="closeCourtConfirm('discard')">Close without recording</button>`;
   } else {
-    actions += `<button class="btn btn-full" style="background:#c0392b;color:#fff;border:none;" onclick="closeCourtConfirm('discard')">Close court (no score)</button>`;
+    actions += `<button class="btn btn-full btn-danger" onclick="closeCourtConfirm('discard')">Close court (no score)</button>`;
   }
   actions += `<button class="btn btn-outline btn-full" onclick="closeCloseCourtModal()">Keep court</button>`;
   document.getElementById('closeCourtActions').innerHTML = actions;
@@ -2429,7 +2439,7 @@ function renderLadder(){
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}">
         </div>
         <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
-        ${c.submitted?'':`<button class="btn btn-outline btn-full" style="margin-top:6px;color:#c0392b;border-color:#c0392b;" onclick="cancelMatch(${c.id})">Cancel match</button>`}
+        ${c.submitted?'':`<button class="btn btn-outline btn-full btn-outline-danger" onclick="cancelMatch(${c.id})">Cancel match</button>`}
       </div>
     </div>`;
   });
@@ -2849,10 +2859,10 @@ function renderCourts() {
     </div>`;
     if(!c){
       const idleMsg = (mm()==='roundrobin'||mm()==='bracket')
-        ? `<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">${tournament&&tournament.matches&&tournament.matches.some(m=>!m.submitted)?'Waiting for the next scheduled match — a team is still finishing.':'All scheduled matches are done.'}</div>`
+        ? `<div class="court-hint">${tournament&&tournament.matches&&tournament.matches.some(m=>!m.submitted)?'Waiting for the next scheduled match — a team is still finishing.':'All scheduled matches are done.'}</div>`
         : mm()==='manual'
-          ? (freeForManual().length>=matchSize()?`<button class="btn btn-accent" onclick="openManualPick(${def.id})">⚡ Pick Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} free players</div>`)
-          : (matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div style="font-size:0.78rem;color:var(--muted);font-weight:500;">Need at least ${matchSize()} waiting players</div>`);
+          ? (freeForManual().length>=matchSize()?`<button class="btn btn-accent" onclick="openManualPick(${def.id})">⚡ Pick Match</button>`:`<div class="court-hint">Need at least ${matchSize()} free players</div>`)
+          : (matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div class="court-hint">Need at least ${matchSize()} waiting players</div>`);
       return `<div class="court-idle-card">${header}<div class="court-body" style="text-align:center;padding:20px 16px;">
         <div style="color:var(--muted);font-size:0.85rem;font-weight:500;margin-bottom:14px;">No match assigned yet</div>
         ${idleMsg}
@@ -2872,8 +2882,8 @@ function renderCourts() {
           ${winner?`<span class="badge badge-green" style="margin-top:8px">🏆 ${winner}</span>`:`<span class="badge" style="background:var(--surface2);margin-top:8px;color:var(--muted);">Tie</span>`}
         </div>
         ${mm()==='manual'
-          ? (freeForManual().length>=matchSize()?`<button class="next-match-btn" onclick="openManualPick(${def.id})">⚡ Pick Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Need ${matchSize()} free players</div>`)
-          : (c.tMatchId?`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Match complete</div>`:matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`)}
+          ? (freeForManual().length>=matchSize()?`<button class="next-match-btn" onclick="openManualPick(${def.id})">⚡ Pick Next Match</button>`:`<div class="court-hint-center">Need ${matchSize()} free players</div>`)
+          : (c.tMatchId?`<div class="court-hint-center">Match complete</div>`:matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div class="court-hint-center">Not enough waiting players</div>`)}
       </div></div>`;
     }
     const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(p?.name||'?')}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(p)}</span></span>`).join('');
@@ -2892,7 +2902,7 @@ function renderCourts() {
         : rowHtml(t2,'team2','T2','t2','score2')}
       ${isHolding ? '' : `<button class="btn btn-accent btn-full" style="margin-top:14px" onclick="submitScore(${def.id})">Submit Score</button>`}
       ${c.tMatchId?`<button class="btn btn-full" style="margin-top:6px" onclick="tSwapMatch(${def.id})">Swap match</button>`:''}
-      ${isHolding ? '' : `<button class="btn btn-outline btn-full" style="margin-top:6px;color:#c0392b;border-color:#c0392b;" onclick="cancelMatch(${def.id})">Cancel match</button>`}
+      ${isHolding ? '' : `<button class="btn btn-outline btn-full btn-outline-danger" onclick="cancelMatch(${def.id})">Cancel match</button>`}
     </div></div>`;
   }).join('');
   el.innerHTML='<div class="court-grid-layout">'+cards+'</div>';
