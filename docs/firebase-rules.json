@@ -2,14 +2,14 @@
   "rules": {
     "sessions": {
       ".read": "auth != null",
-      ".indexOn": ["ownerId"],
+      ".indexOn": [
+        "ownerId"
+      ],
       "$sid": {
         ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (!data.exists() ? newData.child('ownerId').val() === auth.uid : data.child('ownerId').val() === auth.uid)",
-
         "cohostOpen": {
           ".write": "root.child('sessions').child($sid).child('ownerId').val() === auth.uid"
         },
-
         "cohosts": {
           ".write": "root.child('sessions').child($sid).child('ownerId').val() === auth.uid",
           "$uid": {
@@ -17,35 +17,79 @@
             ".validate": "!newData.exists() || newData.hasChildren(['name','addedAt'])"
           }
         },
-
-        "players":          { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "courts":           { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "courtDefs":        { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "matchQueue":       { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "gameHistory":      { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "queueOrder":       { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "globalRound":      { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "playerIdCounter":  { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "courtIdCounter":   { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "mqIdCounter":      { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "sessionStartTime": { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "sessionName":      { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "name":             { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "ladder":           { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "tournament":       { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "sessionEnded":     { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "sessionEndTime":   { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "checkinOpen":      { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-        "status":           { ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())" },
-
+        "players": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "courts": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "courtDefs": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "matchQueue": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "gameHistory": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "queueOrder": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "globalRound": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "playerIdCounter": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "courtIdCounter": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "mqIdCounter": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "sessionStartTime": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "sessionName": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "name": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "ladder": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "tournament": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "sessionEnded": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "sessionEndTime": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "checkinOpen": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
+        "status": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
         "checkins": {
           "$cid": {
             ".write": "auth != null && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists() || (!data.exists() && newData.exists() && root.child('sessions').child($sid).child('checkinOpen').val() === true))",
             ".validate": "newData.hasChildren(['name','skill','ts'])",
-            "name":  { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40" },
-            "skill": { ".validate": "newData.isString() && newData.val().matches(/^(beginner|intermediate|advanced)$/)" },
-            "ts":    { ".validate": "newData.isNumber()" },
-            "$other": { ".validate": false }
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
+            },
+            "skill": {
+              ".validate": "newData.isString() && newData.val().matches(/^(beginner|intermediate|advanced)$/)"
+            },
+            "ts": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         }
       }
