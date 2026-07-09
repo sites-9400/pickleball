@@ -1,6 +1,8 @@
 # Co-host an Open Play session — Design
 
-**Date:** 2026-07-06 (revised 2026-07-09: secret invite token, dashboard stale-entry cleanup)
+**Date:** 2026-07-06 (revised 2026-07-09: secret invite token, dashboard stale-entry cleanup;
+updated same day after security review — XSS escaping + owner-only dashboard index shipped in
+`d8fa40c`, §4 and §7 adjusted to build on it)
 **Status:** Approved (pending spec review)
 
 ## Goal
@@ -177,13 +179,21 @@ Notes:
 
 ## 4. Dashboard
 
-- Today the dashboard lists sessions where `s.ownerId === uid`. Co-hosted sessions won't appear.
-- Change: also read `users/{uid}/sessions` entries flagged `cohost:true`, fetch each
-  `sessions/{sid}`, and render them badged **"Co-host"** (vs owner's own). Co-host cards omit
-  Delete.
-- **Stale-entry cleanup:** if a fetched session no longer lists this uid in `cohosts` (revoked)
-  or no longer exists (deleted), skip rendering it and remove the `users/{uid}/sessions/{sid}`
-  entry.
+Baseline (shipped 2026-07-09, commit `d8fa40c`): `app.html` registers a session under
+`users/{uid}/sessions` **only when the user owns it**, and the dashboard verifies
+`ownerId` on every index entry — **pruning any unowned or deleted entry** from the index.
+
+Co-host changes build on that:
+
+- The co-host join flow writes its own `users/{uid}/sessions/{sid} = {name, lastOpened,
+  cohost:true}` entry (see §3), since app.html's owner-only registration will skip it.
+- **Update the dashboard prune filter**: keep an unowned entry when it's flagged
+  `cohost:true` **and** the fetched session still lists this uid in `cohosts`. Render those
+  badged **"Co-host"** (vs owner's own); co-host cards omit Delete. Without this filter
+  change, the current prune would silently delete co-host entries — it is a prerequisite,
+  not an optional cleanup.
+- **Stale-entry cleanup** falls out of the same filter: revoked (uid gone from `cohosts`)
+  or deleted sessions are pruned as they are today.
 
 ## 5. Identity helper (app.html)
 
@@ -220,6 +230,15 @@ Notes:
   `cohostTokens/$sid` denied).
 - **End-to-end:** two real Google accounts on two devices — invite, join, both edit different
   courts, revoke, confirm read-only.
+- **Concurrency checks (from 2026-07-09 code review):**
+  - *Echo suppression:* `app.html` drops snapshots arriving within 1s of its own write
+    (`_lastWrite` guard). With a co-host writing constantly, verify one host's change made
+    within that window still reaches the other (or accept + document the refresh behavior).
+  - *Score-typing clobber:* `_fbApplyRemote` preserves only the **focused** score input; a
+    co-host save while the owner is between score fields reverts the first field. Verify
+    during E2E; if it bites in practice, preserve both dirty score inputs per court.
+- **Dashboard prune regression:** with the cohost filter in place, confirm a co-host entry
+  survives dashboard load, and a revoked one is pruned.
 
 ## 8. Rollout / ordering
 
