@@ -287,12 +287,14 @@ function loadSessions() {
     // Fetch full session data for each registered session ID
     const ids = Object.keys(userSessions);
     const results = await Promise.all(ids.map(id =>
-      get(ref(db, `sessions/${id}`)).then(s => s.exists() ? [id, s.val()] : null).catch(() => null)
+      get(ref(db, `sessions/${id}`)).then(s => s.exists() ? [id, s.val()] : null)
+        .catch(() => undefined) // transient fetch failure — NOT proof the session is gone
     ));
     // Classify each index entry: owned -> render, cohost (flagged AND still a
     // member) -> render badged, anything else (revoked/deleted/unowned) -> prune.
     const entries = [];
     results.forEach((r, i) => {
+      if (r === undefined) return; // fetch failed — keep the index entry, skip rendering this time
       const id = ids[i];
       const kind = classifyDashboardEntry({
         uid: currentUser.uid,

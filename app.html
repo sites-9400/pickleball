@@ -1674,6 +1674,18 @@ function renderAccessBanner() {
   b.textContent = msg;
   b.style.display = msg ? '' : 'none';
 }
+// Recompute identity/access outside a snapshot — used when auth resolves
+// AFTER the first (and possibly only) snapshot already applied. Mirrors the
+// identity block inside _fbApplyRemote; no-ops until both uid and data exist.
+function refreshIdentity() {
+  if (!sessionOwnerId || !window._uid || !window.computeIdentity) return;
+  const _ident = window.computeIdentity(window._uid, sessionOwnerId, cohosts);
+  if (_ident.isCohost) _wasCohost = true;
+  _access = window.accessState({ ..._ident, wasCohost: _wasCohost });
+  renderAccessBanner();
+  renderCohostPanel();
+  applySessionUI();
+}
 function updateSessionClock() {
   if (!sessionStartTime) return;
   const elapsed = (sessionEnded ? sessionEndTime : Date.now()) - sessionStartTime;
@@ -3482,6 +3494,10 @@ onAuthStateChanged(_auth, user => {
   _authUser = user && !user.isAnonymous ? user : null;
   if (_authUser) {
     window._uid = user.uid;
+    // Same race for identity: recompute _access now that the uid is known,
+    // otherwise a co-host/viewer keeps the default 'owner' UI until the next
+    // snapshot (which may never come on an idle session).
+    if (typeof refreshIdentity === 'function') refreshIdentity();
     // Re-check the co-host join offer: the first snapshot may have arrived
     // before auth resolved, in which case maybeOfferCohostJoin returned
     // without latching and nothing would re-trigger it on an idle session.

@@ -154,3 +154,23 @@ test('join offer: pre-data auth re-check does not act on empty state', () => {
   applyAs(app, 'visitor', {});
   assert.ok(!app.els['cohostJoinOverlay'].classList.contains('hidden'), 'offer appears once data lands');
 });
+
+test('identity: auth resolving after first snapshot recomputes access', () => {
+  const app = loadApp();
+  // snapshot with a cohost arrives BEFORE auth: default 'owner' access persists
+  app.run(`window._uid = undefined;`);
+  app.run(`window._fbApplyRemote(${JSON.stringify(snap({ cohosts: { buddy: { name: 'Buddy', addedAt: 1 } } }))});`);
+  assert.equal(app.run('_access'), 'owner'); // default — the race window
+  // auth resolves as the cohost; module-side re-check calls refreshIdentity()
+  app.run(`window._uid = 'buddy'; refreshIdentity();`);
+  assert.equal(app.run('_access'), 'cohost');
+  assert.equal(app.els['sessionActionBtn'].style.display, 'none');
+  assert.equal(app.els['sessionNewBtn'].style.display, 'none');
+  assert.match(app.els['accessBanner'].textContent, /Co-hosting/);
+});
+
+test('identity: refreshIdentity no-ops before any snapshot', () => {
+  const app = loadApp();
+  app.run(`window._uid = 'stranger'; refreshIdentity();`);
+  assert.equal(app.run('_access'), 'owner'); // untouched — no data yet
+});
