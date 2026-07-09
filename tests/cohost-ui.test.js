@@ -129,3 +129,28 @@ test('join rejection: failed write shows dead-link banner', async () => {
   await new Promise(r => setImmediate(r)); // let the rejection handler run
   assert.match(app.els['accessBanner'].textContent, /no longer active/);
 });
+
+test('join offer: auth resolving after first snapshot still gets the offer', () => {
+  const app = loadApp();
+  primeOverlay(app);
+  app.run(`window._cohostUrlToken = () => 'tok123';`);
+  // snapshot arrives BEFORE auth: no uid yet -> no offer, but must NOT latch
+  app.run(`window._uid = undefined;`);
+  app.run(`window._fbApplyRemote(${JSON.stringify(snap())});`);
+  assert.ok(app.els['cohostJoinOverlay'].classList.contains('hidden'), 'no offer before auth');
+  // auth resolves later; the module-side re-check calls maybeOfferCohostJoin()
+  app.run(`window._uid = 'visitor'; maybeOfferCohostJoin();`);
+  assert.ok(!app.els['cohostJoinOverlay'].classList.contains('hidden'), 'offer appears after auth resolves');
+});
+
+test('join offer: pre-data auth re-check does not act on empty state', () => {
+  const app = loadApp();
+  primeOverlay(app);
+  app.run(`window._cohostUrlToken = () => 'tok123';`);
+  // auth resolved but NO snapshot yet (sessionOwnerId still '') -> no offer, no latch
+  app.run(`window._uid = 'visitor'; maybeOfferCohostJoin();`);
+  assert.ok(app.els['cohostJoinOverlay'].classList.contains('hidden'), 'no offer before first snapshot');
+  // snapshot then arrives -> offer appears
+  applyAs(app, 'visitor', {});
+  assert.ok(!app.els['cohostJoinOverlay'].classList.contains('hidden'), 'offer appears once data lands');
+});

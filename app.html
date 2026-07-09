@@ -2020,7 +2020,7 @@ let _cohostJoinOffered = false;
 function maybeOfferCohostJoin() {
   if (_cohostJoinOffered) return;
   const tok = window._cohostUrlToken ? window._cohostUrlToken() : null;
-  if (!tok || !window._uid || !window.joinEligibility) return;
+  if (!tok || !window._uid || !window.joinEligibility || !sessionOwnerId) return;
   const el = window.joinEligibility({ uid: window._uid, isAnonymous: false, ownerId: sessionOwnerId, cohosts });
   _cohostJoinOffered = true;               // decide once per page load
   if (!el.eligible) return;                // owner / already-cohost: proceed silently
@@ -3482,6 +3482,10 @@ onAuthStateChanged(_auth, user => {
   _authUser = user && !user.isAnonymous ? user : null;
   if (_authUser) {
     window._uid = user.uid;
+    // Re-check the co-host join offer: the first snapshot may have arrived
+    // before auth resolved, in which case maybeOfferCohostJoin returned
+    // without latching and nothing would re-trigger it on an idle session.
+    if (typeof maybeOfferCohostJoin === 'function') maybeOfferCohostJoin();
     _attachCheckinListener();
     // Register this session under user profile — device-independent recovery.
     // OWNED sessions only: anyone can open a session link (reads are open), and
