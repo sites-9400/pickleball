@@ -1307,6 +1307,15 @@ input:focus, textarea:focus { border-color: var(--army); }
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="cohostJoinOverlay">
+  <div class="end-modal">
+    <h2>Join as co-host?</h2>
+    <p id="cohostJoinText">You'll get admin access to manage courts, players, and scores.</p>
+    <button class="btn btn-primary btn-full" style="margin-bottom:8px" onclick="confirmCohostJoin()">Join as co-host</button>
+    <button class="btn btn-outline btn-full" onclick="closeCohostJoin()">Not now</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1560,6 +1569,7 @@ window._fbApplyRemote = function(s) {
   }
   renderAccessBanner();
   renderCohostPanel();
+  maybeOfferCohostJoin();
 
   applySessionUI();
   // Rebuild match queue from current state (removes stale/absent players)
@@ -2003,6 +2013,33 @@ function removeCohost(uid) {
   window._removeCohost(uid)
     .then(() => showToast('Co-host removed.'))
     .catch(() => showToast('Could not remove co-host.'));
+}
+
+// ===== CO-HOST (join flow) =====
+let _cohostJoinOffered = false;
+function maybeOfferCohostJoin() {
+  if (_cohostJoinOffered) return;
+  const tok = window._cohostUrlToken ? window._cohostUrlToken() : null;
+  if (!tok || !window._uid || !window.joinEligibility) return;
+  const el = window.joinEligibility({ uid: window._uid, isAnonymous: false, ownerId: sessionOwnerId, cohosts });
+  _cohostJoinOffered = true;               // decide once per page load
+  if (!el.eligible) return;                // owner / already-cohost: proceed silently
+  document.getElementById('cohostJoinText').textContent =
+    `Join "${sessionName || 'this session'}" as co-host? You'll get admin access to manage courts, players, and scores.`;
+  document.getElementById('cohostJoinOverlay').classList.remove('hidden');
+}
+function closeCohostJoin() {
+  document.getElementById('cohostJoinOverlay').classList.add('hidden');
+}
+function confirmCohostJoin() {
+  closeCohostJoin();
+  window._joinAsCohost(sessionName).then(() => {
+    showToast("You're a co-host now!");
+  }).catch(() => {
+    const b = document.getElementById('accessBanner');
+    b.textContent = 'This invite link is no longer active — ask the host for a new one.';
+    b.style.display = '';
+  });
 }
 
 // ===== MATCH QUEUE =====
@@ -3413,6 +3450,23 @@ window._setCohostOpen = (open) => set(ref(_db, `sessions/${_SESSION_ID}/cohostOp
 window._writeCohostToken = (tok) => set(ref(_db, `cohostTokens/${_SESSION_ID}`), tok);
 window._readCohostToken = () => get(ref(_db, `cohostTokens/${_SESSION_ID}`)).then(s => s.val()).catch(() => null);
 window._removeCohost = (uid) => remove(ref(_db, `sessions/${_SESSION_ID}/cohosts/${uid}`));
+const _COHOST_URL_TOKEN = _urlParams.get('cohost');
+window._cohostUrlToken = () => _COHOST_URL_TOKEN;
+window._joinAsCohost = (sName) => {
+  const u = _authUser;
+  if (!u) return Promise.reject(new Error('not signed in'));
+  return set(ref(_db, `sessions/${_SESSION_ID}/cohosts/${u.uid}`), {
+    name: u.displayName || u.email || 'Co-host',
+    addedAt: Date.now(),
+    token: _COHOST_URL_TOKEN,
+  }).then(() =>
+    update(ref(_db, `users/${u.uid}/sessions/${_SESSION_ID}`), {
+      name: sName || 'Open Play',
+      lastOpened: Date.now(),
+      cohost: true,
+    })
+  );
+};
 let _checkinListenerAttached = false;
 function _attachCheckinListener() {
   if (_checkinListenerAttached) return;

@@ -78,3 +78,54 @@ test('cohost panel: open state reflects cohostOpen', () => {
   assert.equal(app.els['cohostOpenBtn'].textContent, 'Accepting');
   assert.notEqual(app.els['cohostInviteBody'].style.display, 'none');
 });
+
+// The fake-DOM overlay element starts with NO classes, but the real page ships
+// it with class="hidden". Prime that state before each join-offer test so
+// contains('hidden') assertions mean what they mean in the browser.
+function primeOverlay(app) {
+  app.run(`document.getElementById('cohostJoinOverlay').classList.add('hidden');`);
+}
+
+test('join offer: eligible visitor with token gets the confirm card once', () => {
+  const app = loadApp();
+  primeOverlay(app);
+  app.run(`window._cohostUrlToken = () => 'tok123';`);
+  applyAs(app, 'visitor', {});
+  assert.ok(!app.els['cohostJoinOverlay'].classList.contains('hidden'), 'overlay should open');
+  assert.match(app.els['cohostJoinText'].textContent, /Test Session/);
+  // second snapshot must not re-offer after dismissal
+  app.run(`closeCohostJoin();`);
+  applyAs(app, 'visitor', {});
+  assert.ok(app.els['cohostJoinOverlay'].classList.contains('hidden'), 'must not re-open');
+});
+
+test('join offer: owner and existing cohost are never prompted', () => {
+  const app = loadApp();
+  primeOverlay(app);
+  app.run(`window._cohostUrlToken = () => 'tok123';`);
+  applyAs(app, 'owner1', {});
+  assert.ok(app.els['cohostJoinOverlay'].classList.contains('hidden'));
+
+  const app2 = loadApp();
+  primeOverlay(app2);
+  app2.run(`window._cohostUrlToken = () => 'tok123';`);
+  applyAs(app2, 'buddy', { cohosts: { buddy: { name: 'B', addedAt: 1 } } });
+  assert.ok(app2.els['cohostJoinOverlay'].classList.contains('hidden'));
+});
+
+test('join offer: no token param means no prompt', () => {
+  const app = loadApp();
+  primeOverlay(app);
+  applyAs(app, 'visitor', {});
+  assert.ok(app.els['cohostJoinOverlay'].classList.contains('hidden'));
+});
+
+test('join rejection: failed write shows dead-link banner', async () => {
+  const app = loadApp();
+  app.run(`window._cohostUrlToken = () => 'tok123';`);
+  app.run(`window._joinAsCohost = () => Promise.reject(new Error('PERMISSION_DENIED'));`);
+  applyAs(app, 'visitor', {});
+  app.run(`confirmCohostJoin();`);
+  await new Promise(r => setImmediate(r)); // let the rejection handler run
+  assert.match(app.els['accessBanner'].textContent, /no longer active/);
+});
