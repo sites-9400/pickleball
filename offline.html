@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offline — Pickled</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4A5C2F">
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  :root { --army: #4A5C2F; --ink: #1C1F14; --muted: #6b705c; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #F5F3EC; color: var(--ink); text-align: center; padding: 24px;
+  }
+  .icon { font-size: 3rem; margin-bottom: 14px; }
+  h1 { font-size: 1.3rem; margin-bottom: 10px; }
+  p { font-size: 0.9rem; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+  button {
+    background: var(--army); color: #fff; border: none; border-radius: 8px;
+    padding: 12px 28px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div>
+  <div class="icon">📡</div>
+  <h1>You're offline</h1>
+  <p>Pickled needs internet to run a live session.<br>
+     Reconnect and try again.</p>
+  <button onclick="location.reload()">↻ Retry</button>
+</div>
+</body>
+</html>

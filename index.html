@@ -5,6 +5,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Paddle District</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4A5C2F">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Pickled">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -135,6 +139,7 @@ input:focus{border-color:var(--army);}
 
 <a class="howto-link" href="how-to-use.pdf" target="_blank" rel="noopener">📄 How to use · Modes guide</a>
 
+<script src="common.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';

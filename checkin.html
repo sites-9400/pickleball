@@ -5,6 +5,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Check In - Paddle District</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4A5C2F">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Pickled">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
   :root{--army:#3a4a23;--ink:#1C1F14;--bg:#fff;--line:#e3e3dc;--muted:#6b6f60;--font:'Montserrat',sans-serif;}
@@ -77,6 +81,7 @@
     </div>
   </div>
 
+<script src="common.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";

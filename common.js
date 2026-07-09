@@ -9,8 +9,10 @@
 // bug, hence one copy. app.html's implementations are canonical.
 
 // HTML-escape (incl. quotes) — `esc` is app.html's historical name for it.
+// var (not const) so a page may shadow it with its own function declaration
+// (checkin.html does).
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-const esc = escapeHtml;
+var esc = escapeHtml;
 function initials(name) { return esc(name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)); }
 function avatarColor(name) {
   const colors=['#4A5C2F','#2E5E6E','#5C2F5E','#8B4020','#2F5E4A','#5E4A2F'];
@@ -67,4 +69,11 @@ function normGameHistory(val) {
     team1Ids: normArr(g.team1Ids),
     team2Ids: normArr(g.team2Ids),
   }));
+}
+
+// PWA: register the service worker (guarded no-op in tests / old browsers)
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && typeof window !== 'undefined') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
 }
