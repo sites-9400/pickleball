@@ -2729,7 +2729,13 @@ function confirmSwap(incomingId) {
       if(!queueOrder.includes(outgoingId)) queueOrder.push(outgoingId);
       const p=getPlayer(outgoingId); if(p) p.lastPlayedRound=globalRound;
     }
-    closeSwapModal(); rebuildMatchQueue(); renderCourts(); renderQueue(); saveState();
+    closeSwapModal();
+    // Re-pick the auto-built upcoming matches: they were chosen from a pool
+    // this swap just changed, so stale picks (e.g. an already-played player
+    // queued while newcomers wait) must not survive. Auto-queue modes only —
+    // never clobber manually arranged matches.
+    if(['waittime','balanced','random'].includes(mm())) matchQueue=[];
+    rebuildMatchQueue(); renderCourts(); renderQueue(); saveState();
     showToast(`${outgoing?.name} >> ${incoming?.name}`);
     return;
   }
