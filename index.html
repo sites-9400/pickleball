@@ -155,10 +155,17 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 const provider = new GoogleAuthProvider();
 
-// If already logged in with a real account, go straight to dashboard
+// If already logged in with a real account, go straight to dashboard.
+// _authFlowActive: while a sign-in/sign-up flow is running, that flow owns
+// navigation. Auth state flips the moment the account exists — BEFORE the
+// flow's follow-up updateProfile/ensureUserProfile writes finish — and
+// redirecting then aborts those writes (new users ended up with no
+// displayName and no users/{uid} profile node).
+let _authFlowActive = false;
 onAuthStateChanged(auth, user => {
-  if (user && !user.isAnonymous) window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+  if (user && !user.isAnonymous && !_authFlowActive) window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
 });
+const _dashUrl = () => window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
 
 // In-app browsers (Messenger, Instagram, Facebook, etc.) block Google OAuth
 // entirely (Google "disallowed_useragent" policy) — most new users arrive via
@@ -187,11 +194,15 @@ async function ensureUserProfile(user) {
 
 window.signInWithGoogle = async () => {
   showError('');
+  _authFlowActive = true;
   try {
     const result = await signInWithPopup(auth, provider);
     await ensureUserProfile(result.user);
-    window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+    window.location.href = _dashUrl();
   } catch(e) {
+    // Signed in but a follow-up write failed? They have an account — proceed.
+    if (auth.currentUser && !auth.currentUser.isAnonymous) { window.location.href = _dashUrl(); return; }
+    _authFlowActive = false;
     // Inside a chat-app webview, ANY Google failure is really the webview —
     // give the actionable guidance instead of a per-code message.
     if (inAppBrowser() && e.code !== 'auth/popup-closed-by-user') {
@@ -209,10 +220,12 @@ window.emailLogin = async () => {
   const btn = document.getElementById('loginBtn');
   btn.disabled = true; btn.textContent = 'Logging in...';
   showError('');
+  _authFlowActive = true;
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+    window.location.href = _dashUrl();
   } catch(e) {
+    _authFlowActive = false;
     showError(friendlyError(e.code));
     btn.disabled = false; btn.textContent = 'Log In';
   }
@@ -228,12 +241,17 @@ window.emailSignup = async () => {
   const btn = document.getElementById('signupBtn');
   btn.disabled = true; btn.textContent = 'Creating account...';
   showError('');
+  _authFlowActive = true;
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName: name });
     await ensureUserProfile(result.user);
-    window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+    window.location.href = _dashUrl();
   } catch(e) {
+    // Account created but a follow-up write failed? They're signed in — proceed
+    // rather than stranding a logged-in user on the login page with an error.
+    if (auth.currentUser && !auth.currentUser.isAnonymous) { window.location.href = _dashUrl(); return; }
+    _authFlowActive = false;
     showError(friendlyError(e.code));
     btn.disabled = false; btn.textContent = 'Create Account';
   }
