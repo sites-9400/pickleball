@@ -206,8 +206,8 @@ let connectTimeout = setTimeout(() => {
   </div>`;
 }, 10000);
 
-const initials = name => name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
 const escapeHtml = str => String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const initials = name => escapeHtml(name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2));
 const normArr = val => {
   if (!val) return [];
   if (Array.isArray(val)) return val;
@@ -341,7 +341,7 @@ function showEndedState(s) {
     <div class="ended-banner">
       <div class="ended-banner-icon">🏁</div>
       <div class="ended-banner-title">Session Complete</div>
-      <div class="ended-banner-sub">${s.sessionName || 'Open Play'}</div>
+      <div class="ended-banner-sub">${escapeHtml(s.sessionName || 'Open Play')}</div>
     </div>
     <div class="ended-stats">
       <div class="ended-stat"><div class="ended-stat-val">${finalTime}</div><div class="ended-stat-label">Duration</div></div>
@@ -472,7 +472,7 @@ function renderCourts(s) {
   el.innerHTML=defs.map(def=>{
     const c=courts.find(ct=>ct.id===def.id);
     const hdr=`<div class="court-view-header">
-      <span class="court-view-name">${def.name}</span>
+      <span class="court-view-name">${escapeHtml(def.name)}</span>
       ${c&&!c.submitted?`<span class="court-view-timer ${isWarn(c.startedAt)?'warn':''}" id="vt-${def.id}">${fmtCourt(c.startedAt)}</span>`:''}
       ${c?`<span class="court-view-round">Rd ${c.round}${c.submitted?' ✓':''}</span>`:''}
     </div>`;
@@ -480,18 +480,18 @@ function renderCourts(s) {
     const t1=c.team1.map(id=>getP(id)), t2=c.team2.map(id=>getP(id));
     if(c.submitted){
       const diff=c.score1-c.score2;
-      const winner=diff>0?t1.map(p=>p?.name||'?').join(' & '):diff<0?t2.map(p=>p?.name||'?').join(' & '):null;
+      const winner=diff>0?t1.map(p=>escapeHtml(p?.name||'?')).join(' & '):diff<0?t2.map(p=>escapeHtml(p?.name||'?')).join(' & '):null;
       return `<div class="court-view">${hdr}<div class="court-view-body">
         <div style="text-align:center;padding:6px 0 10px">
           <div style="font-size:2rem;font-weight:800;letter-spacing:0.02em;">${c.score1} <span style="color:var(--muted);font-size:1.3rem;">–</span> ${c.score2}</div>
-          <div style="font-size:0.78rem;font-weight:500;color:var(--muted);margin-top:4px;">${t1.map(p=>p?.name||'?').join(' & ')} vs ${t2.map(p=>p?.name||'?').join(' & ')}</div>
+          <div style="font-size:0.78rem;font-weight:500;color:var(--muted);margin-top:4px;">${t1.map(p=>escapeHtml(p?.name||'?')).join(' & ')} vs ${t2.map(p=>escapeHtml(p?.name||'?')).join(' & ')}</div>
           ${winner?`<div style="font-size:0.78rem;font-weight:800;color:#8FB339;margin-top:6px;letter-spacing:0.03em;">🏆 ${winner}</div>`:'<div style="font-size:0.75rem;color:var(--muted);margin-top:6px;">Tie</div>'}
         </div>
       </div></div>`;
     }
     const teamView=(tp,label)=>`<div class="team-view">
       <div class="team-view-label">${label}</div>
-      ${tp.map(p=>`<div class="player-chip"><span class="player-bullet-v"></span><span class="player-chip-col"><span class="player-chip-name">${p?.name||'?'}</span><span class="player-chip-lvl">${({beginner:'BEG',intermediate:'INT',advanced:'ADV'})[(p&&p.skill)||'intermediate']}</span></span></div>`).join('')}
+      ${tp.map(p=>`<div class="player-chip"><span class="player-bullet-v"></span><span class="player-chip-col"><span class="player-chip-name">${escapeHtml(p?.name||'?')}</span><span class="player-chip-lvl">${({beginner:'BEG',intermediate:'INT',advanced:'ADV'})[(p&&p.skill)||'intermediate']}</span></span></div>`).join('')}
     </div>`;
     return `<div class="court-view">${hdr}<div class="court-view-body">
       <div class="match-view">${teamView(t1,'Team A')}<div class="vs-view">VS</div>${teamView(t2,'Team B')}</div>
@@ -502,7 +502,7 @@ function renderCourts(s) {
 function mqCardView(m, label, isNext, players) {
   const getP = id => players.find(p=>p.id===id);
   const t1 = m.team1.map(getP), t2 = m.team2.map(getP);
-  const teamHtml = tp => tp.map(p=>`<div class="mq-player-v"><span class="player-chip-avatar" style="background:${avatarColor(p?.name||'?')};">${initials(p?.name||'?')}</span><span class="mq-name-v">${p?.name||'?'}</span></div>`).join('');
+  const teamHtml = tp => tp.map(p=>`<div class="mq-player-v"><span class="player-chip-avatar" style="background:${avatarColor(p?.name||'?')};">${initials(p?.name||'?')}</span><span class="mq-name-v">${escapeHtml(p?.name||'?')}</span></div>`).join('');
   return `<div class="mq-card-v ${isNext?'next':''}">
     <div class="mq-header-v">
       <span class="mq-label-v">${label}</span>
@@ -540,7 +540,7 @@ function renderQueue(s) {
   // Free waiting
   if(freeWaiting.length){
     html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:7px;">⏳ Still Waiting</div>`;
-    html+=freeWaiting.map((p,i)=>`<div class="queue-view-item"><div class="queue-view-rank">${i+1}</div><div class="player-chip-avatar" style="background:${avatarColor(p.name)};width:26px;height:26px;">${initials(p.name)}</div><span class="queue-view-name">${p.name}</span></div>`).join('');
+    html+=freeWaiting.map((p,i)=>`<div class="queue-view-item"><div class="queue-view-rank">${i+1}</div><div class="player-chip-avatar" style="background:${avatarColor(p.name)};width:26px;height:26px;">${initials(p.name)}</div><span class="queue-view-name">${escapeHtml(p.name)}</span></div>`).join('');
   }
 
   if(!html) html='<div class="empty-v">No one waiting right now.</div>';
@@ -571,7 +571,7 @@ function renderRankings(s) {
   });
   const col2=rankSort==='wins'?'Wins':rankSort==='points'?'Points':rankSort==='winpct'?'Win%':'Pt%';
   const col2Val=p=>rankSort==='wins'?p.wins:rankSort==='points'?p.points:rankSort==='winpct'?`${p.winPct}%`:`${p.ptPct}%`;
-  el.innerHTML=`<table class="rank-view-table"><thead><tr><th>#</th><th>Player</th><th>${col2}</th><th>GP</th><th>Diff</th></tr></thead><tbody>${sorted.map((p,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-medal">${medal||i+1}</span></td><td><span class="player-tag-view"><span class="mini-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${p.name}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff-v ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
+  el.innerHTML=`<table class="rank-view-table"><thead><tr><th>#</th><th>Player</th><th>${col2}</th><th>GP</th><th>Diff</th></tr></thead><tbody>${sorted.map((p,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-medal">${medal||i+1}</span></td><td><span class="player-tag-view"><span class="mini-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${escapeHtml(p.name)}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff-v ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
 }
 
 // Read-only mirror of app.html's Game History (newest first).
@@ -589,11 +589,11 @@ function renderHistory(s) {
     : gh;
   if(!games.length){el.innerHTML='<div class="empty-v"><div class="icon">🔍</div>No games match that name.</div>';return;}
   el.innerHTML=games.map(g=>{
-    const t1=(g.team1||[]).join(' & '), t2=(g.team2||[]).join(' & ');
+    const t1=escapeHtml((g.team1||[]).join(' & ')), t2=escapeHtml((g.team2||[]).join(' & '));
     const winner=g.score1>g.score2?t1:g.score2>g.score1?t2:null;
     return `<div class="history-view-item">
       <div class="history-view-top">
-        <span class="history-view-meta">Rd ${g.round} · ${g.courtName||'Court '+g.court}</span>
+        <span class="history-view-meta">Rd ${g.round} · ${escapeHtml(g.courtName||'Court '+g.court)}</span>
         <span class="history-view-score">${g.score1} – ${g.score2}</span>
       </div>
       <div class="history-view-players">${t1} vs ${t2}</div>

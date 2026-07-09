@@ -288,8 +288,16 @@ function loadSessions() {
     const results = await Promise.all(ids.map(id =>
       get(ref(db, `sessions/${id}`)).then(s => s.exists() ? [id, s.val()] : null).catch(() => null)
     ));
-    // Trust the user's own session index — no need to re-check ownerId field
-    const entries = results.filter(Boolean);
+    // Verify ownership — the index is user-writable and app.html used to register
+    // ANY opened session, so stale/unowned entries can exist. Render only owned
+    // sessions and prune the rest from the index (deleted sessions included).
+    // NOTE (cohost spec): co-host entries will be kept via their cohost:true flag.
+    const entries = [];
+    results.forEach((r, i) => {
+      const owned = r && r[1] && r[1].ownerId === currentUser.uid;
+      if (owned) entries.push(r);
+      else remove(ref(db, `users/${currentUser.uid}/sessions/${ids[i]}`)).catch(() => {});
+    });
     if (!entries.length) {
       loadSessionsByOwner(); // fallback for sessions created before the index existed
       return;
@@ -346,7 +354,7 @@ function sessionCard(id, s) {
     <div class="session-icon">${isLive ? '🟢' : '📋'}</div>
     <div class="session-info">
       <div class="session-name-row">
-        <span class="session-name">${s.name||'Open Play'}</span>
+        <span class="session-name">${String(s.name||'Open Play').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</span>
         <span class="badge ${isLive?'badge-live':'badge-ended'}">${isLive?'Live':'Ended'}</span>
       </div>
       <div class="session-meta">${meta}</div>
@@ -380,11 +388,16 @@ window.closeDeleteModal = (e) => {
 };
 window.confirmDelete = async () => {
   if (!deleteTargetId) return;
-  await remove(ref(db, `sessions/${deleteTargetId}`));
-  await remove(ref(db, `users/${currentUser.uid}/sessions/${deleteTargetId}`));
+  const id = deleteTargetId;
   document.getElementById('deleteOverlay').classList.add('hidden');
   deleteTargetId = null;
-  showToast('Session deleted.');
+  try {
+    await remove(ref(db, `sessions/${id}`));
+    await remove(ref(db, `users/${currentUser.uid}/sessions/${id}`));
+    showToast('Session deleted.');
+  } catch (e) {
+    showToast('Could not delete session.');
+  }
 };
 
 function showToast(msg) {

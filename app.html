@@ -1341,7 +1341,11 @@ function loadTheme() {
 }
 
 // ===== UTILS =====
-function initials(name) { return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+// HTML-escape — applied to every user-supplied string (player/court/session names)
+// interpolated into innerHTML. Check-in names come from anonymous users, so any
+// unescaped render is an XSS vector into the admin's authenticated session.
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function initials(name) { return esc(name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)); }
 function showToast(msg, dur=2500) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -1799,7 +1803,7 @@ function renderPlayers() {
   list.innerHTML=filtered.map(p=>`
     <div class="player-row ${p.present?'present':'absent'}">
       <div class="player-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div>
-      <span class="player-name">${p.name}</span>
+      <span class="player-name">${esc(p.name)}</span>
       <div class="status-dot ${p.present?'present':''}"></div>
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
@@ -2183,7 +2187,7 @@ function submitScore(courtId) {
 // seat) so the public view renders them with no special-casing. `ladder` holds the bench
 // + round. Each round every court plays; winners move up one court, losers down one;
 // the bottom court's loser rotates to the back of the bench and the bench front rotates in.
-function teamLabel(team){ return (team||[]).map(id=>getPlayer(id)?.name||'?').join(' & '); }
+function teamLabel(team){ return (team||[]).map(id=>esc(getPlayer(id)?.name||'?')).join(' & '); } // HTML-only use
 function ladderActiveCourts(){
   // courts that are part of the ladder, ordered by court rank (courtDefs order)
   return courtDefs.map(d=>courts.find(c=>c.id===d.id)).filter(Boolean);
@@ -2290,18 +2294,18 @@ function renderLadder(){
     const aWon=c.submitted&&c.score1>c.score2, bWon=c.submitted&&c.score2>c.score1;
     const v=x=>(x!==''&&x!=null)?x:'';
     html+=`<div class="court-card ladder-court ${c.submitted?'reported':''}">
-      <div class="court-header"><span class="court-name-static">${c.name}</span><span class="ladder-rank">${rank}</span>${c.submitted?'<span class="court-round">✓ reported</span>':''}</div>
+      <div class="court-header"><span class="court-name-static">${esc(c.name)}</span><span class="ladder-rank">${rank}</span>${c.submitted?'<span class="court-round">✓ reported</span>':''}</div>
       <div class="court-body">
         <div class="ct-head-row"><span class="ct-score-head">Score</span></div>
         <div class="ct-row">
           <span class="ct-tag t1">A</span>
-          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span>`:c.team1.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${getPlayer(id)?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${c.id},'team1',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span>`:c.team1.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(getPlayer(id)?.name||'?')}<button class="swap-btn" onclick="openSwapModal(${c.id},'team1',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}">
         </div>
         <div class="ct-vs">VS</div>
         <div class="ct-row">
           <span class="ct-tag t2">B</span>
-          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${getPlayer(id)?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${c.id},'team2',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(getPlayer(id)?.name||'?')}<button class="swap-btn" onclick="openSwapModal(${c.id},'team2',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}">
         </div>
         <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
@@ -2318,7 +2322,7 @@ function renderLadder(){
   active.forEach(c=>[...c.team1,...c.team2].forEach(id=>placed.add(id)));
   bench.forEach(t=>t.forEach(id=>placed.add(id)));
   const sitting=presentPlayers().filter(p=>!placed.has(p.id));
-  if(sitting.length) html+=`<div class="card ladder-sitting"><div class="card-title">Sitting out (no partner)</div>${sitting.map(p=>`<span class="ladder-sit-name">${p.name}</span>`).join('')}<div class="ladder-sit-hint">Tap Reset to re-seed and bring them in.</div></div>`;
+  if(sitting.length) html+=`<div class="card ladder-sitting"><div class="card-title">Sitting out (no partner)</div>${sitting.map(p=>`<span class="ladder-sit-name">${esc(p.name)}</span>`).join('')}<div class="ladder-sit-hint">Tap Reset to re-seed and bring them in.</div></div>`;
   el.innerHTML=html;
 }
 
@@ -2351,8 +2355,8 @@ function toggleManualPlayer(id){
 }
 function renderManualPick(){
   const ts=teamSize(), need=matchSize(), sel=manualPick.selected;
-  const aNames=sel.slice(0,ts).map(id=>getPlayer(id)?.name||'?');
-  const bNames=sel.slice(ts,need).map(id=>getPlayer(id)?.name||'?');
+  const aNames=sel.slice(0,ts).map(id=>esc(getPlayer(id)?.name||'?'));
+  const bNames=sel.slice(ts,need).map(id=>esc(getPlayer(id)?.name||'?'));
   document.getElementById('manualPreview').innerHTML=
     `<div class="manual-team drop-team" data-team="A"><span class="manual-team-tag">Team A</span><span class="manual-team-names">${aNames.length?aNames.join(' & '):'Drop here'}</span></div>`+
     `<div class="manual-vs">VS</div>`+
@@ -2360,7 +2364,7 @@ function renderManualPick(){
   const avail=freeForManual();
   document.getElementById('manualOptions').innerHTML = avail.length
     ? avail.map(p=>{ const idx=sel.indexOf(p.id); const on=idx>=0;
-        return `<button class="manual-chip ${on?'on':''}" onpointerdown="manualDragStart(event,${p.id})" onclick="toggleManualPlayer(${p.id})"><span class="manual-chip-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span><span class="manual-chip-name">${p.name}</span>${on?`<span class="manual-chip-slot">${idx<ts?'A':'B'}</span>`:''}</button>`;
+        return `<button class="manual-chip ${on?'on':''}" onpointerdown="manualDragStart(event,${p.id})" onclick="toggleManualPlayer(${p.id})"><span class="manual-chip-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span><span class="manual-chip-name">${esc(p.name)}</span>${on?`<span class="manual-chip-slot">${idx<ts?'A':'B'}</span>`:''}</button>`;
       }).join('')
     : '<div style="color:var(--muted);font-size:0.85rem;font-weight:500;text-align:center;padding:14px;">No available players right now.</div>';
   const btn=document.getElementById('manualStartBtn');
@@ -2501,7 +2505,7 @@ function _openSwapOptions(outgoingId) {
   }
   const overrideCands=presentPlayers().filter(p=>p.id!==outgoingId&&!sameCourtIds.has(p.id)).map(p=>({id:p.id, name:p.name, playing:onCourtIds.has(p.id)}));
   const autoId=window.bestSkillMatch?(window.bestSkillMatch(outgoing?.skill||'intermediate', queueCands)):null;
-  const chip=(id,name,tag)=>`<div class="swap-option" onclick="confirmSwap(${id})">${name}${tag?` <span style="color:var(--muted);font-size:0.7rem;">${tag}</span>`:''}</div>`;
+  const chip=(id,name,tag)=>`<div class="swap-option" onclick="confirmSwap(${id})">${esc(name)}${tag?` <span style="color:var(--muted);font-size:0.7rem;">${tag}</span>`:''}</div>`;
   // Trade section (court swaps, doubles+): switch sides with a player on the OTHER team of this court. Match-scoped, no queue needed.
   let tradeHtml='';
   if(swapContext&&swapContext.type==='court'&&teamSize()>1){
@@ -2718,7 +2722,7 @@ function renderCourts() {
     const elapsed=c&&!c.submitted&&c.startedAt?Date.now()-c.startedAt:0;
     const warn=elapsed>20*60*1000;
     const header=`<div class="court-header">
-      <input class="court-name-input" data-id="${def.id}" value="${def.name}" onchange="renameCourtDef(${def.id},this.value)" onclick="this.select()" title="Click to rename">
+      <input class="court-name-input" data-id="${def.id}" value="${esc(def.name)}" onchange="renameCourtDef(${def.id},this.value)" onclick="this.select()" title="Click to rename">
       ${c&&!c.submitted?`<span class="court-timer ${warn?'warn':''}" id="court-timer-${def.id}">${formatCourtTimer(c.startedAt)}</span>`:''}
       ${c?`<span class="court-round">Rd ${c.round}${c.submitted?' ✓':''}</span>`:''}
       <button class="remove-court-btn" onclick="removeCourt(${def.id})">✕</button>
@@ -2736,8 +2740,8 @@ function renderCourts() {
     }
     const t1=c.team1.map(id=>getPlayer(id));
     const t2=c.team2.map(id=>getPlayer(id));
-    const t1names=t1.map(p=>p?.name||'?');
-    const t2names=t2.map(p=>p?.name||'?');
+    const t1names=t1.map(p=>esc(p?.name||'?'));  // HTML-only use below
+    const t2names=t2.map(p=>esc(p?.name||'?'));
     if(c.submitted){
       const diff=c.score1-c.score2;
       const winner=diff>0?t1names.join(' & '):diff<0?t2names.join(' & '):null;
@@ -2752,7 +2756,7 @@ function renderCourts() {
           : (c.tMatchId?`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Match complete</div>`:matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div style="text-align:center;font-size:0.78rem;font-weight:500;color:var(--muted);padding:4px 0;">Not enough waiting players</div>`)}
       </div></div>`;
     }
-    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name"><span class="ct-name-row">${p?.name||'?'}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(p)}</span></span>`).join('');
+    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(p?.name||'?')}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(p)}</span></span>`).join('');
     const rowHtml=(tp,tk,tag,tagCls,sid)=>`<div class="ct-row">
       <span class="ct-tag ${tagCls}">${tag}</span>
       <div class="ct-names">${namesHtml(tp,tk)}</div>
@@ -2840,18 +2844,18 @@ function renderTournamentSetup() {
   const free = present.filter(p => !assigned.has(p.id));
   const teamsHtml = t.teams.map(tm => `
     <div class="t-team">
-      <div class="t-team-h">${tm.name}${t.locked ? '' : ` <button class="t-x" onclick="tRemoveTeam('${tm.id}')">remove</button>`}</div>
-      <div class="t-team-players">${tm.players.map(pid => `<span class="t-chip" onclick="tAssignPlayer('${pid}')">${getPlayer(pid)?.name || '?'}</span>`).join('') || '<span class="t-empty">empty</span>'}</div>
+      <div class="t-team-h">${esc(tm.name)}${t.locked ? '' : ` <button class="t-x" onclick="tRemoveTeam('${tm.id}')">remove</button>`}</div>
+      <div class="t-team-players">${tm.players.map(pid => `<span class="t-chip" onclick="tAssignPlayer('${pid}')">${esc(getPlayer(pid)?.name || '?')}</span>`).join('') || '<span class="t-empty">empty</span>'}</div>
     </div>`).join('');
   const freeHtml = t.locked ? '' : `
     <div class="t-free">
       <div class="t-free-h">Tap a player to assign (team size ${ts})</div>
-      <div class="t-free-list">${free.map(p => `<span class="t-chip" onclick="tAssignPlayer('${p.id}')">${p.name}</span>`).join('') || '<span class="t-empty">everyone assigned</span>'}</div>
+      <div class="t-free-list">${free.map(p => `<span class="t-chip" onclick="tAssignPlayer('${p.id}')">${esc(p.name)}</span>`).join('') || '<span class="t-empty">everyone assigned</span>'}</div>
     </div>`;
   const courtsHtml = `
     <div class="t-courts">
       <div class="t-free-h">Courts (${courtDefs.length}) - add using the field above</div>
-      <div class="t-free-list">${courtDefs.map(d => `<span class="t-chip t-court-chip">${d.name} <button class="t-x" onclick="removeCourt(${d.id})">remove</button></span>`).join('') || '<span class="t-empty">No courts yet. Add at least one above before starting.</span>'}</div>
+      <div class="t-free-list">${courtDefs.map(d => `<span class="t-chip t-court-chip">${esc(d.name)} <button class="t-x" onclick="removeCourt(${d.id})">remove</button></span>`).join('') || '<span class="t-empty">No courts yet. Add at least one above before starting.</span>'}</div>
     </div>`;
   const controls = t.locked
     ? renderTournamentStartControls(t)     // defined in Task 8
@@ -2952,7 +2956,7 @@ function renderTournamentStandings(containerId) {
   const host = document.getElementById(containerId);
   if (!host || !tournament || !tournament.started) return;
   const rows = window.computeStandings(tournament.teams.length, tournament.matches);
-  const name = i => tournament.teams[i] ? (tournament.teams[i].players.map(pid => getPlayer(pid)?.name || '?').join(' & ')) : ('Team ' + (i+1));
+  const name = i => tournament.teams[i] ? (tournament.teams[i].players.map(pid => esc(getPlayer(pid)?.name || '?')).join(' & ')) : ('Team ' + (i+1));
   host.innerHTML = `
     <div class="t-standings">
       <h3>Standings</h3>
@@ -2984,7 +2988,7 @@ function mqMatchCard(m,label,isNext) {
   const teamHtml=(players,teamKey)=>players.map((p,i)=>`
     <div class="mq-team-player">
       <span class="mini-avatar" style="background:${avatarColor(p?.name||'?')};">${initials(p?.name||'?')}</span>
-      <span class="mq-player-name">${p?.name||'?'}</span>
+      <span class="mq-player-name">${esc(p?.name||'?')}</span>
       <button class="swap-btn" onclick="openQueueSwapModal(${m.id},'${teamKey}',${i})">⇄</button>
     </div>`).join('');
   return `<div class="${cardCls}">
@@ -2998,7 +3002,7 @@ function renderHold() {
   const held=players.filter(p=>p&&!p.present);
   if(!held.length){ card.style.display='none'; list.innerHTML=''; return; }
   card.style.display='';
-  list.innerHTML=held.map(p=>`<div class="queue-item"><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${p.name}</span><button onclick="togglePresent(${p.id})" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:1.5px solid var(--army);background:none;color:var(--army);cursor:pointer;">Add to queue</button></div>`).join('');
+  list.innerHTML=held.map(p=>`<div class="queue-item"><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><button onclick="togglePresent(${p.id})" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:1.5px solid var(--army);background:none;color:var(--army);cursor:pointer;">Add to queue</button></div>`).join('');
 }
 function renderQueue() {
   renderHold();
@@ -3022,7 +3026,7 @@ function renderQueue() {
   }
   if(freeWaiting.length){
     html+=`<div class="mq-section-label" style="color:var(--muted);">⏳ Still Waiting</div>`;
-    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${p.name}</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}">${p.lastPlayedRound===-1?'Not played':globalRound-p.lastPlayedRound+'r ago'}</span></div>`).join('');
+    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}">${p.lastPlayedRound===-1?'Not played':globalRound-p.lastPlayedRound+'r ago'}</span></div>`).join('');
   }
   if(!matchQueue.length&&!freeWaiting.length){
     html='<div class="empty-state"><div class="icon">⏳</div>No one waiting right now.</div>';
@@ -3061,7 +3065,7 @@ function renderRankings() {
   });
   const col2=rankSort==='wins'?'Wins':rankSort==='points'?'Points':rankSort==='winpct'?'Win%':'Pt%';
   const col2Val=p=>rankSort==='wins'?p.wins:rankSort==='points'?p.points:rankSort==='winpct'?`${p.winPct}%`:`${p.ptPct}%`;
-  el.innerHTML=`<table class="rank-table"><thead><tr><th>#</th><th>Player</th><th class="sorted">${col2}</th><th>GP</th><th>Score Diff</th></tr></thead><tbody>${sorted.map((p,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-num">${medal||i+1}</span></td><td><span class="player-tag"><span class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${p.name}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
+  el.innerHTML=`<table class="rank-table"><thead><tr><th>#</th><th>Player</th><th class="sorted">${col2}</th><th>GP</th><th>Score Diff</th></tr></thead><tbody>${sorted.map((p,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-num">${medal||i+1}</span></td><td><span class="player-tag"><span class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${esc(p.name)}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
 }
 function applyGameStats(t1p,t2p,s1,s2,sign){
   const win=s1>s2?1:s2>s1?2:0;
@@ -3134,13 +3138,13 @@ function renderGameHistory() {
   gameHistory.forEach(g=>[...(g.team1Ids||[]),...(g.team2Ids||[])].forEach(id=>idsInHistory.add(String(id))));
   if(historyFilter!=='all' && !idsInHistory.has(String(historyFilter))) historyFilter='all';   // selected player left / cleared
   const filterPlayers=players.filter(p=>idsInHistory.has(String(p.id))).sort((a,b)=>a.name.localeCompare(b.name));
-  const options=`<option value="all">All players</option>`+filterPlayers.map(p=>`<option value="${p.id}"${String(historyFilter)===String(p.id)?' selected':''}>${p.name}</option>`).join('');
+  const options=`<option value="all">All players</option>`+filterPlayers.map(p=>`<option value="${p.id}"${String(historyFilter)===String(p.id)?' selected':''}>${esc(p.name)}</option>`).join('');
   const filterBar=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><label style="font-size:0.78rem;font-weight:600;color:var(--muted);">Filter</label><select id="historyFilter" onchange="setHistoryFilter(this.value)" style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input-bg);color:var(--ink);font-weight:600;font-size:0.85rem;">${options}</select></div>`;
   // Keep the ORIGINAL index so Edit targets the right entry after filtering.
   const items=gameHistory.map((g,idx)=>({g,idx})).filter(x=>historyFilter==='all' || historyEntryHasPlayer(x.g, historyFilter));
   let summary='';
   if(historyFilter!=='all'){
-    const nm=getPlayer(Number(historyFilter))?.name||'Player';
+    const nm=esc(getPlayer(Number(historyFilter))?.name||'Player');
     let w=0,l=0;
     items.forEach(({g})=>{
       const onT1=(g.team1Ids||[]).map(String).includes(String(historyFilter));
@@ -3150,7 +3154,7 @@ function renderGameHistory() {
   }
   const list = items.length ? items.map(({g,idx})=>{
     const winner=g.score1>g.score2?g.team1:g.score2>g.score1?g.team2:null;
-    return `<div class="history-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:0.72rem;font-weight:600;color:var(--muted);">Rd ${g.round} · ${g.courtName||'Court '+g.court}</span><span style="display:flex;align-items:center;gap:8px;"><span class="history-score">${g.score1} – ${g.score2}</span><button class="hist-edit-btn" onclick="openEditScore(${idx})" title="Edit score">✏️</button></span></div><div class="history-players">${g.team1.join(' & ')} vs ${g.team2.join(' & ')}</div>${winner?`<span class="badge badge-gold" style="margin-top:5px;">🏆 ${winner.join(' & ')}</span>`:`<span class="badge" style="background:var(--surface2);color:var(--muted);margin-top:5px;">Tie</span>`}</div>`;
+    return `<div class="history-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:0.72rem;font-weight:600;color:var(--muted);">Rd ${g.round} · ${esc(g.courtName||'Court '+g.court)}</span><span style="display:flex;align-items:center;gap:8px;"><span class="history-score">${g.score1} – ${g.score2}</span><button class="hist-edit-btn" onclick="openEditScore(${idx})" title="Edit score">✏️</button></span></div><div class="history-players">${esc(g.team1.join(' & '))} vs ${esc(g.team2.join(' & '))}</div>${winner?`<span class="badge badge-gold" style="margin-top:5px;">🏆 ${esc(winner.join(' & '))}</span>`:`<span class="badge" style="background:var(--surface2);color:var(--muted);margin-top:5px;">Tie</span>`}</div>`;
   }).join('') : `<div class="empty-state" style="padding:16px 0;"><div class="icon">📋</div>No games for this player yet.</div>`;
   el.innerHTML = filterBar + summary + list;
 }
@@ -3287,19 +3291,19 @@ onAuthStateChanged(_auth, user => {
   _authUser = user && !user.isAnonymous ? user : null;
   if (_authUser) {
     _attachCheckinListener();
-    // Register this session under user profile — device-independent recovery
+    // Register this session under user profile — device-independent recovery.
+    // OWNED sessions only: anyone can open a session link (reads are open), and
+    // registering unowned sessions would pollute that visitor's dashboard index.
+    // (Co-host joins will add their own flagged entry — see cohost spec.)
     if (_SESSION_ID) {
       const userSessionRef = ref(_db, `users/${user.uid}/sessions/${_SESSION_ID}`);
       const lastSessionRef = ref(_db, `users/${user.uid}/lastSession`);
-      // Read session name from Firebase first, then register
-      get(ref(_db, `sessions/${_SESSION_ID}/name`)).then(snap => {
-        const sName = snap.val() || 'Open Play';
-        update(userSessionRef, { name: sName, lastOpened: Date.now() });
+      get(ref(_db, `sessions/${_SESSION_ID}`)).then(snap => {
+        const s = snap.val();
+        if (!s || s.ownerId !== user.uid) return; // not ours — don't index it
+        update(userSessionRef, { name: s.name || s.sessionName || 'Open Play', lastOpened: Date.now() });
         set(lastSessionRef, _SESSION_ID);
-      }).catch(() => {
-        // Still register even if we can't read the name
-        set(lastSessionRef, _SESSION_ID);
-      });
+      }).catch(() => {});
     }
   } else {
     setTimeout(() => {
