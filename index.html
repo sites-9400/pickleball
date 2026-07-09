@@ -78,6 +78,11 @@ input:focus{border-color:var(--army);}
   <!-- ERROR -->
   <div class="error-msg" id="errorMsg"></div>
 
+  <!-- IN-APP BROWSER WARNING (shown by module script when detected) -->
+  <div id="webviewNote" style="display:none;background:#FFF7E0;border:1px solid #E5C558;color:#6b4e00;border-radius:8px;padding:10px 12px;font-size:0.8rem;font-weight:600;margin-bottom:12px;line-height:1.5;text-align:left;">
+    ⚠️ You're viewing this inside a chat app's browser — <strong>Google sign-in won't work here.</strong> Tap the <strong>⋯</strong> menu and choose <strong>"Open in Browser"</strong>, or sign up with email below.
+  </div>
+
   <!-- GOOGLE -->
   <button class="google-btn" onclick="signInWithGoogle()">
     <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.96L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
@@ -155,6 +160,18 @@ onAuthStateChanged(auth, user => {
   if (user && !user.isAnonymous) window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
 });
 
+// In-app browsers (Messenger, Instagram, Facebook, etc.) block Google OAuth
+// entirely (Google "disallowed_useragent" policy) — most new users arrive via
+// links shared in chat apps, so detect and steer them to a real browser or
+// the email form. Regex verified against real webview UA strings.
+function inAppBrowser() {
+  return /FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|MicroMessenger|; wv\)|WebView/i.test(navigator.userAgent || '');
+}
+if (inAppBrowser()) {
+  const n = document.getElementById('webviewNote');
+  if (n) n.style.display = '';
+}
+
 async function ensureUserProfile(user) {
   const userRef = ref(db, `users/${user.uid}`);
   const snap = await get(userRef);
@@ -175,6 +192,12 @@ window.signInWithGoogle = async () => {
     await ensureUserProfile(result.user);
     window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
   } catch(e) {
+    // Inside a chat-app webview, ANY Google failure is really the webview —
+    // give the actionable guidance instead of a per-code message.
+    if (inAppBrowser() && e.code !== 'auth/popup-closed-by-user') {
+      showError('Google sign-in doesn\'t work inside this app\'s browser. Tap the ⋯ menu → "Open in Browser", or sign up with email below.');
+      return;
+    }
     showError(friendlyError(e.code));
   }
 };
@@ -226,8 +249,16 @@ function friendlyError(code) {
     'auth/invalid-email': 'Please enter a valid email address.',
     'auth/popup-closed-by-user': 'Sign-in cancelled.',
     'auth/network-request-failed': 'Network error. Check your connection.',
+    'auth/popup-blocked': 'Your browser blocked the sign-in window. Allow pop-ups and try again, or sign up with email below.',
+    'auth/cancelled-popup-request': 'Sign-in was interrupted — tap the button once and wait a moment.',
+    'auth/operation-not-supported-in-this-environment': 'Google sign-in isn\'t supported in this browser — sign up with email below.',
+    'auth/web-storage-unsupported': 'Your browser is blocking sign-in storage — open this page in Safari or Chrome.',
+    'auth/too-many-requests': 'Too many attempts — wait a minute and try again.',
   };
-  return map[code] || 'Something went wrong. Please try again.';
+  if (map[code]) return map[code];
+  // Surface the raw code so mobile failures are never masked behind a generic
+  // message again — this is what lets users report something actionable.
+  return `Sign-in failed${code ? ' (' + code + ')' : ''}. Try email sign-up below, or open this page in Safari or Chrome.`;
 }
 
 function showError(msg) {
