@@ -304,6 +304,9 @@ function renderViewStandings(s) {
       const matches = normArr(t.matches).map(m => ({
         teamA: m.teamA, teamB: m.teamB,
         score1: m.score1 < 0 ? 0 : m.score1, score2: m.score2 < 0 ? 0 : m.score2, submitted: !!m.submitted,
+        // -1 sentinels mean 'no score recorded' (app.html serializes '' as -1):
+        // a submitted match without scores is a skipped/cancelled one, never a 0-0 tie.
+        skipped: !!m.skipped || m.score1 < 0 || m.score2 < 0,
       }));
       const rows = computeStandings(teams.length, matches);
       const playersMap = {};
