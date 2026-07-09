@@ -590,22 +590,6 @@ input:focus, textarea:focus { border-color: var(--army); }
   align-items: center;
   margin-bottom: 12px;
 }
-.score-input {
-  text-align: center;
-  font-family: var(--font);
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  padding: 10px 6px;
-  border: 2px solid var(--line);
-  border-radius: 8px;
-  background: var(--input-bg);
-  color: var(--ink);
-  width: 100%;
-  transition: border-color 0.15s;
-}
-.score-input:focus { border-color: var(--accent); outline: none; }
-.score-sep { text-align: center; color: var(--muted); font-weight: 800; font-size: 1.1rem; }
 /* ===== Inline court layout (T-tag · players · score per row) ===== */
 .ct-head-row { display: flex; justify-content: flex-end; margin-bottom: 5px; }
 .ct-score-head { width: 56px; text-align: center; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
@@ -1529,11 +1513,21 @@ function normGameHistory(val) {
 }
 
 // Called by Firebase listener whenever remote state arrives
+let _hadRemoteData = false;
 window._fbApplyRemote = function(s) {
-  // Preserve score inputs being actively typed
+  _hadRemoteData = true;
+  // Preserve score inputs being actively typed — BOTH fields per court, not
+  // just the focused one: a co-host save landing while the host is between
+  // the two score fields must not wipe the first score. Values are keyed to
+  // the court's current occupants so they are never restored onto a
+  // different match.
+  const _scoreKey = c => `${c.tMatchId ?? ''}:${(c.team1 || []).join(',')}|${(c.team2 || []).join(',')}`;
   const activeScores = {};
-  document.querySelectorAll('.score-input').forEach(el => {
-    if (document.activeElement === el && el.value) activeScores[el.id] = el.value;
+  document.querySelectorAll('.ct-score').forEach(el => {
+    if (!el.value) return;
+    const cid = parseInt(el.id.split('_')[1], 10);
+    const c = courts.find(ct => ct.id === cid);
+    if (c && !c.submitted) activeScores[el.id] = { value: el.value, match: _scoreKey(c) };
   });
 
   players      = normArr(s.players).map(p => ({ ...p, skill: p.skill || 'intermediate', via: p.via || 'manual' }));
@@ -1584,10 +1578,16 @@ window._fbApplyRemote = function(s) {
   renderPlayers(); renderCourts(); renderQueue();
   renderRankings(); renderGameHistory();
 
-  // Restore in-progress score inputs
-  Object.entries(activeScores).forEach(([id, val]) => {
+  // Restore in-progress score inputs — only onto the same match, and never
+  // over a score the remote snapshot itself brought in (remote wins).
+  Object.entries(activeScores).forEach(([id, rec]) => {
     const el = document.getElementById(id);
-    if (el) { el.value = val; }
+    if (!el || el.value) return;
+    const cid = parseInt(id.split('_')[1], 10);
+    const c = courts.find(ct => ct.id === cid);
+    if (!c || c.submitted || _scoreKey(c) !== rec.match) return;
+    el.value = rec.value;
+    c[id.split('_')[0]] = rec.value; // mirror to state, as updateScore() does on input
   });
 
   // Hide loading screen
@@ -1608,6 +1608,12 @@ window._fbApplyRemote = function(s) {
 
 // Called when Firebase node is null (session deleted / new session)
 window._fbHandleNull = function() {
+  // Session existed in this tab and was deleted (e.g. from the dashboard):
+  // don't strand the user on a start-session screen wired to a dead id.
+  if (_hadRemoteData) {
+    window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
+    return;
+  }
   players=[]; courts=[]; courtDefs=[]; matchQueue=[]; gameHistory=[];
   globalRound=0; playerIdCounter=0; courtIdCounter=0; mqIdCounter=0; queueOrder=[];
   sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null;
@@ -1664,13 +1670,17 @@ function applySessionUI() {
   updateSessionClock();
   updateTabOffset();
 }
+// Sticky one-off notice (e.g. dead invite link) — outlives the per-snapshot
+// re-render, which would otherwise replace it with the generic access message.
+let _accessNotice = '';
 function renderAccessBanner() {
   const b = document.getElementById('accessBanner');
   if (!b) return;
-  const msg = _access === 'revoked' ? "You're no longer a co-host — this session is now view-only."
+  const msg = _accessNotice
+            || (_access === 'revoked' ? "You're no longer a co-host — this session is now view-only."
             : _access === 'viewer'  ? "View only — you don't have admin access to this session."
             : _access === 'cohost'  ? "Co-hosting this session — only the owner can end or delete it."
-            : '';
+            : '');
   b.textContent = msg;
   b.style.display = msg ? '' : 'none';
 }
@@ -1777,7 +1787,8 @@ function exportCSV() {
   });
   rows.push([]); rows.push(['Round','Court','Team A','Team B','Score A','Score B']);
   gameHistory.forEach(g=>rows.push([g.round,g.courtName||g.court,g.team1.join(' & '),g.team2.join(' & '),g.score1,g.score2]));
-  const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const cell=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const blob=new Blob([rows.map(r=>r.map(cell).join(',')).join('\n')],{type:'text/csv'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=`${sessionName.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); showToast('CSV exported!');
@@ -1974,8 +1985,10 @@ function renderCohostPanel() {
 function _refreshCohostLink() {
   const box = document.getElementById('cohostLinkDisplay');
   if (!box) return;
-  if (_cohostLink) { box.textContent = _cohostLink; return; }
+  if (_cohostLink) box.textContent = _cohostLink; // show last known while re-reading
   if (!window._readCohostToken) { setTimeout(_refreshCohostLink, 300); return; }
+  // Always re-read the token: a regen in another tab would otherwise leave
+  // this tab showing (and copying) a dead link until reload.
   window._readCohostToken().then(tok => {
     if (!tok) return; // toggling on writes the first token
     _cohostLink = window.buildCohostLink(window.location.origin, window.location.pathname.replace(/[^/]*$/, ''), window._sessionId(), tok);
@@ -2046,11 +2059,11 @@ function closeCohostJoin() {
 function confirmCohostJoin() {
   closeCohostJoin();
   window._joinAsCohost(sessionName).then(() => {
+    _accessNotice = '';
     showToast("You're a co-host now!");
   }).catch(() => {
-    const b = document.getElementById('accessBanner');
-    b.textContent = 'This invite link is no longer active — ask the host for a new one.';
-    b.style.display = '';
+    _accessNotice = 'This invite link is no longer active — ask the host for a new one.';
+    renderAccessBanner();
   });
 }
 
@@ -2060,14 +2073,6 @@ function getActivePlayers() {
   courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>ids.add(id)));
   matchQueue.forEach(m=>[...m.team1,...m.team2].forEach(id=>ids.add(id)));
   return ids;
-}
-function getWaitingQueue(excludeIds=[]) {
-  const activeIds=getActivePlayers();
-  excludeIds.forEach(id=>activeIds.add(id));
-  return presentPlayers().filter(p=>!activeIds.has(p.id)).sort((a,b)=>{
-    if(a.lastPlayedRound!==b.lastPlayedRound) return a.lastPlayedRound-b.lastPlayedRound;
-    return queueOrder.indexOf(a.id)-queueOrder.indexOf(b.id);
-  });
 }
 function getFreeWaiting() {
   const activeIds=getActivePlayers();

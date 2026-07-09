@@ -130,6 +130,36 @@ test('join rejection: failed write shows dead-link banner', async () => {
   assert.match(app.els['accessBanner'].textContent, /no longer active/);
 });
 
+test('join rejection: dead-link banner survives the next snapshot', async () => {
+  const app = loadApp();
+  app.run(`window._cohostUrlToken = () => 'tok123';`);
+  app.run(`window._joinAsCohost = () => Promise.reject(new Error('PERMISSION_DENIED'));`);
+  applyAs(app, 'visitor', {});
+  app.run(`confirmCohostJoin();`);
+  await new Promise(r => setImmediate(r));
+  assert.match(app.els['accessBanner'].textContent, /no longer active/);
+  // a co-host action triggers another snapshot — the notice must not be
+  // silently replaced by the generic "View only" banner
+  applyAs(app, 'visitor', {});
+  assert.match(app.els['accessBanner'].textContent, /no longer active/);
+});
+
+test('invite link: regenerated token in another tab replaces the shown link', async () => {
+  const app = loadApp();
+  app.run(`window._sessionId = () => 'sess1';`);
+  app.run(`let __tok = 'tok-old'; window.__setTok = t => { __tok = t; };
+           window._readCohostToken = () => Promise.resolve(__tok);`);
+  applyAs(app, 'owner1', { cohostOpen: true });
+  await new Promise(r => setImmediate(r));
+  assert.match(app.els['cohostLinkDisplay'].textContent, /tok-old/);
+  // another tab regenerates the token; the next snapshot must pick it up
+  app.run(`window.__setTok('tok-new');`);
+  applyAs(app, 'owner1', { cohostOpen: true });
+  await new Promise(r => setImmediate(r));
+  assert.match(app.els['cohostLinkDisplay'].textContent, /tok-new/,
+    'stale invite link must be refreshed from the current token');
+});
+
 test('join offer: auth resolving after first snapshot still gets the offer', () => {
   const app = loadApp();
   primeOverlay(app);

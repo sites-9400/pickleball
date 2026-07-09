@@ -18,6 +18,13 @@ export function loadApp() {
 
   const captured = {};   // id -> last innerHTML written
   const els = {};        // id -> fake element
+  // A real innerHTML replacement rebuilds child <input>s from their value
+  // attributes; mirror that so re-renders reset fake input values too.
+  function syncInputsFromHtml(html) {
+    for (const m of String(html).matchAll(/<input[^>]*\bid="([^"]+)"[^>]*\bvalue="([^"]*)"/g)) {
+      (els[m[1]] ||= fakeEl(m[1])).value = m[2];
+    }
+  }
   function fakeEl(id) {
     return {
       id, style: {}, dataset: {}, value: '', textContent: '',
@@ -31,14 +38,16 @@ export function loadApp() {
       setAttribute() {}, getAttribute() { return null; },
       querySelector() { return null; }, querySelectorAll() { return []; },
       addEventListener() {},
-      set innerHTML(v) { captured[id] = v; },
+      set innerHTML(v) { captured[id] = v; syncInputsFromHtml(v); },
       get innerHTML() { return captured[id] || ''; },
     };
   }
   const documentMock = {
     getElementById: id => (els[id] ||= fakeEl(id)),
     querySelector: () => fakeEl('_q'),
-    querySelectorAll: () => [],
+    querySelectorAll: sel => sel === '.ct-score'
+      ? Object.values(els).filter(e => /^score[12]_/.test(e.id))
+      : [],
     createElement: () => fakeEl('_c'),
     documentElement: fakeEl('_root'),
     activeElement: null,
