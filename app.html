@@ -2958,10 +2958,18 @@ function ensureTournament() {
   if (!tournament) tournament = { kind: mm(), started:false, locked:false, passes:1, teams:[], matches:[] };
   return tournament;
 }
+// Next team number = max existing numeric suffix + 1 — NOT teams.length + 1,
+// which collides after remove-then-add (and tRemoveTeam's filter would then
+// delete both teams sharing the duplicated id).
+function tNextTeamNum(t) {
+  let max = 0;
+  t.teams.forEach(tm => { const m = /^tm(\d+)/.exec(tm.id); if (m) max = Math.max(max, parseInt(m[1], 10)); });
+  return max + 1;
+}
 function tNewTeam() {
   const t = ensureTournament();
   if (t.locked) return;
-  const n = t.teams.length + 1;
+  const n = tNextTeamNum(t);
   t.teams.push({ id: 'tm' + n + '_' + n, name: 'Team ' + n, players: [] });
   saveState(); renderCourts();
 }
@@ -2987,7 +2995,7 @@ function tAssignPlayer(pid) {
   if (cur) { cur.players = cur.players.filter(x => x !== pid); saveState(); renderCourts(); return; }
   let target = t.teams.find(tm => tm.players.length < teamSize());
   if (!target) {
-    const n = t.teams.length + 1;
+    const n = tNextTeamNum(t);
     t.teams.push({ id: 'tm' + n + '_' + n, name: 'Team ' + n, players: [] });
     target = t.teams[t.teams.length - 1];
   }
