@@ -160,6 +160,7 @@ input:focus{border-color:var(--army);}
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 import { getDatabase, ref, push, set, get, update, remove, onValue } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
+import { classifyDashboardEntry } from './cohost.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
@@ -249,7 +250,7 @@ function renderSessionList(entries) {
   const list = document.getElementById('sessionList');
   if (!entries.length) { list.innerHTML = emptyState(); return; }
   const sorted = [...entries].sort(([,a],[,b]) => (b.createdAt||0) - (a.createdAt||0));
-  list.innerHTML = sorted.map(([id, s]) => sessionCard(id, s)).join('');
+  list.innerHTML = sorted.map(([id, s, kind]) => sessionCard(id, s, kind)).join('');
   // Live session resume banner
   const live = sorted.find(([,s]) => !s.sessionEnded && s.status !== 'ended');
   const banner = document.getElementById('liveSessionBanner');
@@ -288,15 +289,18 @@ function loadSessions() {
     const results = await Promise.all(ids.map(id =>
       get(ref(db, `sessions/${id}`)).then(s => s.exists() ? [id, s.val()] : null).catch(() => null)
     ));
-    // Verify ownership — the index is user-writable and app.html used to register
-    // ANY opened session, so stale/unowned entries can exist. Render only owned
-    // sessions and prune the rest from the index (deleted sessions included).
-    // NOTE (cohost spec): co-host entries will be kept via their cohost:true flag.
+    // Classify each index entry: owned -> render, cohost (flagged AND still a
+    // member) -> render badged, anything else (revoked/deleted/unowned) -> prune.
     const entries = [];
     results.forEach((r, i) => {
-      const owned = r && r[1] && r[1].ownerId === currentUser.uid;
-      if (owned) entries.push(r);
-      else remove(ref(db, `users/${currentUser.uid}/sessions/${ids[i]}`)).catch(() => {});
+      const id = ids[i];
+      const kind = classifyDashboardEntry({
+        uid: currentUser.uid,
+        entry: userSessions[id] || {},
+        session: r ? r[1] : null,
+      });
+      if (kind === 'prune') { remove(ref(db, `users/${currentUser.uid}/sessions/${id}`)).catch(() => {}); return; }
+      entries.push([id, r[1], kind]);
     });
     if (!entries.length) {
       loadSessionsByOwner(); // fallback for sessions created before the index existed
@@ -329,7 +333,7 @@ function loadSessionsByOwner() {
   });
 }
 
-function sessionCard(id, s) {
+function sessionCard(id, s, kind = 'owner') {
   const isLive = !s.sessionEnded && s.status !== 'ended';
   const date = s.date ? new Date(s.date+'T12:00:00').toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'}) : '';
   const ghRaw = s.gameHistory;
@@ -356,13 +360,14 @@ function sessionCard(id, s) {
       <div class="session-name-row">
         <span class="session-name">${String(s.name||'Open Play').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</span>
         <span class="badge ${isLive?'badge-live':'badge-ended'}">${isLive?'Live':'Ended'}</span>
+        ${kind === 'cohost' ? '<span class="badge badge-ended" title="You have admin access; only the owner can delete">Co-host</span>' : ''}
       </div>
       <div class="session-meta">${meta}</div>
       ${liveHint}
     </div>
     <div class="session-actions" onclick="event.stopPropagation()">
       <a href="${viewHref}" target="_blank" class="btn btn-outline btn-sm" title="Open live view">${eyeSvg} View</a>
-      <button class="btn btn-outline btn-sm" onclick="promptDelete('${id}')" title="Delete session" aria-label="Delete session">${trashSvg}</button>
+      ${kind === 'cohost' ? '' : `<button class="btn btn-outline btn-sm" onclick="promptDelete('${id}')" title="Delete session" aria-label="Delete session">${trashSvg}</button>`}
     </div>
   </div>`;
 }
@@ -392,6 +397,7 @@ window.confirmDelete = async () => {
   document.getElementById('deleteOverlay').classList.add('hidden');
   deleteTargetId = null;
   try {
+    await remove(ref(db, `cohostTokens/${id}`));   // must precede session removal (spec §1)
     await remove(ref(db, `sessions/${id}`));
     await remove(ref(db, `users/${currentUser.uid}/sessions/${id}`));
     showToast('Session deleted.');
