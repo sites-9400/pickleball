@@ -2,6 +2,7 @@
   "rules": {
     "sessions": {
       ".read": "auth != null",
+      ".indexOn": ["ownerId"],
       "$sid": {
         ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (!data.exists() ? newData.child('ownerId').val() === auth.uid : data.child('ownerId').val() === auth.uid)",
 

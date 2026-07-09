@@ -61,6 +61,8 @@ input:focus{border-color:var(--army);}
 .badge-live{background:rgba(143,179,57,0.15);color:#4A5C2F;border:1px solid rgba(143,179,57,0.3);}
 [data-theme="dark"] .badge-live{color:#8FB339;}
 .badge-ended{background:var(--surface2);color:var(--muted);}
+.badge-cohost{background:rgba(46,94,110,0.12);color:#2E5E6E;border:1px solid rgba(46,94,110,0.3);}
+[data-theme="dark"] .badge-cohost{color:#7FB3C4;}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
 .empty-state .icon{font-size:2.5rem;margin-bottom:12px;}
 .howto-foot{text-align:center;margin:32px 0 8px;}
@@ -159,7 +161,7 @@ input:focus{border-color:var(--army);}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
-import { getDatabase, ref, push, set, get, update, remove, onValue } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
+import { getDatabase, ref, push, set, get, update, remove, onValue, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
 import { classifyDashboardEntry } from './cohost.js';
 
 const firebaseConfig = {
@@ -313,9 +315,10 @@ function loadSessions() {
 }
 
 function loadSessionsByOwner() {
-  // Fallback: read all sessions, filter by ownerId
+  // Fallback: query sessions by ownerId (server-side filter — the old full-tree
+  // read downloaded every user's sessions; needs ".indexOn": ["ownerId"] in rules)
   const list = document.getElementById('sessionList');
-  get(ref(db, 'sessions')).then(snap => {
+  get(query(ref(db, 'sessions'), orderByChild('ownerId'), equalTo(currentUser.uid))).then(snap => {
     const all = snap.val();
     if (!all) { list.innerHTML = emptyState(); return; }
     const entries = Object.entries(all).filter(([,s]) => s && s.ownerId === currentUser.uid);
@@ -362,7 +365,7 @@ function sessionCard(id, s, kind = 'owner') {
       <div class="session-name-row">
         <span class="session-name">${String(s.name||'Open Play').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</span>
         <span class="badge ${isLive?'badge-live':'badge-ended'}">${isLive?'Live':'Ended'}</span>
-        ${kind === 'cohost' ? '<span class="badge badge-ended" title="You have admin access; only the owner can delete">Co-host</span>' : ''}
+        ${kind === 'cohost' ? '<span class="badge badge-cohost" title="You have admin access; only the owner can delete">Co-host</span>' : ''}
       </div>
       <div class="session-meta">${meta}</div>
       ${liveHint}
