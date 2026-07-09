@@ -52,3 +52,29 @@ test('owner: saveState still writes', () => {
   app.run('saveState();');
   assert.equal(app.run('window.__wrote'), 1);
 });
+
+test('cohost panel: hidden for cohost, visible for owner with escaped names', () => {
+  const app = loadApp();
+  applyAs(app, 'buddy', { cohosts: { buddy: { name: 'Buddy', addedAt: 1 } } });
+  assert.equal(app.els['cohostPanel'].style.display, 'none');
+
+  const app2 = loadApp();
+  applyAs(app2, 'owner1', {
+    cohostOpen: true,
+    cohosts: { evil: { name: 'X<img src=x onerror=alert(1)>', addedAt: 1 } },
+  });
+  assert.notEqual(app2.els['cohostPanel'].style.display, 'none');
+  assert.ok(app2.captured['cohostList'].includes('X&lt;img'), 'cohost name must be escaped');
+  assert.ok(!app2.captured['cohostList'].includes('<img src=x'), 'raw injection must not survive');
+  assert.ok(app2.captured['cohostList'].includes("removeCohost('evil')"));
+});
+
+test('cohost panel: open state reflects cohostOpen', () => {
+  const app = loadApp();
+  applyAs(app, 'owner1', { cohostOpen: false });
+  assert.equal(app.els['cohostOpenBtn'].textContent, 'Closed');
+  assert.equal(app.els['cohostInviteBody'].style.display, 'none');
+  applyAs(app, 'owner1', { cohostOpen: true });
+  assert.equal(app.els['cohostOpenBtn'].textContent, 'Accepting');
+  assert.notEqual(app.els['cohostInviteBody'].style.display, 'none');
+});

@@ -1088,6 +1088,18 @@ input:focus, textarea:focus { border-color: var(--army); }
         <div id="checkinPending"></div>
       </div>
 
+      <div class="checkin-panel" id="cohostPanel" style="display:none;">
+        <div class="checkin-head">
+          <span class="checkin-title">Co-host</span>
+          <button class="checkin-toggle" id="cohostOpenBtn" onclick="toggleCohostOpen()">Closed</button>
+        </div>
+        <div id="cohostInviteBody" style="display:none;">
+          <div class="share-link-box" id="cohostLinkDisplay" onclick="copyCohostLink()">Generating...</div>
+          <button class="checkin-toggle" style="margin-top:8px;width:100%;" onclick="regenCohostLink()">New link (invalidates old links)</button>
+        </div>
+        <div id="cohostList"></div>
+      </div>
+
     <div class="card">
       <div class="card-title">Add Players</div>
       <textarea id="playerNameInput" placeholder="Enter one name per line:&#10;Eve&#10;Jude&#10;Alysson&#10;Jan" rows="5" style="resize:vertical;margin-bottom:10px;"></textarea>
@@ -1547,6 +1559,7 @@ window._fbApplyRemote = function(s) {
     _access = window.accessState({ ..._ident, wasCohost: _wasCohost });
   }
   renderAccessBanner();
+  renderCohostPanel();
 
   applySessionUI();
   // Rebuild match queue from current state (removes stale/absent players)
@@ -1911,6 +1924,86 @@ function toggleCheckinOpen(){
   showToast(checkinOpen ? 'Check-in opened.' : 'Check-in closed.');
 }
 window.toggleCheckinOpen = toggleCheckinOpen;
+
+// ===== CO-HOST (owner invite panel) =====
+let _cohostLink = '';
+function renderCohostPanel() {
+  const panel = document.getElementById('cohostPanel');
+  if (!panel) return;
+  if (_access !== 'owner') { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  const btn = document.getElementById('cohostOpenBtn');
+  if (btn) {
+    btn.textContent = cohostOpen ? 'Accepting' : 'Closed';
+    btn.className = 'checkin-toggle ' + (cohostOpen ? 'open' : 'closed');
+  }
+  const body = document.getElementById('cohostInviteBody');
+  if (body) body.style.display = cohostOpen ? '' : 'none';
+  if (cohostOpen) _refreshCohostLink();
+  const list = document.getElementById('cohostList');
+  if (list) {
+    const entries = Object.entries(cohosts || {});
+    list.innerHTML = entries.length
+      ? `<div style="margin-top:12px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);">Co-hosts</div>` +
+        entries.map(([uid, c]) => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);"><span style="flex:1;min-width:0;font-weight:700;">${esc((c && c.name) || 'Co-host')}</span><button onclick="removeCohost('${uid}')" style="font-size:0.72rem;font-weight:700;padding:5px 11px;border-radius:6px;border:1.5px solid var(--line);background:none;color:#C0392B;cursor:pointer;">Remove</button></div>`).join('')
+      : '';
+  }
+}
+function _refreshCohostLink() {
+  const box = document.getElementById('cohostLinkDisplay');
+  if (!box) return;
+  if (_cohostLink) { box.textContent = _cohostLink; return; }
+  if (!window._readCohostToken) { setTimeout(_refreshCohostLink, 300); return; }
+  window._readCohostToken().then(tok => {
+    if (!tok) return; // toggling on writes the first token
+    _cohostLink = window.buildCohostLink(window.location.origin, window.location.pathname.replace(/[^/]*$/, ''), window._sessionId(), tok);
+    box.textContent = _cohostLink;
+  });
+}
+function toggleCohostOpen() {
+  if (_access !== 'owner') return;
+  if (!window._setCohostOpen) { showToast('Still connecting — try again.'); return; }
+  const turningOn = !cohostOpen;
+  // Opening invites guarantees a token exists BEFORE cohostOpen flips true —
+  // the join rule denies when cohostTokens/$sid is absent.
+  const ensureToken = turningOn
+    ? window._readCohostToken().then(tok => {
+        if (tok) return tok;
+        const t = window.genCohostToken();
+        return window._writeCohostToken(t).then(() => t);
+      })
+    : Promise.resolve(null);
+  ensureToken
+    .then(() => window._setCohostOpen(turningOn))
+    .then(() => {
+      cohostOpen = turningOn;
+      renderCohostPanel();
+      showToast(turningOn ? 'Accepting co-hosts — share the invite link.' : 'Co-host invites closed.');
+    })
+    .catch(() => showToast('Could not update co-host settings.'));
+}
+function regenCohostLink() {
+  if (_access !== 'owner') return;
+  const t = window.genCohostToken();
+  window._writeCohostToken(t).then(() => {
+    _cohostLink = '';
+    _refreshCohostLink();
+    showToast('New invite link generated — old links are dead.');
+  }).catch(() => showToast('Could not generate a new link.'));
+}
+function copyCohostLink() {
+  if (!_cohostLink) return;
+  navigator.clipboard.writeText(_cohostLink)
+    .then(() => showToast('Co-host link copied!'))
+    .catch(() => prompt('Copy this co-host invite link:', _cohostLink));
+}
+function removeCohost(uid) {
+  if (_access !== 'owner') return;
+  if (!confirm('Remove this co-host? They lose admin access immediately.')) return;
+  window._removeCohost(uid)
+    .then(() => showToast('Co-host removed.'))
+    .catch(() => showToast('Could not remove co-host.'));
+}
 
 // ===== MATCH QUEUE =====
 function getActivePlayers() {
@@ -3315,6 +3408,11 @@ if (!_SESSION_ID) window.location.href = window.location.pathname.replace(/[^/]*
 const _SESSION_REF = ref(_db, `sessions/${_SESSION_ID}`);
 
 window._removeCheckin = (key) => remove(ref(_db, `sessions/${_SESSION_ID}/checkins/${key}`));
+window._sessionId = () => _SESSION_ID;
+window._setCohostOpen = (open) => set(ref(_db, `sessions/${_SESSION_ID}/cohostOpen`), open);
+window._writeCohostToken = (tok) => set(ref(_db, `cohostTokens/${_SESSION_ID}`), tok);
+window._readCohostToken = () => get(ref(_db, `cohostTokens/${_SESSION_ID}`)).then(s => s.val()).catch(() => null);
+window._removeCohost = (uid) => remove(ref(_db, `sessions/${_SESSION_ID}/cohosts/${uid}`));
 let _checkinListenerAttached = false;
 function _attachCheckinListener() {
   if (_checkinListenerAttached) return;
