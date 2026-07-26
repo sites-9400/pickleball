@@ -2107,10 +2107,21 @@ function rebuildMatchQueue() {
   // Clean queueOrder — remove absent or deleted players
   queueOrder=queueOrder.filter(id=>presentIds.has(id));
   const need=matchSize();
-  matchQueue=matchQueue.filter(m=>
-    (m.team1.length+m.team2.length)===need &&
-    [...m.team1,...m.team2].every(id=>presentIds.has(id)&&!onCourtIds.has(id))
-  );
+  // A queued match loses a player when they get seated on a court or leave. Keep the rest
+  // of the match and hand the vacated slot to the longest-waiting free player — an arranged
+  // foursome must not silently vanish because one of them was pulled away. A match is only
+  // dropped when there is nobody left to fill in.
+  const slotLost=id=>!presentIds.has(id)||onCourtIds.has(id);
+  const spare=getFreeWaiting().map(p=>p.id);
+  matchQueue.forEach(m=>{
+    ['team1','team2'].forEach(tk=>{
+      m[tk]=(m[tk]||[]).map(id=>slotLost(id)?(spare.length?spare.shift():null):id);
+    });
+  });
+  matchQueue=matchQueue.filter(m=>{
+    const ids=[...m.team1,...m.team2];
+    return ids.length===need && ids.every(id=>id!=null);
+  });
   // Manual/Ladder modes don't auto-build the queue (Stage 2).
   if(mm()==='manual' || mm()==='ladder' || mm()==='roundrobin' || mm()==='bracket') return;
   // Challenge courts seat challengers directly from the free waiting pool
@@ -2630,15 +2641,32 @@ function _openSwapOptions(outgoingId) {
   const outgoing=getPlayer(outgoingId);
   const onCourtIds=new Set();
   courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>onCourtIds.add(id)));
-  const queueCands=getFreeWaiting().map(p=>({id:p.id, skill:p.skill||'intermediate', name:p.name}));
   // For a court swap, exclude players already seated on the same court (overriding a seat with a same-court player is nonsensical and would duplicate them).
   const sameCourtIds=new Set();
   if(swapContext&&swapContext.type==='court'){
     const sc=courts.find(ct=>ct.id===swapContext.courtId);
     if(sc)[...sc.team1,...sc.team2].forEach(id=>sameCourtIds.add(id));
   }
-  const overrideCands=presentPlayers().filter(p=>p.id!==outgoingId&&!sameCourtIds.has(p.id)).map(p=>({id:p.id, name:p.name, playing:onCourtIds.has(p.id)}));
-  const autoId=window.bestSkillMatch?(window.bestSkillMatch(outgoing?.skill||'intermediate', queueCands)):null;
+  // Waiting = present and not on a live court. Players pencilled into an upcoming match
+  // count as waiting and are tagged with it: reporting "Queue is empty" while four people
+  // wait for Match 1 left admins with nothing to pick. Free players are listed first.
+  const reservedIn=new Map();
+  matchQueue.forEach((m,i)=>[...m.team1,...m.team2].forEach(id=>{ if(!reservedIn.has(id)) reservedIn.set(id,i+1); }));
+  const freeOrder=getFreeWaiting().map(p=>p.id);
+  const rank=id=>{ const i=freeOrder.indexOf(id); return i>=0?i:freeOrder.length+(reservedIn.get(id)||0); };
+  const queueCands=presentPlayers()
+    .filter(p=>p.id!==outgoingId&&!onCourtIds.has(p.id)&&!sameCourtIds.has(p.id))
+    .sort((a,b)=>rank(a.id)-rank(b.id))
+    .map(p=>({id:p.id, skill:p.skill||'intermediate', name:p.name, tag:reservedIn.has(p.id)?`Match ${reservedIn.get(p.id)}`:''}));
+  // Everyone not on a court is already listed above; the override list is the other live
+  // courts. Queue swaps never offer a seated player — taking one would gut their live match.
+  const waitingIds=new Set(queueCands.map(c=>c.id));
+  const overrideCands=swapContext&&swapContext.type==='queue' ? [] : presentPlayers()
+    .filter(p=>p.id!==outgoingId&&!sameCourtIds.has(p.id)&&!waitingIds.has(p.id))
+    .map(p=>({id:p.id, name:p.name, playing:onCourtIds.has(p.id)}));
+  // Suggest a genuinely free player when there is one, rather than poaching a reserved slot.
+  const autoPool=queueCands.filter(c=>!c.tag);
+  const autoId=window.bestSkillMatch?(window.bestSkillMatch(outgoing?.skill||'intermediate', autoPool.length?autoPool:queueCands)):null;
   const chip=(id,name,tag)=>`<div class="swap-option" onclick="confirmSwap(${id})">${esc(name)}${tag?` <span style="color:var(--muted);font-size:0.7rem;">${tag}</span>`:''}</div>`;
   // Trade section (court swaps, doubles+): switch sides with a player on the OTHER team of this court. Match-scoped, no queue needed.
   let tradeHtml='';
@@ -2654,9 +2682,11 @@ function _openSwapOptions(outgoingId) {
     ? `<div class="swap-section-label">Auto-generate (best skill match)</div>${chip(autoId, getPlayer(autoId)?.name||'?','auto')}`
     : '';
   const queueHtml = queueCands.length
-    ? `<div class="swap-section-label">Pick from waiting queue</div>${queueCands.map(c=>chip(c.id,c.name,'')).join('')}`
-    : '<div class="swap-section-label">Pick from waiting queue</div><div style="color:var(--muted);font-size:0.8rem;padding:8px;">Queue is empty.</div>';
-  const overrideHtml = `<div class="swap-section-label">Override (any checked-in player)</div>${overrideCands.map(c=>chip(c.id,c.name,c.playing?'playing':'')).join('')}`;
+    ? `<div class="swap-section-label">Pick from waiting queue</div>${queueCands.map(c=>chip(c.id,c.name,c.tag)).join('')}`
+    : '<div class="swap-section-label">Pick from waiting queue</div><div style="color:var(--muted);font-size:0.8rem;padding:8px;">Nobody is waiting — everyone is on a court.</div>';
+  const overrideHtml = overrideCands.length
+    ? `<div class="swap-section-label">Swap with a player on another court</div>${overrideCands.map(c=>chip(c.id,c.name,c.playing?'playing':'')).join('')}`
+    : '';
   document.getElementById('swapOptions').innerHTML = tradeHtml + autoHtml + queueHtml + overrideHtml;
   const searchEl=document.getElementById('swapSearch'); if(searchEl) searchEl.value='';
   filterSwapOptions();
@@ -2710,20 +2740,17 @@ function confirmSwap(incomingId) {
       ['team1','team2'].forEach(tk=>{ const i=ct[tk].indexOf(incomingId); if(i>=0&&!sourceCourt){sourceCourt=ct;sourceTeamKey=tk;sourceIdx=i;} });
     });
     if(sourceCourt){
-      // Incoming is being pulled from another court - pre-check backfill feasibility before any mutation
-      const backfillPool=getFreeWaiting().filter(p=>p.id!==incomingId);
-      if(!backfillPool.length){
-        showToast(`No waiting player to backfill ${sourceCourt.name||'that court'}. Move a player to the queue first.`);
-        return;
-      }
-      // Feasibility confirmed - apply all mutations
-      const backfillId=backfillPool[0].id;
-      sourceCourt[sourceTeamKey].splice(sourceIdx,1,backfillId);
-      queueOrder=queueOrder.filter(id=>id!==backfillId&&id!==incomingId);
-    } else {
-      // Incoming is from the waiting queue - no backfill needed (existing behavior)
-      queueOrder=queueOrder.filter(id=>id!==incomingId);
+      // Incoming is seated on another live court: exchange the two seats. Both players
+      // keep playing, nobody is benched and no waiting player is consumed — this is the
+      // only way to rearrange courts once everyone is on one.
+      sourceCourt[sourceTeamKey][sourceIdx]=outgoingId;
+      c[team][playerIndex]=incomingId;
+      closeSwapModal(); renderCourts(); saveState();
+      showToast(`Swapped ${outgoing?.name} ↔ ${incoming?.name}`);
+      return;
     }
+    // Incoming is from the waiting queue - no backfill needed (existing behavior)
+    queueOrder=queueOrder.filter(id=>id!==incomingId);
     c[team][playerIndex]=incomingId;
     // outgoing fate
     if(fate==='remove'){
@@ -2748,6 +2775,26 @@ function confirmSwap(incomingId) {
   const m=matchQueue.find(q=>q.id===matchId); if(!m){closeSwapModal();return;}
   const teamArr=team==='team1'?m.team1:m.team2;
   const outgoingId=teamArr[playerIndex]; const outgoing=getPlayer(outgoingId);
+  // Re-check against current state: a co-host may have seated this player since the modal
+  // was rendered, and taking them into a future match would gut their live match.
+  if(courts.some(ct=>!ct.submitted&&[...ct.team1,...ct.team2].includes(incomingId))){
+    showToast(`${incoming?.name||'That player'} is on a court right now.`);
+    return;
+  }
+  // Incoming already holds a slot in an upcoming match (this one or another): exchange the
+  // two slots. Overwriting would book them into two matches at once and orphan the outgoing.
+  let heldBy=null, heldKey=null, heldIdx=-1;
+  matchQueue.forEach(q=>['team1','team2'].forEach(tk=>{
+    const i=(q[tk]||[]).indexOf(incomingId);
+    if(i>=0&&!heldBy){ heldBy=q; heldKey=tk; heldIdx=i; }
+  }));
+  if(heldBy){
+    heldBy[heldKey][heldIdx]=outgoingId;
+    teamArr[playerIndex]=incomingId;
+    closeSwapModal(); renderCourts(); renderQueue(); saveState();
+    showToast(`${outgoing?.name} ↔ ${incoming?.name}`);
+    return;
+  }
   teamArr[playerIndex]=incomingId;
   queueOrder=[outgoingId,...queueOrder.filter(id=>id!==incomingId&&id!==outgoingId)];
   closeSwapModal(); rebuildMatchQueue(); renderCourts(); renderQueue(); saveState();
