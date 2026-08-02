@@ -84,6 +84,77 @@ input:focus{border-color:var(--army);}
 .skeleton{background:var(--surface2);border-radius:8px;animation:shimmer 1.2s infinite;}
 @keyframes shimmer{0%{opacity:0.5;}50%{opacity:1;}100%{opacity:0.5;}}
 .mode-desc{margin-top:8px;font-size:0.78rem;line-height:1.45;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;}
+/* ── Pre-game assistant ("Help me choose") ──────────────────────────── */
+.asst-help{margin:10px 0 0;background:none;border:1.5px solid var(--accent);color:var(--accent-dim);}
+.asst-help:hover{background:var(--army-pale);border-color:var(--accent);color:var(--army);}
+[data-theme="dark"] .asst-help{color:var(--accent);}
+.asst-ic{width:15px;height:15px;flex-shrink:0;}
+.asst-or{display:flex;align-items:center;gap:10px;margin:12px 0 2px;color:var(--muted);font-size:0.56rem;font-weight:800;letter-spacing:0.16em;}
+.asst-or::before,.asst-or::after{content:"";flex:1;height:1px;background:var(--line);}
+#assistantOverlay{align-items:center;justify-content:center;padding:18px;}
+#assistantOverlay.asst-kb{align-items:flex-start;padding-top:14px;}
+.asst-modal{background:var(--surface);width:100%;max-width:430px;border-radius:16px;padding:15px 18px 22px;max-height:93%;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,0.32);border:1px solid var(--line);}
+.asst-top{display:flex;align-items:center;gap:9px;margin-bottom:2px;}
+.asst-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:0.58rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-dim);}
+[data-theme="dark"] .asst-eyebrow{color:var(--accent);}
+.asst-eyebrow .asst-ic{width:13px;height:13px;}
+.asst-back{background:none;border:none;color:var(--muted);font-family:var(--font);font-size:0.76rem;font-weight:800;cursor:pointer;padding:3px 6px 3px 2px;margin-left:auto;display:none;align-items:center;gap:2px;border-radius:6px;}
+.asst-back:hover{color:var(--army);}
+[data-theme="dark"] .asst-back:hover{color:var(--accent);}
+.asst-back.show{display:inline-flex;}
+.asst-close{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;line-height:1;padding:0 2px;}
+.asst-dots{display:flex;gap:6px;margin:11px 0 15px;}
+.asst-dot{height:4px;flex:1;border-radius:2px;background:var(--line);transition:background .25s;}
+.asst-dot.on{background:var(--accent);}
+.asst-q{font-size:1.04rem;font-weight:800;line-height:1.28;margin-bottom:4px;}
+.asst-sub{font-size:0.79rem;color:var(--muted);line-height:1.4;margin-bottom:14px;}
+.asst-choices{display:flex;flex-direction:column;gap:9px;}
+.asst-choice{display:flex;align-items:center;gap:13px;text-align:left;background:var(--bg);border:1.5px solid var(--line);border-left:3px solid transparent;border-radius:11px;padding:13px 15px;cursor:pointer;font-family:var(--font);color:var(--ink);transition:border-color .14s,background .14s,transform .14s;width:100%;}
+.asst-choice:hover{border-color:var(--accent);border-left-color:var(--accent);background:var(--army-pale);transform:translateX(2px);}
+.asst-choice .asst-ct{flex:1;min-width:0;}
+.asst-choice .asst-ctitle{display:block;font-size:0.9rem;font-weight:800;}
+.asst-choice .asst-cdesc{display:block;font-size:0.735rem;color:var(--muted);margin-top:3px;line-height:1.35;}
+.asst-chev{width:16px;height:16px;color:var(--muted);flex-shrink:0;transition:color .14s,transform .14s;}
+.asst-choice:hover .asst-chev{color:var(--accent-dim);transform:translateX(2px);}
+[data-theme="dark"] .asst-choice:hover .asst-chev{color:var(--accent);}
+.asst-badge{display:inline-flex;align-items:center;gap:6px;background:var(--army-pale);color:var(--army);font-size:0.6rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px 5px 8px;border-radius:20px;margin-bottom:12px;}
+[data-theme="dark"] .asst-badge{color:var(--accent);}
+.asst-badge .asst-ic{width:12px;height:12px;}
+.asst-title{font-size:1.3rem;font-weight:900;letter-spacing:-0.015em;margin-bottom:8px;line-height:1.15;}
+.asst-why{font-size:0.85rem;line-height:1.5;color:var(--ink2);margin-bottom:14px;}
+.asst-guide{display:flex;align-items:center;gap:8px;font-size:0.79rem;font-weight:800;color:var(--army);background:var(--army-pale);border-radius:8px;padding:11px 13px;margin-bottom:13px;}
+[data-theme="dark"] .asst-guide{color:var(--accent);}
+.asst-note{font-size:0.775rem;line-height:1.5;background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:8px;padding:11px 13px;color:var(--ink2);margin-bottom:13px;}
+.asst-note.teal{border-left-color:#2E5E6E;}
+.asst-note .asst-ntag{font-weight:900;color:var(--gold);}
+.asst-note.teal .asst-ntag{color:#2E5E6E;}
+[data-theme="dark"] .asst-note.teal .asst-ntag{color:#7FB3C4;}
+.asst-note .asst-swap{display:block;margin-top:9px;background:var(--army);color:#fff;border:none;border-radius:7px;padding:8px 13px;font-family:var(--font);font-weight:800;font-size:0.73rem;cursor:pointer;}
+.asst-note .asst-swap:hover{background:var(--army-light);}
+.asst-actions{display:flex;flex-direction:column;gap:9px;}
+.asst-link{background:none;border:none;color:var(--muted);font-family:var(--font);font-size:0.79rem;font-weight:800;cursor:pointer;padding:7px;border-radius:6px;width:100%;}
+.asst-link:hover{color:var(--army);}
+[data-theme="dark"] .asst-link:hover{color:var(--accent);}
+.asst-others{margin-top:2px;display:none;flex-direction:column;gap:8px;}
+.asst-others.show{display:flex;}
+.asst-others-h{font-size:0.56rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:5px 2px 1px;}
+.asst-alt{display:flex;align-items:center;gap:11px;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;padding:10px 13px;cursor:pointer;text-align:left;font-family:var(--font);color:var(--ink);transition:border-color .14s;width:100%;}
+.asst-alt:hover{border-color:var(--army);}
+[data-theme="dark"] .asst-alt:hover{border-color:var(--accent);}
+.asst-alt .asst-at{flex:1;}
+.asst-alt .asst-atitle{display:block;font-size:0.83rem;font-weight:800;}
+.asst-alt .asst-adesc{display:block;font-size:0.71rem;color:var(--muted);margin-top:2px;line-height:1.3;}
+.asst-alt .asst-pick{font-size:0.64rem;font-weight:800;color:var(--accent-dim);flex-shrink:0;letter-spacing:0.04em;}
+[data-theme="dark"] .asst-alt .asst-pick{color:var(--accent);}
+.asst-sizegrid{display:flex;gap:11px;margin:4px 0 16px;}
+.asst-sizefield{flex:1;}
+.asst-sizefield label{font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:6px;display:block;}
+.asst-num{font-family:var(--font);width:100%;text-align:center;font-size:1.1rem;font-weight:800;font-variant-numeric:tabular-nums;padding:12px;height:48px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;-moz-appearance:textfield;appearance:textfield;}
+.asst-num::-webkit-outer-spin-button,.asst-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.asst-num:focus{border-color:var(--army);}
+[data-theme="dark"] .asst-num:focus{border-color:var(--accent);}
+.asst-flash{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(143,179,57,0.4);}
+@media (prefers-reduced-motion:reduce){.asst-choice,.asst-chev,.asst-dot{transition:none;}}
 </style>
 </head>
 <body>
@@ -134,6 +205,11 @@ input:focus{border-color:var(--army);}
       </div>
     </div>
     <div class="mode-desc" id="modeDesc"></div>
+    <button class="btn btn-full asst-help" id="assistantOpen" type="button">
+      <svg class="asst-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l1.9 6 6 1.9-6 1.9-1.9 6-1.9-6-6-1.9 6-1.9z"/></svg>
+      Help me choose
+    </button>
+    <div class="asst-or">OR</div>
     <button class="btn btn-accent btn-full" id="createBtn" onclick="createSession()">⚡ Start New Session</button>
   </div>
 
@@ -157,6 +233,19 @@ input:focus{border-color:var(--army);}
       <button class="btn btn-outline" style="flex:1" onclick="closeDeleteModal()">Cancel</button>
       <button class="btn btn-danger" style="flex:1;background:var(--red);color:white;border:none;" onclick="confirmDelete()">Delete</button>
     </div>
+  </div>
+</div>
+
+<!-- PRE-GAME ASSISTANT MODAL -->
+<div class="modal-overlay hidden" id="assistantOverlay">
+  <div class="asst-modal" id="assistantModal">
+    <div class="asst-top">
+      <span class="asst-eyebrow"><svg class="asst-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l1.9 6 6 1.9-6 1.9-1.9 6-1.9-6-6-1.9 6-1.9z"/></svg> Help me choose</span>
+      <button class="asst-back" id="assistantBack" type="button"><svg class="asst-chev" style="transform:rotate(180deg);width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg> Back</button>
+      <button class="asst-close" id="assistantClose" type="button" title="Close">✕</button>
+    </div>
+    <div class="asst-dots" id="assistantDots"></div>
+    <div id="assistantBody"></div>
   </div>
 </div>
 
@@ -468,6 +557,157 @@ function updateModeDesc(){
 document.getElementById('newSessionMatchmaking')?.addEventListener('change', updateModeDesc);
 document.getElementById('newSessionFormat')?.addEventListener('change', updateModeDesc);
 updateModeDesc();
+
+/* ── Pre-game assistant ("Help me choose") ────────────────────────────── */
+(function(){
+  const CHECK='<svg class="asst-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  const CHEV='<svg class="asst-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+  const MODES={
+    waittime:{name:'By wait time',why:'The players who’ve waited longest play next, so everyone gets near-equal court time. The fairest rotation for casual open play.'},
+    balanced:{name:'Balanced',why:'Takes the longest-waiting four, then pairs the strongest with the weakest against the middle two — games stay close. Best with a mix of skill levels.'},
+    random:{name:'Numbering',why:'Players are numbered off and drawn into fresh matchups, avoiding repeat partners and opponents. Great for a social night where people mix.'},
+    challenge:{name:'Challenge courts',why:'Winners stay on their court; losers rotate to the back of the queue and the next challengers come on. Competitive, with quick turnover.'},
+    ladder:{name:'King of the court',why:'Partners stay together all night. Winners move up a court, losers move down, and the bottom loser rotates to the bench. The one fixed-partner mode that needs no set list.'},
+    roundrobin:{name:'Round robin',why:'Fixed teams play a full schedule against each other, ranked by wins then point differential. Needs everyone’s list up front.'},
+    manual:{name:'Manual',why:'You build every match by hand, court by court — full control, no auto-queue.'}
+  };
+  const ALTS={waittime:['random','balanced'],balanced:['waittime','random'],random:['waittime','balanced'],
+    challenge:['ladder','waittime'],ladder:['roundrobin','challenge'],roundrobin:['ladder','manual']};
+  const SHORT={waittime:'Fairest equal-time rotation',balanced:'Even teams by skill',random:'Fresh, social matchups',
+    challenge:'Winners hold the court',ladder:'Fixed pairs, winners climb',roundrobin:'Everyone plays everyone',manual:'Pick every match'};
+
+  const overlay=document.getElementById('assistantOverlay');
+  const body=document.getElementById('assistantBody');
+  const dots=document.getElementById('assistantDots');
+  const backBtn=document.getElementById('assistantBack');
+  const fmtSel=document.getElementById('newSessionFormat');
+  const mmSel=document.getElementById('newSessionMatchmaking');
+  const toastEl=document.getElementById('toast');
+  if(!overlay||!body) return;
+
+  let stack=[], format='doubles', pending=null, sz={players:12,courts:3}, tt;
+  const vv=window.visualViewport;
+
+  function setDots(step){dots.innerHTML='';for(let i=1;i<=3;i++){const d=document.createElement('div');d.className='asst-dot'+((step&&i<=step)?' on':'');dots.appendChild(d);}}
+  function go(s){stack.push(s);render();}
+  function back(){stack.pop();render();}
+  function open(){stack=['format'];format='doubles';render();overlay.classList.remove('hidden');bindVV();}
+  function close(){overlay.classList.add('hidden');unbindVV();}
+
+  function onVV(){
+    if(!vv) return;
+    const kbOpen = vv.height < window.innerHeight - 120;
+    overlay.classList.toggle('asst-kb', kbOpen);
+    if(kbOpen){overlay.style.height=vv.height+'px';overlay.style.top=(vv.offsetTop||0)+'px';overlay.style.bottom='auto';}
+    else{overlay.style.height='';overlay.style.top='';overlay.style.bottom='';}
+  }
+  function bindVV(){if(vv){vv.addEventListener('resize',onVV);vv.addEventListener('scroll',onVV);}}
+  function unbindVV(){if(vv){vv.removeEventListener('resize',onVV);vv.removeEventListener('scroll',onVV);}overlay.classList.remove('asst-kb');overlay.style.height='';overlay.style.top='';overlay.style.bottom='';}
+
+  document.getElementById('assistantOpen')?.addEventListener('click',open);
+  document.getElementById('assistantClose')?.addEventListener('click',close);
+  backBtn.addEventListener('click',back);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+
+  function ask(step,q,sub,list){
+    setDots(step);backBtn.classList.toggle('show',stack.length>1);
+    body.innerHTML='<div class="asst-q">'+q+'</div>'+(sub?'<div class="asst-sub">'+sub+'</div>':'')+'<div class="asst-choices">'+
+      list.map((c,i)=>'<button class="asst-choice" type="button" data-i="'+i+'"><span class="asst-ct"><span class="asst-ctitle">'+c.title+'</span>'+(c.desc?'<span class="asst-cdesc">'+c.desc+'</span>':'')+'</span>'+CHEV+'</button>').join('')+'</div>';
+    body.querySelectorAll('.asst-choice').forEach(el=>el.onclick=()=>list[+el.dataset.i].act());
+  }
+
+  function render(){
+    const s=stack[stack.length-1];
+    if(s==='format'){
+      ask(1,'How are you playing tonight?','',[
+        {title:'Doubles — 2 per team',desc:'Four players per court',act:()=>{format='doubles';go('partners');}},
+        {title:'Singles — 1 v 1',desc:'Two players per court',act:()=>{format='singles';go('partners');}}]);
+    } else if(s==='partners'){
+      ask(2,'How should partners work?','This is the big one — it decides half the modes.',[
+        {title:'Shuffle partners each game',desc:'People play with different partners through the night',act:()=>go('vibe')},
+        {title:'Stick with their partner',desc:'Fixed teams that stay together all session',act:()=>go('roster')}]);
+    } else if(s==='vibe'){
+      ask(3,'What’s the feel you’re going for?','',[
+        {title:'Mix it up — fresh matchups',desc:'Numbered draw, meet new people, avoid repeats',act:()=>toSize('random')},
+        {title:'Fair & equal for everyone',desc:'Whoever’s waited longest plays next',act:()=>toSize('waittime')},
+        {title:'Even games by skill level',desc:'Balance mixed levels so games stay close',act:()=>toSize(format==='singles'?'waittime':'balanced',{singlesBalanced:format==='singles'})},
+        {title:'Competitive — win to stay on',desc:'Winners hold the court',act:()=>toSize('challenge')}]);
+    } else if(s==='roster'){
+      ask(3,'Is everyone here and locked in?','Fixed-team modes rank the whole field, so this matters.',[
+        {title:'Everyone’s here, set list',desc:'You can enter all the teams up front',act:()=>go('structure')},
+        {title:'Still arriving / drop-in',desc:'People trickle in through the night',act:()=>toSize('ladder')}]);
+    } else if(s==='structure'){
+      ask(3,'How should the teams play it out?','',[
+        {title:'Everyone plays everyone',desc:'Full schedule, ranked at the end',act:()=>toSize('roundrobin')},
+        {title:'Knockout bracket',desc:'Single-elimination',act:()=>toSize('roundrobin',{bracket:true})},
+        {title:'Just casual games together',desc:'No ladder, no set schedule',act:()=>toSize('roundrobin',{gap:true})}]);
+    } else if(s==='size'){
+      renderSize();
+    }
+  }
+
+  function toSize(mode,flags){pending={mode,flags:flags||{}};go('size');}
+  function renderSize(){
+    setDots(3);backBtn.classList.add('show');
+    const fld=(k,label)=>'<div class="asst-sizefield"><label>'+label+'</label><input class="asst-num" type="number" inputmode="numeric" data-k="'+k+'" value="'+sz[k]+'" min="'+(k==='players'?2:1)+'" max="'+(k==='players'?60:12)+'"></div>';
+    body.innerHTML='<div class="asst-q">How big is tonight?</div><div class="asst-sub">Rough numbers are fine — this tunes the time estimate and flags a poor fit. Skip if you’re not sure.</div>'+
+      '<div class="asst-sizegrid">'+fld('players','Expected players')+fld('courts','Courts')+'</div>'+
+      '<button class="btn btn-accent btn-full" id="asstContinue" type="button">Continue</button>'+
+      '<button class="asst-link" id="asstSkip" type="button">Skip — just show the pick</button>';
+    const read=()=>{body.querySelectorAll('.asst-num').forEach(i=>{const k=i.dataset.k,lim=k==='players'?[2,60]:[1,12];let v=parseInt(i.value,10);if(isNaN(v))v=sz[k];sz[k]=Math.max(lim[0],Math.min(lim[1],v));});return {players:sz.players,courts:sz.courts};};
+    body.querySelector('#asstContinue').onclick=()=>result(pending.mode,pending.flags,read());
+    body.querySelector('#asstSkip').onclick=()=>result(pending.mode,pending.flags,null);
+    body.querySelectorAll('.asst-num').forEach(inp=>inp.addEventListener('focus',()=>{setTimeout(()=>inp.scrollIntoView({block:'center'}),50);}));
+  }
+
+  function result(mode,flags,size){
+    flags=flags||{};setDots(3);backBtn.classList.add('show');
+    const m=MODES[mode],fmtLabel=format==='singles'?'Singles':'Doubles';
+    let guide='';
+    if(size && !flags.singlesBalanced){
+      const ts=format==='singles'?1:2, ms=ts*2, P=size.players, C=size.courts;
+      if(P<ms){
+        guide='<div class="asst-note"><span class="asst-ntag">Heads up — </span>you’ll need at least '+ms+' players to fill a '+fmtLabel.toLowerCase()+' court. Add more before you start.</div>';
+      } else if(mode==='roundrobin'){
+        const teams=Math.floor(P/ts), games=teams*(teams-1)/2, rounds=Math.ceil(games/C), mins=Math.round(rounds*12/5)*5;
+        guide='<div class="asst-guide">'+teams+' teams · '+games+' games · about '+mins+' min on '+C+' court'+(C>1?'s':'')+'</div>';
+        if(teams>8) guide+='<div class="asst-note"><span class="asst-ntag">Big group — </span>that’s a long fixed schedule ('+games+' games). <b>By wait time</b> keeps a crowd this size moving with far less waiting.<button class="asst-swap" type="button" data-swap="waittime">Switch to By wait time</button></div>';
+      } else {
+        const onCourt=Math.min(P,C*ms), waiting=Math.max(0,P-onCourt);
+        guide='<div class="asst-guide">'+onCourt+' on court · about '+waiting+' waiting each round on '+C+' court'+(C>1?'s':'')+'</div>';
+      }
+    }
+    let notes='';
+    if(flags.singlesBalanced) notes+='<div class="asst-note"><span class="asst-ntag">Note — </span>Singles has no teams to balance, so this runs as <b>By wait time</b>, the same fair rotation.</div>';
+    if(flags.bracket) notes+='<div class="asst-note"><span class="asst-ntag">Coming soon — </span>knockout brackets aren’t built yet. <b>Round robin</b> is the closest way to run fixed teams for now.</div>';
+    if(flags.gap) notes+='<div class="asst-note teal"><span class="asst-ntag">Good to know — </span>there’s no casual drop-in mode that keeps partners together <i>yet</i>. <b>Round robin</b> is the closest; it just needs everyone’s list up front. A dedicated <b>“Pair Play”</b> mode for this is on our list.</div>';
+    const alts=(ALTS[mode]||[]).map(k=>'<button class="asst-alt" type="button" data-mode="'+k+'"><span class="asst-at"><span class="asst-atitle">'+MODES[k].name+'</span><span class="asst-adesc">'+SHORT[k]+'</span></span><span class="asst-pick">USE →</span></button>').join('');
+    body.innerHTML='<div class="asst-badge">'+CHECK+' We recommend</div>'+
+      '<div class="asst-title">'+m.name+' '+fmtLabel+'</div>'+
+      '<div class="asst-why">'+m.why+'</div>'+guide+notes+
+      '<div class="asst-actions">'+
+        '<button class="btn btn-accent btn-full" id="asstUse" type="button">Use this setup</button>'+
+        '<button class="asst-link" id="asstOthers" type="button">Show other options ▾</button>'+
+        '<div class="asst-others" id="asstOthersBox"><div class="asst-others-h">Other good fits</div>'+alts+
+          '<button class="asst-alt" type="button" data-mode="manual"><span class="asst-at"><span class="asst-atitle">I’ll set matches myself</span><span class="asst-adesc">Manual — pick every match by hand</span></span><span class="asst-pick">USE →</span></button>'+
+        '</div></div>';
+    body.querySelector('#asstUse').onclick=()=>apply(mode);
+    const ot=body.querySelector('#asstOthers'), box=body.querySelector('#asstOthersBox');
+    ot.onclick=()=>{box.classList.toggle('show');ot.textContent=box.classList.contains('show')?'Hide other options ▴':'Show other options ▾';};
+    body.querySelectorAll('.asst-alt').forEach(a=>a.onclick=()=>apply(a.dataset.mode));
+    body.querySelectorAll('.asst-swap').forEach(b=>b.onclick=()=>result(b.dataset.swap,{},size));
+  }
+
+  function apply(mode){
+    if(fmtSel) fmtSel.value=format;
+    if(mmSel) mmSel.value=mode;
+    if(typeof updateModeDesc==='function') updateModeDesc();
+    close();
+    [fmtSel,mmSel].forEach(el=>{if(!el)return;el.classList.add('asst-flash');setTimeout(()=>el.classList.remove('asst-flash'),1500);});
+    asstToast('Filled in: '+MODES[mode].name+' '+(format==='singles'?'Singles':'Doubles'));
+  }
+  function asstToast(msg){if(!toastEl)return;toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>toastEl.classList.remove('show'),2600);}
+})();
 </script>
 </body>
 </html>
