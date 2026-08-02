@@ -44,7 +44,10 @@ async (page) => {
     export function onValue(reference, cb){
       const p = reference && reference.path || '';
       if (p.indexOf('.info/connected')>=0){ setTimeout(()=>cb({ val:()=>true }),0); return ()=>{}; }
-      if (/^sessions\\/[^/]+$/.test(p)){ setTimeout(()=>cb({ val:()=>SNAP }),0); return ()=>{}; }
+      // top-level session ref only (sessions/<id>), regex-free to avoid file-escaping issues
+      if (p.indexOf('sessions/')===0 && p.indexOf('/', 'sessions/'.length)<0){
+        setTimeout(()=>cb({ val:()=>SNAP }),0); return ()=>{};
+      }
       setTimeout(()=>cb({ val:()=>null }),0); return ()=>{};
     }`;
 

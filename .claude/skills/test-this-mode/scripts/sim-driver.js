@@ -46,9 +46,15 @@ async (page) => {
       const ids=[...m.team1,...m.team2];
       ids.forEach(id=>{ const p=players.find(x=>x.id===id); p.lastPlayedRound=globalRound; p.gamesPlayed++; });
       courtPlayers[ci]=ids;
+      // realistic randomized score + real win/loss/points tally (so Rankings looks live)
+      const t1wins = rnd() < 0.5;
+      const s1 = t1wins ? 11 : Math.floor(rnd()*10);
+      const s2 = t1wins ? Math.floor(rnd()*10) : 11;
+      m.team1.forEach(id=>{ const p=players.find(x=>x.id===id); p.wins+=t1wins?1:0; p.losses+=t1wins?0:1; p.points+=s1; p.pointsAgainst+=s2; });
+      m.team2.forEach(id=>{ const p=players.find(x=>x.id===id); p.wins+=t1wins?0:1; p.losses+=t1wins?1:0; p.points+=s2; p.pointsAgainst+=s1; });
       gameHistory.unshift({round:globalRound,court:ci+1,courtName:'Court '+(ci+1),
         team1:m.team1.map(nameOf),team2:m.team2.map(nameOf),team1Ids:[...m.team1],team2Ids:[...m.team2],
-        score1:11,score2:(games%9),startMin:Math.round(t)});
+        score1:s1,score2:s2,startMin:Math.round(t)});
       freeAt[ci]=t+dur();
     }
 
