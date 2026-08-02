@@ -121,18 +121,32 @@ splitCost = partnerScore(team1) + partnerScore(team2) + γ · Σ opponentScore(a
 Choose the minimum-cost split, breaking ties randomly (keeps variety). `γ`
 weights opponent-freshness in the pairing step (default `γ = 1`).
 
-### 4. Horizontal stacking — filling multiple courts / the on-deck queue
+### 4. Horizontal stacking + on-deck depth (IMPORTANT — corrected by simulation)
 
-`rebuildMatchQueue()` already builds up to `MAX_QUEUED=3` on-deck matches by
-calling the chooser in a loop, each call drawing from `getFreeWaiting()` (which
-excludes players already committed to a court or an earlier on-deck match). This
-**is** the horizontal/block fill: each match is a complete foursome taken from the
-top of the wait-weighted stack, one game at a time.
+`rebuildMatchQueue()` currently pre-builds up to `MAX_QUEUED=3` on-deck matches.
+Each match is a complete foursome drawn from the top of the wait-weighted stack —
+the horizontal/block fill. **But depth matters a great deal, and simulation showed
+the current depth of 3 is wrong for this algorithm.**
 
-Blocking is safe here (it was not, under naive FIFO) because wait-weighting keeps
-just-finished players at the bottom of the stack and anti-repeat breaks up any
-recent opponents who share a block. No change to the loop structure is needed —
-only the per-match chooser changes.
+Pre-building commits pairings *early*, from a pool thinned by the reserved on-deck
+players, using *stale* history (before the in-flight games finish). For an
+anti-repeat + wait-fairness algorithm that is corrosive. Measured effect on
+repeat-opponent pairs (session replay, 30 seeds; today's actual was ~12):
+
+| on-deck depth | opp pairs met 3+ |
+|---|---|
+| 0 (just-in-time) | ~0.8 |
+| **1 (chosen)** | **~1.4–2.0** |
+| 2 | ~3.4 |
+| 3 (today's app) | ~7–8  ❌ loses ~60% of the benefit |
+
+**Decision: set `MAX_QUEUED = 1` for `random` (Numbering) mode** — generate the
+next match just-in-time as a court opens, keeping a single "you're up next"
+preview. Depth 0 is marginally better on anti-repeat but shows no preview and has
+a slightly longer wait tail; depth 1 keeps ~85% of the gain plus the preview. This
+result is timing-robust: it holds under fixed 15-min games and random 10–25-min
+games with staggered court starts (the algorithm keys off game count/history, not
+the clock). Other modes keep their existing `MAX_QUEUED`.
 
 ## Components & interfaces
 
@@ -209,8 +223,44 @@ sweep, while staying less extreme than the top config (avoids overfitting to one
 Simulation scripts live in the session scratchpad; the regression test (below) should
 re-establish these numbers as a guardrail.
 
+### Rejected: starvation guard
+
+A "force-seat anyone waiting past N rounds" guard was simulated and **rejected**. To
+shrink the wait tail meaningfully it must fire almost every game, which collapses the
+draw into FIFO and pushes repeat-opponents *above* today's level. A gentle cap barely
+helps. Long waits are a **capacity** limit (too many players for the courts), not a
+matchmaking flaw — wait-weighting (`K`) already distributes waits as fairly as
+possible. Fix waits operationally (below), not in the chooser.
+
+### Operational guidance (belongs in organizer docs, not code)
+
+Repeats and long waits are ultimately bounded by the **bench** = players not on a
+court. Simulation across sizes shows the algorithm needs a bench of ~10–12 to work;
+below that (players ≈ 4 × courts) the waiting group has no choice and repeats are
+forced regardless of software. Rule of thumb — about **one court per 5–6 players**:
+
+| Players | Best # courts |
+|---|---|
+| 30 | 5 |
+| 35 | 6 |
+| 40 | 6–7 |
+
+Too many courts (bench < 8) spikes repeats; too few (bench > 20) means long waits and
+little play. For the ~33-player sessions this feature targets, **5 courts** is the
+sweet spot (today's 4 left too big a bench and more sitting than necessary).
+
+### Replay of today under the full plan
+
+A replay of the real session (33 players, real attendance windows, 4 courts, on-deck
+depth 1, variable 10/15/20/25-min games, staggered starts) produced: **0 opponent
+pairs met 3+ times** (today: 12), **max faced same opponent 2** (today: 4),
+**21/33 players with zero repeat partners** (today: 10). See
+`today-under-new-plan.txt` (also reproduced in the implementation plan appendix).
+
 ## Rollout
 
 - Single mode, behind no flag (Numbering already exists). Defaults ship in code.
 - Constants centralised at the top of the function for easy tuning after the next live session. Tuned defaults: `K=1.5, α=8, β=1, γ=1, decay=0.95`.
+- **On-deck depth for Numbering: `MAX_QUEUED = 1`** (just-in-time). No starvation guard.
 - Session-notes update: Numbering is no longer "fully random by user decision" — record the reversal and rationale.
+- Organizer-facing: add the court/bench guidance above to the how-to docs.
