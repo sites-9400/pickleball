@@ -252,10 +252,12 @@ sweet spot (today's 4 left too big a bench and more sitting than necessary).
 ### Replay of today under the full plan
 
 A replay of the real session (33 players, real attendance windows, 4 courts, on-deck
-depth 1, variable 10/15/20/25-min games, staggered starts) produced: **0 opponent
-pairs met 3+ times** (today: 12), **max faced same opponent 2** (today: 4),
-**21/33 players with zero repeat partners** (today: 10). See
-`today-under-new-plan.txt` (also reproduced in the implementation plan appendix).
+depth 1, variable 10/15/20/25-min games, staggered starts, **hard 5-hour cap
+4pm–9pm** — court paid by the hour) produced, for one seed: **1 opponent pair met 3+
+times** (today: 12), **max faced same opponent 3** (today: 4), **25/33 players with
+zero repeat partners** (today: 10), 62 games (today: 76 — the model's 17.5-min
+average game vs the real ~15.8 is a throughput artifact). 40-seed averages: ~1–2
+opponent pairs met 3+, max faced ~2.4. See `2026-08-03-today-under-new-plan.txt`.
 
 ## Rollout
 
