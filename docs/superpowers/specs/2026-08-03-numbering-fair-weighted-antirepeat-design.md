@@ -75,7 +75,7 @@ selWeight_i = (wait_i + 1) ^ K
 ```
 
 - `K = 0` → pure random (today).
-- **`K = 1` → fairness-leaning (chosen default):** long-waiters favoured, still random enough for variety.
+- **`K = 1.5` → fairness-leaning (chosen default):** long-waiters favoured, still random enough for variety.
 - `K → ∞` → strict longest-wait-first (fair but rigid, re-introduces clustering).
 
 Players are drawn **one at a time, weighted, without replacement** to form the
@@ -91,7 +91,7 @@ scores for each unordered player pair `(a,b)`:
 ```
 oppScore(a,b)     = Σ  decay ^ gamesAgo   over past games where a,b were opponents
 partnerScore(a,b) = Σ  decay ^ gamesAgo   over past games where a,b were partners
-decay = 0.85            // recent games weigh far more than old ones
+decay = 0.95            // recent games weigh more, but memory reaches ~3x further back than 0.85
 ```
 
 When considering candidate `c` given already-chosen set `S`:
@@ -103,7 +103,7 @@ candidateWeight = selWeight_c · penalty(c, S)
 
 - **`α` (opponent avoidance) is the dominant term** — opponents are the sore point.
 - `β` (partner avoidance) is smaller but non-zero so an *immediate* repeat partner is still discouraged.
-- Defaults (tunable): `α = 3`, `β = 1`. These are starting points to be validated by simulation, not final.
+- Defaults (tuned by simulation, see below): `α = 8`, `β = 1`.
 
 Penalty only *biases* the weighted draw; it never hard-excludes, so the mode
 still functions when the pool is small or history is dense.
@@ -181,8 +181,36 @@ Regression / simulation:
    pure-random baseline documented above, while wait-time variance also drops.
    Reuse the Monte-Carlo analysis already written for this investigation.
 
+## Simulation validation (pre-implementation)
+
+A faithful replay of session `-Oz0WBqbjehYBIihAW-A` was built: 33 real players,
+4 courts, 76-game target, **arrivals/departures derived from each player's first/last
+appearance** (staggered — 22 arrive by round 9, last at round 35). Both the current
+and proposed algorithms were run through the **same discrete-event scheduler** and
+averaged over 40 seeds. The current-algorithm arm reproduced today's actual numbers
+(opp-pairs-3+ 12.1 vs 12 actual; max-faced-opp 4.1 vs 4), confirming the model.
+
+| Metric (avg, 40 seeds) | Current random | **Proposed (K1.5 α8 d.95)** |
+|---|---|---|
+| Opponent pairs met 3+ times | 12.1 | **0.68** |
+| Max times facing same opponent | 4.1 | **2.45** |
+| Repeat-partner games (of ~9) | 1.29 | **0.45** |
+| Players with 0 repeat partners | 9.7 / 33 | **21.0 / 33** |
+| Distinct partners (variety) | 7.5 | **8.4** |
+| Distinct opponents (variety) | 13.2 | **15.9** |
+| Worst wait between games (rounds) | 26.6 | **16.5** |
+
+Findings that shaped the tuning: `decay` (memory length) is the biggest lever;
+`0.85 → 0.95` is what eliminates the 4×-opponent cases. Variety **increases** (more
+distinct partners/opponents), so anti-repeat does not make play feel scripted. The
+recommended config captures ~95% of the maximum achievable gain found in a 360-config
+sweep, while staying less extreme than the top config (avoids overfitting to one session).
+
+Simulation scripts live in the session scratchpad; the regression test (below) should
+re-establish these numbers as a guardrail.
+
 ## Rollout
 
 - Single mode, behind no flag (Numbering already exists). Defaults ship in code.
-- Constants (`K, α, β, γ, decay`) centralised at the top of the function for easy tuning after the next live session.
+- Constants centralised at the top of the function for easy tuning after the next live session. Tuned defaults: `K=1.5, α=8, β=1, γ=1, decay=0.95`.
 - Session-notes update: Numbering is no longer "fully random by user decision" — record the reversal and rationale.
