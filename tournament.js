@@ -104,3 +104,71 @@ export function checkinToPlayer(entry, existingPlayers) {
     points: 0, pointsAgainst: 0, lastPlayedRound: -1, skill, via: 'qr'
   } };
 }
+
+// ===== Numbering mode: fair-weighted draw + anti-repeat =====
+// Pure. pool: [{id, lastPlayedRound}]. gameHistory: most-recent-first
+// [{team1Ids, team2Ids}]. Returns {team1:[ids], team2:[ids]} or null.
+const _pairKey = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+
+export function buildHistoryScores(gameHistory, decay) {
+  const opp = {}, part = {};
+  const h = gameHistory || [];
+  for (let i = 0; i < h.length; i++) {           // index 0 = newest = weight 1
+    const g = h[i] || {};
+    const t1 = g.team1Ids || [], t2 = g.team2Ids || [];
+    const w = Math.pow(decay, i);
+    if (t1.length === 2) part[_pairKey(t1[0], t1[1])] = (part[_pairKey(t1[0], t1[1])] || 0) + w;
+    if (t2.length === 2) part[_pairKey(t2[0], t2[1])] = (part[_pairKey(t2[0], t2[1])] || 0) + w;
+    for (const x of t1) for (const y of t2) opp[_pairKey(x, y)] = (opp[_pairKey(x, y)] || 0) + w;
+  }
+  return { opp, part };
+}
+
+export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
+  const { K = 1.5, alpha = 8, beta = 1, gamma = 1, decay = 0.95,
+          teamSize = 2, rng = Math.random } = opts;
+  const need = teamSize * 2;
+  if (!pool || pool.length < need) return null;
+
+  const s = buildHistoryScores(gameHistory, decay);
+  const oppS = (a, b) => s.opp[_pairKey(a, b)] || 0;
+  const partS = (a, b) => s.part[_pairKey(a, b)] || 0;
+  const waitOf = p => currentRound - (p.lastPlayedRound == null ? -1 : p.lastPlayedRound);
+  const selW = p => Math.pow(waitOf(p) + 1, K);
+
+  // 1) weighted pick without replacement, penalising recent opponents/partners
+  const remaining = pool.slice();
+  const chosen = [];
+  while (chosen.length < need) {
+    const weights = remaining.map(c => {
+      let pen = 1;
+      if (chosen.length) {
+        let so = 0, sp = 0;
+        for (const q of chosen) { so += oppS(c.id, q.id); sp += partS(c.id, q.id); }
+        pen = 1 / (1 + alpha * so + beta * sp);
+      }
+      return selW(c) * pen;
+    });
+    let total = weights.reduce((a, b) => a + b, 0);
+    let r = rng() * total, idx = 0;
+    for (; idx < weights.length; idx++) { r -= weights[idx]; if (r <= 0) break; }
+    if (idx >= remaining.length) idx = remaining.length - 1;
+    chosen.push(remaining[idx]);
+    remaining.splice(idx, 1);
+  }
+
+  if (teamSize === 1) return { team1: [chosen[0].id], team2: [chosen[1].id] };
+
+  // 2) doubles: choose the freshest 2v2 split, ties broken randomly
+  const [a, b, c, d] = chosen;
+  const splits = [[[a, b], [c, d]], [[a, c], [b, d]], [[a, d], [b, c]]];
+  const cost = x =>
+      partS(x[0][0].id, x[0][1].id) + partS(x[1][0].id, x[1][1].id)
+    + gamma * (oppS(x[0][0].id, x[1][0].id) + oppS(x[0][0].id, x[1][1].id)
+             + oppS(x[0][1].id, x[1][0].id) + oppS(x[0][1].id, x[1][1].id));
+  const costs = splits.map(cost);
+  const min = Math.min(...costs);
+  const best = splits.filter((_, i) => costs[i] === min);
+  const pick = best[Math.floor(rng() * best.length)];
+  return { team1: [pick[0][0].id, pick[0][1].id], team2: [pick[1][0].id, pick[1][1].id] };
+}

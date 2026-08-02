@@ -1,0 +1,112 @@
+SIMULATED REPLAY OF TODAY UNDER THE NEW PLAN
+(33 real players, real attendance windows, 4 courts, on-deck depth 1,
+ variable game lengths 10/15/20/25 min, staggered court starts, seed 7)
+
+=== ATTENDANCE (arrival time derived from each player's first appearance) ===
+  4:00p  Tweetums (leaves ~8:44p)
+  4:00p  Mira (leaves ~8:21p)
+  4:00p  Alexa Gabrielle (leaves ~8:36p)
+  4:00p  Ja9 (leaves ~8:52p)
+  4:04p  Luke USA (Ed sarce's +1) (leaves ~8:28p)
+  4:04p  Ed sarce (leaves ~8:48p)
+  4:04p  Tanjo (Ed sarce's +1) (leaves ~7:45p)
+  4:04p  Shi Na (leaves ~9:00p)
+  4:08p  jake (leaves ~8:44p)
+  4:08p  Edgarfield (leaves ~8:56p)
+  4:08p  Cj D. (leaves ~4:59p)
+  4:08p  Ton Ton (leaves ~9:00p)
+  4:12p  Aynz (leaves ~8:56p)
+  4:12p  Reynan (leaves ~8:52p)
+  4:12p  Kaye (leaves ~8:44p)
+  4:24p  JVince Doong (leaves ~8:56p)
+  4:24p  Avelina (leaves ~7:25p)
+  4:24p  Jigs (leaves ~8:48p)
+  4:28p  Ivory (leaves ~9:00p)
+  4:28p  Cris (leaves ~8:36p)
+  4:28p  Jan (leaves ~8:52p)
+  4:36p  Lynet (leaves ~8:56p)
+  4:43p  Jude (leaves ~8:48p)
+  4:47p  Elmarie (leaves ~8:52p)
+  4:51p  John Gerald (Rosal's +1) (leaves ~8:28p)
+  4:51p  Rosal (leaves ~8:48p)
+  4:59p  RR (leaves ~7:57p)
+  4:59p  Dennis (leaves ~8:05p)
+  5:03p  Karlito (leaves ~8:05p)
+  5:07p  Ashley (leaves ~7:49p)
+  5:19p  Gelai (leaves ~7:41p)
+  5:23p  Mariel (leaves ~8:13p)
+  6:14p  kzian (leaves ~9:00p)
+
+=== SCHEDULE (62 games) ===
+G 1  4:00p-4:20p (20m)  Court 6   Alexa Gabrielle & Tweetums         vs  Mira & Ja9
+G 2  4:08p-4:23p (15m)  Court 9   Ed sarce & jake                    vs  Cj D. & Luke USA (Ed sarce's +1)
+G 3  4:12p-4:22p (10m)  Court 8   Edgarfield & Shi Na                vs  Tanjo (Ed sarce's +1) & Ton Ton
+G 4  4:20p-4:45p (25m)  Court 6   Mira & Aynz                        vs  Reynan & Kaye
+G 5  4:22p-4:47p (25m)  Court 8   Ja9 & Shi Na                       vs  Edgarfield & Ton Ton
+G 6  4:23p-4:33p (10m)  Court 9   jake & Tweetums                    vs  Alexa Gabrielle & Ed sarce
+G 7  4:26p-4:51p (25m)  Court 7   Luke USA (Ed sarce's +1) & JVince Doong vs  Jigs & Avelina
+G 8  4:33p-4:43p (10m)  Court 9   Cris & Ivory                       vs  jake & Cj D.
+G 9  4:43p-4:53p (10m)  Court 9   Jan & Ed sarce                     vs  Tanjo (Ed sarce's +1) & Alexa Gabrielle
+G10  4:45p-5:10p (25m)  Court 6   Lynet & Ivory                      vs  Cris & Tweetums
+G11  4:47p-5:12p (25m)  Court 8   Mira & Kaye                        vs  Jude & Aynz
+G12  4:51p-5:01p (10m)  Court 7   Cj D. & Ton Ton                    vs  Reynan & jake
+G13  4:53p-5:18p (25m)  Court 9   Avelina & JVince Doong             vs  Edgarfield & Elmarie
+G14  5:01p-5:21p (20m)  Court 7   John Gerald (Rosal's +1) & Shi Na  vs  Rosal & Ed sarce
+G15  5:10p-5:35p (25m)  Court 6   Ton Ton & Alexa Gabrielle          vs  Jigs & Luke USA (Ed sarce's +1)
+G16  5:12p-5:37p (25m)  Court 8   Dennis & RR                        vs  Tweetums & Karlito
+G17  5:18p-5:43p (25m)  Court 9   jake & Ivory                       vs  Ashley & Jan
+G18  5:21p-5:36p (15m)  Court 7   Ja9 & Elmarie                      vs  Kaye & Cris
+G19  5:35p-6:00p (25m)  Court 6   Shi Na & Jude                      vs  Gelai & Lynet
+G20  5:36p-5:56p (20m)  Court 7   Jigs & Mariel                      vs  Rosal & Edgarfield
+G21  5:37p-5:57p (20m)  Court 8   JVince Doong & Luke USA (Ed sarce's +1) vs  Kaye & Aynz
+G22  5:43p-5:53p (10m)  Court 9   Alexa Gabrielle & Avelina          vs  Ton Ton & John Gerald (Rosal's +1)
+G23  5:53p-6:03p (10m)  Court 9   Mira & Karlito                     vs  Ja9 & Ed sarce
+G24  5:56p-6:11p (15m)  Court 7   Tanjo (Ed sarce's +1) & Elmarie    vs  Reynan & Dennis
+G25  5:57p-6:12p (15m)  Court 8   RR & Ashley                        vs  Jan & Cris
+G26  6:00p-6:15p (15m)  Court 6   JVince Doong & jake                vs  Ivory & Mariel
+G27  6:03p-6:28p (25m)  Court 9   John Gerald (Rosal's +1) & Avelina vs  Jude & Luke USA (Ed sarce's +1)
+G28  6:11p-6:36p (25m)  Court 7   Ja9 & Jigs                         vs  Aynz & Gelai
+G29  6:12p-6:37p (25m)  Court 8   Ton Ton & Ed sarce                 vs  Edgarfield & Lynet
+G30  6:15p-6:35p (20m)  Court 6   Kaye & Ashley                      vs  RR & Shi Na
+G31  6:28p-6:43p (15m)  Court 9   kzian & Mira                       vs  Ivory & Rosal
+G32  6:35p-6:55p (20m)  Court 6   Cris & Tanjo (Ed sarce's +1)       vs  Karlito & Alexa Gabrielle
+G33  6:36p-6:56p (20m)  Court 7   Elmarie & Reynan                   vs  Mariel & Tweetums
+G34  6:37p-7:02p (25m)  Court 8   Ashley & Dennis                    vs  John Gerald (Rosal's +1) & Gelai
+G35  6:43p-7:03p (20m)  Court 9   jake & Lynet                       vs  Avelina & Aynz
+G36  6:55p-7:10p (15m)  Court 6   Jan & Ton Ton                      vs  JVince Doong & Ed sarce
+G37  6:56p-7:21p (25m)  Court 7   Ja9 & Ivory                        vs  Jude & Jigs
+G38  7:02p-7:17p (15m)  Court 8   kzian & Shi Na                     vs  Luke USA (Ed sarce's +1) & Mira
+G39  7:03p-7:18p (15m)  Court 9   Gelai & Dennis                     vs  Cris & Mariel
+G40  7:10p-7:35p (25m)  Court 6   Karlito & Edgarfield               vs  Elmarie & Rosal
+G41  7:17p-7:27p (10m)  Court 8   RR & Tweetums                      vs  Tanjo (Ed sarce's +1) & Lynet
+G42  7:18p-7:38p (20m)  Court 9   Ashley & Ed sarce                  vs  Kaye & Aynz
+G43  7:21p-7:36p (15m)  Court 7   Alexa Gabrielle & kzian            vs  JVince Doong & Shi Na
+G44  7:27p-7:42p (15m)  Court 8   Jigs & Jan                         vs  Reynan & Tanjo (Ed sarce's +1)
+G45  7:35p-8:00p (25m)  Court 6   John Gerald (Rosal's +1) & jake    vs  RR & Mira
+G46  7:36p-7:46p (10m)  Court 7   Ton Ton & Gelai                    vs  Elmarie & Ivory
+G47  7:38p-7:58p (20m)  Court 9   kzian & Rosal                      vs  Ja9 & Lynet
+G48  7:42p-7:52p (10m)  Court 8   Kaye & Karlito                     vs  Alexa Gabrielle & Mariel
+G49  7:46p-8:11p (25m)  Court 7   Ed sarce & Luke USA (Ed sarce's +1) vs  Dennis & Tweetums
+G50  7:52p-8:02p (10m)  Court 8   Jigs & Shi Na                      vs  Jan & Jude
+G51  7:58p-8:13p (15m)  Court 9   JVince Doong & Kaye                vs  Cris & Edgarfield
+G52  8:00p-8:15p (15m)  Court 6   Ja9 & Aynz                         vs  Mariel & Ton Ton
+G53  8:02p-8:27p (25m)  Court 8   John Gerald (Rosal's +1) & Reynan  vs  Karlito & kzian
+G54  8:11p-8:31p (20m)  Court 7   Lynet & Alexa Gabrielle            vs  Ivory & Jude
+G55  8:13p-8:28p (15m)  Court 9   Ed sarce & Shi Na                  vs  Elmarie & jake
+G56  8:15p-8:30p (15m)  Court 6   Cris & Mira                        vs  Jan & Luke USA (Ed sarce's +1)
+G57  8:27p-8:47p (20m)  Court 8   Rosal & Aynz                       vs  Tweetums & Kaye
+G58  8:28p-8:48p (20m)  Court 9   Ja9 & Jigs                         vs  JVince Doong & John Gerald (Rosal's +1)
+G59  8:30p-8:40p (10m)  Court 6   Edgarfield & Ed sarce              vs  kzian & Reynan
+G60  8:31p-8:56p (25m)  Court 7   Ton Ton & Elmarie                  vs  jake & Jan
+G61  8:40p-8:55p (15m)  Court 6   Jude & Shi Na                      vs  Ed sarce & Ivory
+G62  8:47p-9:00p (13m)  Court 8   Lynet & kzian                      vs  Edgarfield & Reynan
+
+=== THIS SIMULATED DAY vs TODAY ACTUAL ===
+                         SIM(new plan)   TODAY(actual)
+games played             62             76
+opponent pairs met 3+x   1              12
+max faced same opponent  3              4
+repeat-partner games avg 0.24           1.15
+players 0 repeat partner 25/33          10/33
+avg wait between games    33            min
+worst wait between games  84            min
