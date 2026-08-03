@@ -1011,6 +1011,52 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ls-info{min-width:0;}
 .ls-nm{font-size:0.82rem;font-weight:800;color:var(--ink);white-space:nowrap;}
 .ls-stat{font-size:0.66rem;font-weight:700;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums;}
+/* Artifact-style court cards */
+.court-grid-layout{display:flex;flex-wrap:wrap;gap:12px;}
+.court-card{flex:1 1 280px;min-width:262px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);padding:0;}
+.court-header{background:#20241a;color:#fff;display:flex;align-items:center;gap:8px;padding:9px 11px;border:none;border-radius:0;}
+.court-name-input{background:transparent!important;border:none!important;color:#fff!important;font-weight:800;font-size:0.86rem;padding:0;flex:0 1 auto;width:auto;max-width:130px;letter-spacing:0.01em;}
+.court-timer{color:#fff;font-variant-numeric:tabular-nums;font-weight:800;font-size:0.74rem;margin-left:auto;background:transparent;padding:0;}
+.court-timer.warn{color:#F2C94C;}
+.court-round{color:#b9c39a;font-size:0.58rem;font-weight:800;background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:10px;letter-spacing:0.03em;}
+.remove-court-btn{color:#9aa37e;background:transparent;border:none;font-size:0.9rem;cursor:pointer;padding:0 2px;}
+.remove-court-btn:hover{color:#fff;}
+.court-body{padding:0;}
+.ct-teams{display:flex;align-items:stretch;}
+.ct-team{flex:1;padding:9px 10px;min-width:0;}
+.ct-team.t1{background:rgba(46,94,110,0.09);}
+.ct-team.t2{background:rgba(181,118,31,0.10);}
+[data-theme="dark"] .ct-team.t1{background:rgba(46,94,110,0.22);}
+[data-theme="dark"] .ct-team.t2{background:rgba(181,118,31,0.20);}
+.ct-team-lbl{display:inline-block;font-size:0.53rem;font-weight:900;letter-spacing:0.09em;color:#fff;padding:3px 7px;border-radius:5px;margin-bottom:6px;}
+.ct-team.t1 .ct-team-lbl{background:#2E5E6E;}
+.ct-team.t2 .ct-team-lbl{background:#B5761F;}
+.ct-pl{display:flex;align-items:center;gap:6px;padding:3px 0;}
+.ct-pl-name{font-size:0.84rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.ct-swap{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.92rem;padding:0 2px;line-height:1;flex-shrink:0;}
+.ct-swap:hover{color:var(--gold);}
+.ct-pl-lvl{margin-left:auto;font-size:0.52rem;font-weight:900;letter-spacing:0.04em;padding:2px 5px;border-radius:4px;background:var(--surface2);color:var(--muted);flex-shrink:0;}
+.ct-vs{align-self:center;font-size:0.62rem;font-weight:900;color:var(--muted);padding:0 3px;}
+.ct-foot{display:flex;align-items:center;gap:7px;padding:9px 10px;border-top:1px solid var(--line);}
+.ct-score{width:44px;height:36px;text-align:center;font-family:inherit;font-size:0.95rem;font-weight:800;font-variant-numeric:tabular-nums;border:1.5px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);outline:none;-moz-appearance:textfield;appearance:textfield;}
+.ct-score::-webkit-outer-spin-button,.ct-score::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.ct-score:focus{border-color:var(--army);}
+.ct-dash{color:var(--muted);font-weight:800;}
+.ct-submit{flex:1;height:36px;background:var(--accent);color:#1C1F14;border:none;border-radius:7px;font-weight:800;font-size:0.78rem;cursor:pointer;font-family:inherit;letter-spacing:0.02em;}
+.ct-submit:hover{background:var(--accent-dim);}
+.ct-cancel{display:block;width:calc(100% - 20px);margin:0 10px 10px;padding:8px;background:none;border:1.5px solid var(--line);border-radius:7px;color:var(--red);font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;}
+.ct-cancel:hover{border-color:var(--red);background:rgba(192,57,43,0.06);}
+/* Artifact-style dark Waiting Queue panel */
+.queue-panel{background:#20241a;border-color:#20241a;}
+.queue-panel > .card-title{color:#fff;}
+.queue-panel > p{color:#9aa37e!important;}
+.queue-panel .mq-section-label{color:#c6cfa8!important;}
+.queue-panel .divider{background:rgba(255,255,255,0.08);}
+.queue-panel .queue-item{border-color:rgba(255,255,255,0.06)!important;background:transparent;}
+.queue-panel .queue-rank{color:var(--accent)!important;font-weight:900;}
+.queue-panel .queue-name{color:#EEF0E8!important;}
+.queue-panel .queue-idle{color:#9aa37e!important;}
+.queue-panel .queue-idle.long{color:#F2C94C!important;}
 </style>
 </head>
 <body>
@@ -1172,7 +1218,7 @@ input:focus, textarea:focus { border-color: var(--army); }
         <button class="share-btn" style="margin-top:8px;" onclick="var w=document.getElementById('qrBoxQueue');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
       </div>
     </div>
-    <div class="card">
+    <div class="card queue-panel">
       <div class="card-title">Waiting Queue</div>
       <p style="font-size:0.82rem;font-weight:500;color:var(--muted);margin-bottom:14px;letter-spacing:0.01em;">Players sorted by longest wait. First in line gets the next court spot.</p>
       <div class="queue-list" id="queueList">
@@ -2964,23 +3010,25 @@ function renderCourts() {
           : (c.tMatchId?`<div class="court-hint-center">Match complete</div>`:matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div class="court-hint-center">Not enough waiting players</div>`)}
       </div></div>`;
     }
-    const namesHtml=(tp,tk)=>tp.map((p,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(p?.name||'?')}<button class="swap-btn" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(p)}</span></span>`).join('');
-    const rowHtml=(tp,tk,tag,tagCls,sid)=>`<div class="ct-row">
-      <span class="ct-tag ${tagCls}">${tag}</span>
-      <div class="ct-names">${namesHtml(tp,tk)}</div>
-      <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="${sid}_${def.id}" value="${(c[sid]!==''&&c[sid]!=null)?c[sid]:''}" oninput="updateScore(${def.id})">
-    </div>`;
+    const teamCol=(tp,tk,lbl,cls)=>`<div class="ct-team ${cls}"><span class="ct-team-lbl">${lbl}</span>`+
+      tp.map((p,i)=>`<div class="ct-pl"><span class="ct-pl-name">${esc(p?.name||'?')}</span><button class="ct-swap" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button><span class="ct-pl-lvl">${skillAbbr(p)}</span></div>`).join('')+`</div>`;
     const isHolding = mm()==='challenge' && (!c.team2 || !c.team2.length);
     return `<div class="court-card">${header}<div class="court-body">
-      <div class="ct-head-row"><span class="ct-score-head">Score</span></div>
-      ${rowHtml(t1,'team1','T1','t1','score1')}
-      <div class="ct-vs">VS</div>
-      ${isHolding
-        ? `<div class="ct-row"><span class="ct-tag t2">T2</span><div class="ct-names"><span class="ct-name" style="color:var(--muted)">Waiting for challengers…</span></div></div>`
-        : rowHtml(t2,'team2','T2','t2','score2')}
-      ${isHolding ? '' : `<button class="btn btn-accent btn-full" style="margin-top:14px" onclick="submitScore(${def.id})">Submit Score</button>`}
-      ${c.tMatchId?`<button class="btn btn-full" style="margin-top:6px" onclick="tSwapMatch(${def.id})">Swap match</button>`:''}
-      ${isHolding ? '' : `<button class="btn btn-outline btn-full btn-outline-danger" onclick="cancelMatch(${def.id})">Cancel match</button>`}
+      <div class="ct-teams">
+        ${teamCol(t1,'team1','TEAM 1','t1')}
+        <span class="ct-vs">vs</span>
+        ${isHolding
+          ? `<div class="ct-team t2"><span class="ct-team-lbl">TEAM 2</span><div class="ct-pl" style="color:var(--muted);font-size:0.8rem;padding:6px 0;">Waiting for challengers…</div></div>`
+          : teamCol(t2,'team2','TEAM 2','t2')}
+      </div>
+      ${isHolding ? '' : `<div class="ct-foot">
+        <input class="ct-score" type="number" inputmode="numeric" min="0" max="99" placeholder="0" id="score1_${def.id}" value="${(c.score1!==''&&c.score1!=null)?c.score1:''}" oninput="updateScore(${def.id})">
+        <span class="ct-dash">–</span>
+        <input class="ct-score" type="number" inputmode="numeric" min="0" max="99" placeholder="0" id="score2_${def.id}" value="${(c.score2!==''&&c.score2!=null)?c.score2:''}" oninput="updateScore(${def.id})">
+        <button class="ct-submit" onclick="submitScore(${def.id})">Submit Score</button>
+      </div>`}
+      ${c.tMatchId?`<button class="btn btn-full" style="margin:0 10px 10px" onclick="tSwapMatch(${def.id})">Swap match</button>`:''}
+      ${isHolding ? '' : `<button class="ct-cancel" onclick="cancelMatch(${def.id})">Cancel match</button>`}
     </div></div>`;
   }).join('');
   el.innerHTML='<div class="court-grid-layout">'+cards+'</div>';
