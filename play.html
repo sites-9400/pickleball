@@ -1703,6 +1703,14 @@ window._fbApplyRemote = function(s) {
   renderPlayers(); renderCourts(); renderQueue();
   renderRankings(); renderGameHistory(); renderStandingsStrip();
 
+  // Initial default tab (once per page load): Live when games are ongoing,
+  // otherwise Players (setup / empty session). Only on the first snapshot so
+  // later remote updates never pull the user off the tab they're viewing.
+  if (!window._didInitialTab) {
+    window._didInitialTab = true;
+    switchTab(hasActiveCourts ? 'live' : 'players');
+  }
+
   // Restore in-progress score inputs — only onto the same match, and never
   // over a score the remote snapshot itself brought in (remote wins).
   Object.entries(activeScores).forEach(([id, rec]) => {
