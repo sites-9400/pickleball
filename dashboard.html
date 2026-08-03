@@ -528,9 +528,9 @@ const MODE_DESC = {
   roundrobin: 'Fixed teams play a full schedule against each other. Ranked by wins, then point differential.',
   ladder: 'King of the court. Winners move up a court, losers move down. Partners stay together.',
   challenge: 'Winners stay on their court. Losers go to the back of the waiting queue and the next challengers come on.',
-  random: 'Numbering. Players are numbered off and rotate into random matchups.',
+  random: 'Numbering — random teams, everyone mixes. Players are drawn into fresh matchups, avoiding repeat partners and opponents.',
   waittime: 'The players who have waited longest are matched up next.',
-  balanced: 'Teams are balanced by skill level for even games.',
+  balanced: 'Balanced — even teams by skill level, with fresh matchups. Skill-matched teams while avoiding repeat partners and opponents.',
   manual: 'You pick every match yourself, court by court.',
   bracket: 'Fixed teams play a single or double elimination bracket. (Bracket play arrives in a later phase.)'
 };
@@ -560,8 +560,8 @@ updateModeDesc();
   const CHEV='<svg class="asst-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
   const MODES={
     waittime:{name:'By wait time',why:'The players who’ve waited longest play next, so everyone gets near-equal court time. The fairest rotation for casual open play.'},
-    balanced:{name:'Balanced',why:'Takes the longest-waiting four, then pairs the strongest with the weakest against the middle two — games stay close. Best with a mix of skill levels.'},
-    random:{name:'Numbering',why:'Players are numbered off and drawn into fresh matchups, avoiding repeat partners and opponents. Great for a social night where people mix.'},
+    balanced:{name:'Balanced',why:'Builds even teams by skill level from the longest-waiting players, while avoiding repeat partners and opponents — so games stay close and you still meet new people. Best with a mix of skill levels.'},
+    random:{name:'Numbering',why:'Players are numbered off into random teams and drawn into fresh matchups, avoiding repeat partners and opponents. Great for a social night where people mix.'},
     challenge:{name:'Challenge courts',why:'Winners stay on their court; losers rotate to the back of the queue and the next challengers come on. Competitive, with quick turnover.'},
     ladder:{name:'King of the court',why:'Partners stay together all night. Winners move up a court, losers move down, and the bottom loser rotates to the bench. The one fixed-partner mode that needs no set list.'},
     roundrobin:{name:'Round robin',why:'Fixed teams play a full schedule against each other, ranked by wins then point differential. Needs everyone’s list up front.'},
@@ -569,7 +569,7 @@ updateModeDesc();
   };
   const ALTS={waittime:['random','balanced'],balanced:['waittime','random'],random:['waittime','balanced'],
     challenge:['ladder','waittime'],ladder:['roundrobin','challenge'],roundrobin:['ladder','manual']};
-  const SHORT={waittime:'Fairest equal-time rotation',balanced:'Even teams by skill',random:'Fresh, social matchups',
+  const SHORT={waittime:'Fairest equal-time rotation',balanced:'Even teams by skill level · fresh matchups',random:'Random teams · everyone mixes · fresh matchups',
     challenge:'Winners hold the court',ladder:'Fixed pairs, winners climb',roundrobin:'Everyone plays everyone',manual:'Pick every match'};
 
   const overlay=document.getElementById('assistantOverlay');

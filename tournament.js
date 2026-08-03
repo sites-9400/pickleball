@@ -172,3 +172,59 @@ export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
   const pick = best[Math.floor(rng() * best.length)];
   return { team1: [pick[0][0].id, pick[0][1].id], team2: [pick[1][0].id, pick[1][1].id] };
 }
+
+// ===== Balanced mode: skill-even teams + anti-repeat (match PickleQ "Auto-balanced") =====
+// Pure. pool: [{id, skill, lastPlayedRound}] pre-sorted longest-wait-first.
+// gameHistory: most-recent-first [{team1Ids, team2Ids}]. Doubles only.
+// 1) draw 4 from the longest-waiting window (wait-weighted + anti-repeat penalty),
+// 2) pick the most skill-even 2v2 split, tie-broken by lowest repeat cost.
+export function balancedMatch(pool, gameHistory, currentRound, opts = {}) {
+  const { W = 8, K = 1.5, alpha = 8, beta = 1, gamma = 1, lambda = 0,
+          decay = 0.95, rng = Math.random } = opts;
+  const need = 4;
+  if (!pool || pool.length < need) return null;
+
+  const s = buildHistoryScores(gameHistory, decay);
+  const oppS = (a, b) => s.opp[_pairKey(a, b)] || 0;
+  const partS = (a, b) => s.part[_pairKey(a, b)] || 0;
+  const waitOf = p => currentRound - (p.lastPlayedRound == null ? -1 : p.lastPlayedRound);
+  const selW = p => Math.pow(waitOf(p) + 1, K);
+
+  // 1) draw 4 from the longest-waiting window, penalising recent opponents/partners
+  const win = pool.slice(0, Math.max(need, Math.min(W, pool.length)));
+  const remaining = win.slice();
+  const chosen = [];
+  while (chosen.length < need) {
+    const weights = remaining.map(c => {
+      let pen = 1;
+      if (chosen.length) {
+        let so = 0, sp = 0;
+        for (const q of chosen) { so += oppS(c.id, q.id); sp += partS(c.id, q.id); }
+        pen = 1 / (1 + alpha * so + beta * sp);
+      }
+      return selW(c) * pen;
+    });
+    let total = weights.reduce((a, b) => a + b, 0);
+    let r = rng() * total, idx = 0;
+    for (; idx < weights.length; idx++) { r -= weights[idx]; if (r <= 0) break; }
+    if (idx >= remaining.length) idx = remaining.length - 1;
+    chosen.push(remaining[idx]);
+    remaining.splice(idx, 1);
+  }
+
+  // 2) most skill-even split; tie -> lowest repeat cost; tie -> random
+  const sk = p => skillRank(p.skill);
+  const [a, b, c, d] = chosen;
+  const splits = [[[a, b], [c, d]], [[a, c], [b, d]], [[a, d], [b, c]]];
+  const skillGap = x => Math.abs((sk(x[0][0]) + sk(x[0][1])) - (sk(x[1][0]) + sk(x[1][1])));
+  const repeatCost = x =>
+      partS(x[0][0].id, x[0][1].id) + partS(x[1][0].id, x[1][1].id)
+    + gamma * (oppS(x[0][0].id, x[1][0].id) + oppS(x[0][0].id, x[1][1].id)
+             + oppS(x[0][1].id, x[1][0].id) + oppS(x[0][1].id, x[1][1].id));
+  const combined = x => skillGap(x) + lambda * repeatCost(x);
+  let cand = splits.map(x => ({ x, cg: combined(x), rc: repeatCost(x) }));
+  const minCg = Math.min(...cand.map(o => o.cg)); cand = cand.filter(o => o.cg === minCg);
+  const minRc = Math.min(...cand.map(o => o.rc)); cand = cand.filter(o => o.rc === minRc);
+  const pick = cand[Math.floor(rng() * cand.length)].x;
+  return { team1: [pick[0][0].id, pick[0][1].id], team2: [pick[1][0].id, pick[1][1].id] };
+}
