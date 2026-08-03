@@ -225,6 +225,32 @@ header h1 {
 .tab-panel { display: none; padding-top: 20px; }
 .tab-panel.active { display: block; }
 
+/* Players page: compact spacing — tighter cards, smaller margins */
+#tab-players { padding-top: 12px; }
+#tab-players .card { padding: 13px 14px; margin-bottom: 10px; }
+#tab-players .card-title { margin-bottom: 9px; }
+#tab-players .share-card { padding: 13px 14px; margin-bottom: 10px; }
+#tab-players .checkin-panel { margin-top: 10px; padding: 10px 12px; }
+#tab-players .stat-row { margin-bottom: 10px; }
+#tab-players .stat-chip { padding: 8px 10px; }
+#tab-players .stat-val { font-size: 1.35rem; }
+#tab-players .section-action { margin-bottom: 10px; }
+#tab-players textarea,
+#tab-players input[type="text"],
+#tab-players input[type="date"],
+#tab-players input[type="time"] { padding: 9px 12px; }
+#tab-players .player-list { gap: 6px; }
+#tab-players .player-row { padding: 8px 12px; }
+#tab-players .empty-state { padding: 22px 16px; }
+#tab-players .empty-state .icon { font-size: 1.8rem; margin-bottom: 6px; }
+@media (max-width: 600px) {
+  #tab-players { padding-top: 10px; }
+  #tab-players .card { padding: 11px 12px; margin-bottom: 8px; }
+  #tab-players .share-card { padding: 11px 12px; margin-bottom: 8px; }
+  #tab-players .stat-val { font-size: 1.25rem; }
+  #tab-players .player-row { padding: 7px 10px; }
+}
+
 /* ===== CARDS ===== */
 .card {
   background: var(--surface);
