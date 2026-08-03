@@ -62,6 +62,7 @@ export function loadApp() {
     buildCohostLink: C.buildCohostLink,
     skillBalancedTeams: T.skillBalancedTeams, bestSkillMatch: T.bestSkillMatch,
     fairWeightedMatch: T.fairWeightedMatch,
+    balancedMatch: T.balancedMatch,
     checkinToPlayer: T.checkinToPlayer, resolveChallengeCourt: T.resolveChallengeCourt,
     buildTeams: T.buildTeams, generateRoundRobin: T.generateRoundRobin,
     computeStandings: T.computeStandings, nextEligibleMatch: T.nextEligibleMatch,

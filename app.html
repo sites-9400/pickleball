@@ -2059,8 +2059,8 @@ function chooseMatchPlayers(){
   const style=mm(), ts=teamSize();
   // Balanced doubles: take the longest-waiting 4, then snake-pair by declared skill level.
   if(style==='balanced' && ts===2){
-    const four=pool.slice(0,need).map(p=>({id:p.id, skill:p.skill||'intermediate'}));
-    return window.skillBalancedTeams(four, ts);
+    // Balanced doubles: longest-waiting window + anti-repeat draw, then most skill-even split.
+    return window.balancedMatch(pool, gameHistory, globalRound, {});
   }
   // Numbering (random): fair-weighted draw + anti-repeat opponents (see fairWeightedMatch).
   if(style==='random'){
@@ -3442,7 +3442,7 @@ window._importCheckin = function(key, entry) {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch, checkinToPlayer, fairWeightedMatch } from './tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch, checkinToPlayer, fairWeightedMatch, balancedMatch } from './tournament.js';
 import { computeIdentity, accessState, joinEligibility, genCohostToken, buildCohostLink } from './cohost.js';
 window.computeIdentity = computeIdentity;
 window.accessState = accessState;
@@ -3457,6 +3457,7 @@ window.resolveChallengeCourt = resolveChallengeCourt;
 window.skillBalancedTeams = skillBalancedTeams;
 window.bestSkillMatch = bestSkillMatch;
 window.fairWeightedMatch = fairWeightedMatch;
+window.balancedMatch = balancedMatch;
 window.checkinToPlayer = checkinToPlayer;
 window.manualDragStart = manualDragStart;
 
