@@ -1108,17 +1108,17 @@ input:focus, textarea:focus { border-color: var(--army); }
 </div>
 
 <div class="tabs" id="mainTabs">
-  <button class="tab-btn active" onclick="switchTab('live')">Live</button>
-  <button class="tab-btn" onclick="switchTab('players')">Players</button>
+  <button class="tab-btn active" onclick="switchTab('players')">Players</button>
+  <button class="tab-btn" onclick="switchTab('live')">Live</button>
   <button class="tab-btn" onclick="switchTab('rankings')">Rankings</button>
 </div>
 
-<div class="container courts-wide">
+<div class="container">
 
   <div id="accessBanner" style="display:none;max-width:640px;margin:12px auto 0;padding:10px 14px;border-radius:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--line);font-weight:700;font-size:0.8rem;text-align:center;"></div>
 
   <!-- PLAYERS TAB -->
-  <div class="tab-panel" id="tab-players">
+  <div class="tab-panel active" id="tab-players">
 
     <div class="card" id="sessionStartCard" style="display:none;">
       <div class="card-title">Session</div>
@@ -1209,7 +1209,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   </div>
 
   <!-- COURTS TAB -->
-  <div class="tab-panel active" id="tab-courts">
+  <div class="tab-panel" id="tab-courts">
     <div class="share-card compact" id="shareCardCourts" style="display:none;">
       <div class="qr-box" id="qrBoxCourts" style="display:none;"><div id="qrContainerCourts"></div></div>
       <div class="share-compact-body">
@@ -3501,7 +3501,7 @@ window.addEventListener('resize',function(){
 function switchTab(name) {
   const isLive = name==='live';
   document.querySelector('.container').classList.toggle('courts-wide', isLive);
-  const order=['live','players','rankings'];
+  const order=['players','live','rankings'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active', order[i]===name));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   if(isLive){
