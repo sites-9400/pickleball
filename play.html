@@ -1056,7 +1056,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .queue-panel{background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;}
 .queue-panel > .card-title, .queue-panel > p{display:none!important;}
 .mm-grid{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;}
-.mm-queue{flex:0 0 300px;max-width:340px;background:#20241a;border-radius:12px;padding:10px 12px 6px;box-shadow:var(--shadow);}
+.mm-queue{flex:1 1 260px;max-width:400px;background:#20241a;border-radius:12px;padding:10px 12px 6px;box-shadow:var(--shadow);}
 .mm-qhead{font-size:0.7rem;font-weight:900;letter-spacing:0.06em;text-transform:uppercase;color:#fff;margin-bottom:4px;}
 .mm-qhead span{color:var(--accent);}
 .mm-queue .queue-item{border-color:rgba(255,255,255,0.06)!important;background:transparent;padding:5px 2px;}
@@ -1067,6 +1067,17 @@ input:focus, textarea:focus { border-color: var(--army); }
 .mm-queue .mini-avatar{width:22px;height:22px;font-size:0.58rem;}
 .mm-upnext{flex:1;min-width:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,300px));gap:12px;align-content:start;}
 .mm-empty{color:var(--muted);font-size:0.78rem;padding:14px;text-align:center;}
+/* Adaptive Live layout: matchmaking beside courts when they leave room, else below */
+.live-flow{gap:14px;align-items:flex-start;}
+.live-flow.flow-side{display:flex;}
+.live-flow.flow-stack{display:block;}
+.flow-side .live-courts{flex:0 0 auto;}
+.flow-side .live-side{flex:1 1 300px;min-width:300px;}
+.flow-stack .live-side{margin-top:14px;}
+.live-side{display:flex;flex-direction:column;gap:12px;min-width:0;}
+.live-side .queue-panel{margin-bottom:0;}
+.flow-stack .live-courts .court-grid-layout{margin-bottom:0;}
+#tab-courts > #liveStandingsCard{max-width:none;margin-left:0;margin-right:0;}
 </style>
 </head>
 <body>
@@ -1217,30 +1228,22 @@ input:focus, textarea:focus { border-color: var(--army); }
       <button class="btn btn-accent" onclick="addCourt()">Add</button>
     </div>
     <div id="courtAlert"></div>
-    <div id="courtList"></div>
-  </div>
-
-  <!-- QUEUE TAB -->
-  <div class="tab-panel active" id="tab-queue">
-    <div class="share-card compact" id="shareCardQueue" style="display:none;">
-      <div class="qr-box" id="qrBoxQueue" style="display:none;"><div id="qrContainerQueue"></div></div>
-      <div class="share-compact-body">
-        <div class="share-card-title">Scan to view live</div>
-        <div class="share-link-box" id="shareLinkDisplayQueue" onclick="copyViewLink()">Generating...</div>
-        <button class="share-btn" style="margin-top:8px;" onclick="var w=document.getElementById('qrBoxQueue');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
+    <div class="live-flow">
+      <div id="courtList" class="live-courts"></div>
+      <div class="live-side">
+        <div class="card queue-panel">
+          <div class="card-title">Waiting Queue</div>
+          <p style="font-size:0.82rem;font-weight:500;color:var(--muted);margin-bottom:14px;letter-spacing:0.01em;">Players sorted by longest wait. First in line gets the next court spot.</p>
+          <div class="queue-list" id="queueList">
+            <div class="empty-state"><div class="icon">⏳</div>Queue appears after matches are generated.</div>
+          </div>
+        </div>
+        <div class="card" id="holdCard" style="display:none;">
+          <div class="card-title">On hold</div>
+          <p style="font-size:0.82rem;font-weight:500;color:var(--muted);margin-bottom:14px;letter-spacing:0.01em;">Players taken out of play. Tap "Add to queue" when they're back.</p>
+          <div class="queue-list" id="holdList"></div>
+        </div>
       </div>
-    </div>
-    <div class="card queue-panel">
-      <div class="card-title">Waiting Queue</div>
-      <p style="font-size:0.82rem;font-weight:500;color:var(--muted);margin-bottom:14px;letter-spacing:0.01em;">Players sorted by longest wait. First in line gets the next court spot.</p>
-      <div class="queue-list" id="queueList">
-        <div class="empty-state"><div class="icon">⏳</div>Queue appears after matches are generated.</div>
-      </div>
-    </div>
-    <div class="card" id="holdCard" style="display:none;">
-      <div class="card-title">On hold</div>
-      <p style="font-size:0.82rem;font-weight:500;color:var(--muted);margin-bottom:14px;letter-spacing:0.01em;">Players taken out of play. Tap "Add to queue" when they're back.</p>
-      <div class="queue-list" id="holdList"></div>
     </div>
     <div class="card" id="liveStandingsCard" style="display:none;">
       <div class="rank-head" style="cursor:pointer" onclick="switchTab('rankings')">
@@ -1248,6 +1251,18 @@ input:focus, textarea:focus { border-color: var(--army); }
         <button class="rank-info-btn" type="button" onclick="event.stopPropagation();switchTab('rankings')">View all →</button>
       </div>
       <div id="liveStandings"></div>
+    </div>
+  </div>
+
+  <!-- QUEUE TAB (content moved into the Live layout above) -->
+  <div class="tab-panel" id="tab-queue">
+    <div class="share-card compact" id="shareCardQueue" style="display:none;">
+      <div class="qr-box" id="qrBoxQueue" style="display:none;"><div id="qrContainerQueue"></div></div>
+      <div class="share-compact-body">
+        <div class="share-card-title">Scan to view live</div>
+        <div class="share-link-box" id="shareLinkDisplayQueue" onclick="copyViewLink()">Generating...</div>
+        <button class="share-btn" style="margin-top:8px;" onclick="var w=document.getElementById('qrBoxQueue');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
+      </div>
     </div>
   </div>
 
@@ -3467,6 +3482,12 @@ function courtGridStyle(n){
   var cw=(document.querySelector('.container')||{}).clientWidth||1000;
   var fit=Math.max(1,Math.floor((cw-20)/292));
   var cols=Math.max(1,Math.min(Math.ceil(Math.sqrt(n)),fit,n));
+  var flow=document.querySelector('.live-flow');
+  if(flow){
+    var side = cols<=2 && cw >= cols*400+334;   // room for courts + a ~320px matchmaking column
+    flow.classList.toggle('flow-side', side);
+    flow.classList.toggle('flow-stack', !side);
+  }
   return 'grid-template-columns:repeat('+cols+',minmax(280px,400px))';
 }
 var _courtRzT;
@@ -3485,7 +3506,6 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   if(isLive){
     document.getElementById('tab-courts').classList.add('active');
-    document.getElementById('tab-queue').classList.add('active');
     renderCourts(); renderQueue(); renderStandingsStrip();
   } else {
     document.getElementById(`tab-${name}`).classList.add('active');
