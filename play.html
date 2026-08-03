@@ -1055,7 +1055,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 /* Compact matchmaking: narrow dark Queue + Up Next cards side-by-side (artifact) */
 .queue-panel{background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;}
 .queue-panel > .card-title, .queue-panel > p{display:none!important;}
-.mm-grid{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;}
+.mm-grid{display:flex;flex-direction:column;gap:12px;align-items:stretch;}
 .mm-queue{flex:1 1 260px;max-width:400px;background:#20241a;border-radius:12px;padding:10px 12px 6px;box-shadow:var(--shadow);}
 .mm-qhead{font-size:0.7rem;font-weight:900;letter-spacing:0.06em;text-transform:uppercase;color:#fff;margin-bottom:4px;}
 .mm-qhead span{color:var(--accent);}
@@ -1065,7 +1065,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .mm-queue .queue-idle{color:#9aa37e!important;font-size:0.64rem;}
 .mm-queue .queue-idle.long{color:#E9C46A!important;}
 .mm-queue .mini-avatar{width:22px;height:22px;font-size:0.58rem;}
-.mm-upnext{flex:1;min-width:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,300px));gap:12px;align-content:start;}
+.mm-upnext{flex:1;min-width:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,300px));gap:12px;align-content:start;order:-1;}
 .mm-empty{color:var(--muted);font-size:0.78rem;padding:14px;text-align:center;}
 /* Adaptive Live layout: matchmaking beside courts when they leave room, else below */
 .live-flow{gap:14px;align-items:flex-start;}
@@ -1292,8 +1292,8 @@ input:focus, textarea:focus { border-color: var(--army); }
         </ul>
       </div>
       <div class="sort-pills">
-        <button class="sort-pill active" onclick="setSort('wins')">By Wins</button>
-        <button class="sort-pill" onclick="setSort('points')">By Points</button>
+        <button class="sort-pill active" onclick="setSort('points')">By Points</button>
+        <button class="sort-pill" onclick="setSort('wins')">By Wins</button>
         <button class="sort-pill" onclick="setSort('winpct')">By Win%</button>
         <button class="sort-pill" onclick="setSort('ptpct')">By Pt%</button>
       </div>
@@ -1420,7 +1420,7 @@ let playerIdCounter = 0;
 let courtIdCounter = 0;
 let mqIdCounter = 0;
 let queueOrder = [];
-let rankSort = 'wins';
+let rankSort = 'points';
 let swapContext = null;
 let sessionStartTime = null;
 let sessionName = '';
@@ -3339,7 +3339,7 @@ function toggleRankInfo() {
 function setSort(key) {
   rankSort=key;
   document.querySelectorAll('.sort-pill').forEach(p=>p.classList.remove('active'));
-  ['wins','points','winpct','ptpct'].forEach((k,i)=>{if(k===key)document.querySelectorAll('.sort-pill')[i]?.classList.add('active');});
+  ['points','wins','winpct','ptpct'].forEach((k,i)=>{if(k===key)document.querySelectorAll('.sort-pill')[i]?.classList.add('active');});
   renderRankings();
 }
 function renderRankings() {
