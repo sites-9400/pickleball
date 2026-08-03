@@ -205,7 +205,7 @@ header h1 {
 
 /* ===== CONTAINER ===== */
 .container { max-width: 640px; margin: 0 auto; padding: 0 16px; }
-.container.courts-wide { max-width: min(1400px, 100%); }
+.container.courts-wide { max-width: min(1080px, 100%); }
 #tab-courts > .card { max-width: 640px; margin-left: auto; margin-right: auto; }
 .tab-panel { display: none; padding-top: 20px; }
 .tab-panel.active { display: block; }
@@ -1012,18 +1012,18 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ls-nm{font-size:0.82rem;font-weight:800;color:var(--ink);white-space:nowrap;}
 .ls-stat{font-size:0.66rem;font-weight:700;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums;}
 /* Artifact-style court cards */
-.court-grid-layout{display:flex;flex-wrap:wrap;gap:12px;}
-.court-card{flex:1 1 280px;min-width:262px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);padding:0;}
+.court-grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,400px));gap:12px;justify-content:center;}
+.court-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);padding:0;}
 .court-header{background:#20241a;color:#fff;display:flex;align-items:center;gap:8px;padding:9px 11px;border:none;border-radius:0;}
 .court-name-input{background:transparent!important;border:none!important;color:#fff!important;font-weight:800;font-size:0.86rem;padding:0;flex:0 1 auto;width:auto;max-width:130px;letter-spacing:0.01em;}
 .court-timer{color:#fff;font-variant-numeric:tabular-nums;font-weight:800;font-size:0.74rem;margin-left:auto;background:transparent;padding:0;}
-.court-timer.warn{color:#F2C94C;}
+.court-timer.warn{background:transparent!important;color:#E9C46A;}
 .court-round{color:#b9c39a;font-size:0.58rem;font-weight:800;background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:10px;letter-spacing:0.03em;}
 .remove-court-btn{color:#9aa37e;background:transparent;border:none;font-size:0.9rem;cursor:pointer;padding:0 2px;}
 .remove-court-btn:hover{color:#fff;}
 .court-body{padding:0;}
 .ct-teams{display:flex;align-items:stretch;}
-.ct-team{flex:1;padding:9px 10px;min-width:0;}
+.ct-team{flex:1;padding:8px 10px;min-width:0;}
 .ct-team.t1{background:rgba(46,94,110,0.09);}
 .ct-team.t2{background:rgba(181,118,31,0.10);}
 [data-theme="dark"] .ct-team.t1{background:rgba(46,94,110,0.22);}
@@ -1031,7 +1031,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ct-team-lbl{display:inline-block;font-size:0.53rem;font-weight:900;letter-spacing:0.09em;color:#fff;padding:3px 7px;border-radius:5px;margin-bottom:6px;}
 .ct-team.t1 .ct-team-lbl{background:#2E5E6E;}
 .ct-team.t2 .ct-team-lbl{background:#B5761F;}
-.ct-pl{display:flex;align-items:center;gap:6px;padding:3px 0;}
+.ct-pl{display:flex;align-items:center;gap:6px;padding:2px 0;}
 .ct-pl-name{font-size:0.84rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 .ct-swap{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.92rem;padding:0 2px;line-height:1;flex-shrink:0;}
 .ct-swap:hover{color:var(--gold);}
@@ -1046,6 +1046,12 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ct-submit:hover{background:var(--accent-dim);}
 .ct-cancel{display:block;width:calc(100% - 20px);margin:0 10px 10px;padding:8px;background:none;border:1.5px solid var(--line);border-radius:7px;color:var(--red);font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;}
 .ct-cancel:hover{border-color:var(--red);background:rgba(192,57,43,0.06);}
+/* Declutter: hide the big share card on Live; compact add-court header */
+#shareCardCourts{display:none!important;}
+.addbar{display:flex;align-items:center;gap:10px;margin:0 2px 12px;}
+.sec-eyebrow{font-size:0.66rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);}
+.addbar-btn{margin-left:auto;}
+.btn-sm{padding:7px 13px;font-size:0.78rem;}
 /* Artifact-style dark Waiting Queue panel */
 .queue-panel{background:#20241a;border-color:#20241a;}
 .queue-panel > .card-title{color:#fff;}
@@ -1092,7 +1098,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   <button class="tab-btn" onclick="switchTab('rankings')">Rankings</button>
 </div>
 
-<div class="container">
+<div class="container courts-wide">
 
   <div id="accessBanner" style="display:none;max-width:640px;margin:12px auto 0;padding:10px 14px;border-radius:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--line);font-weight:700;font-size:0.8rem;text-align:center;"></div>
 
@@ -1197,14 +1203,16 @@ input:focus, textarea:focus { border-color: var(--army); }
         <button class="share-btn" style="margin-top:8px;" onclick="var w=document.getElementById('qrBoxCourts');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">Courts <span class="mode-badge" id="modeBadge"></span></div>
-      <div class="input-row">
-        <input type="text" id="newCourtName" placeholder="Court name (e.g. Court 1, Main Court)" onkeydown="if(event.key==='Enter')addCourt()">
-        <button class="btn btn-accent" onclick="addCourt()">+ Add Court</button>
-      </div>
-      <div id="courtAlert"></div>
+    <div class="addbar">
+      <span class="sec-eyebrow">Live Courts</span>
+      <span class="mode-badge" id="modeBadge"></span>
+      <button class="btn btn-accent btn-sm addbar-btn" type="button" onclick="toggleAddCourt()">+ Add Court</button>
     </div>
+    <div class="input-row" id="addCourtRow" style="display:none;margin-bottom:12px;">
+      <input type="text" id="newCourtName" placeholder="Court name (e.g. Court 1, Main Court)" onkeydown="if(event.key==='Enter')addCourt()">
+      <button class="btn btn-accent" onclick="addCourt()">Add</button>
+    </div>
+    <div id="courtAlert"></div>
     <div id="courtList"></div>
   </div>
 
@@ -3438,6 +3446,12 @@ function renderGameHistory() {
 }
 
 // ===== TABS =====
+function toggleAddCourt(){
+  var r=document.getElementById('addCourtRow'); if(!r) return;
+  var show=r.style.display==='none';
+  r.style.display=show?'':'none';
+  if(show){ var i=document.getElementById('newCourtName'); if(i) i.focus(); }
+}
 function switchTab(name) {
   const isLive = name==='live';
   document.querySelector('.container').classList.toggle('courts-wide', isLive);
