@@ -252,7 +252,7 @@ header h1 {
 #tab-players .checkin-head { margin-bottom: 6px; }
 #tab-players .checkin-panel .share-link-box { margin-bottom: 0; }
 /* Two-column top: Add Players (left) | Share + Check-in (right); stacks on phones */
-#tab-players .players-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; margin-bottom: 8px; }
+#tab-players .players-top { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 12px; align-items: start; margin-bottom: 8px; }
 #tab-players .pt-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 #tab-players .players-top .card,
 #tab-players .players-top .share-card,
@@ -263,12 +263,17 @@ header h1 {
   #tab-players .card { padding: 10px 11px; margin-bottom: 7px; }
   #tab-players .share-card { padding: 10px 11px; margin-bottom: 7px; }
   #tab-players .stat-val { font-size: 1.2rem; }
-  #tab-players .player-row { padding: 6px 9px; }
+  #tab-players .player-row { padding: 6px 8px; gap: 6px; }
+  #tab-players .player-row .attendance-toggle { padding: 6px 8px; font-size: 0.66rem; }
+  #tab-players .player-row .skill-badge { padding: 3px 5px; }
+  #tab-players .player-row .via-tag { margin-left: 2px; padding: 2px 4px; }
+  #tab-players .player-row .remove-btn { padding: 0 2px; }
+  #tab-players .edit-name-btn { font-size: 0.68rem; padding: 1px 2px; }
 }
 /* Rankings: two columns — Leaderboard (left) | Game History (right); stacks below 820px */
 #tab-rankings .rankings-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
 #tab-rankings .rankings-top > .card { margin-bottom: 0; }
-@media (max-width: 820px) { #tab-rankings .rankings-top { grid-template-columns: 1fr; } }
+@media (max-width: 820px) { #tab-rankings .rankings-top, #tab-players .players-top { grid-template-columns: 1fr; } }
 
 /* ===== CARDS ===== */
 .card {
@@ -453,8 +458,8 @@ input:focus, textarea:focus { border-color: var(--army); }
   color: white;
   flex-shrink: 0;
 }
-.player-name { font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.player-name-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.player-name { font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
+.player-name-wrap { flex: 1; display: flex; align-items: center; gap: 4px; }
 .edit-name-btn { background: none; border: none; cursor: pointer; font-size: 0.72rem; line-height: 1; padding: 2px 3px; opacity: 0.4; flex-shrink: 0; }
 .edit-name-btn:hover { opacity: 0.9; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex-shrink: 0; }
@@ -1176,7 +1181,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   <button class="tab-btn" onclick="switchTab('rankings')">Rankings</button>
 </div>
 
-<div class="container">
+<div class="container courts-wide">
 
   <div id="accessBanner" style="display:none;max-width:640px;margin:12px auto 0;padding:10px 14px;border-radius:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--line);font-weight:700;font-size:0.8rem;text-align:center;"></div>
 
@@ -1197,16 +1202,42 @@ input:focus, textarea:focus { border-color: var(--army); }
     </div>
 
     <div class="players-top">
-      <div class="pt-col">
-        <!-- ADD PLAYERS (left) -->
+      <div class="pt-col pt-main">
+        <!-- ADD PLAYERS + ROSTER (left, one flowing card) -->
         <div class="card">
           <div class="card-title">Add Players</div>
           <textarea id="playerNameInput" placeholder="Add one name per line, or paste a list from Reclub:&#10;Eve&#10;Jude&#10;Alysson" rows="3" style="resize:vertical;margin-bottom:8px;"></textarea>
           <button class="btn btn-primary btn-full" onclick="addPlayer()">Add Players</button>
+
+          <div class="divider"></div>
+
+          <div class="card-title">Attendance</div>
+          <div class="stat-row">
+            <div class="stat-chip">
+              <div class="stat-val" id="presentCount">0</div>
+              <div class="stat-label">Present</div>
+            </div>
+            <div class="stat-chip">
+              <div class="stat-val" id="totalCount">0</div>
+              <div class="stat-label">Total</div>
+            </div>
+          </div>
+          <div class="skill-counts" id="skillCounts"></div>
+          <div style="position:relative;margin-bottom:12px;">
+            <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:1rem;">🔍</span>
+            <input type="text" id="attendanceSearch" placeholder="Search players..." oninput="renderPlayers()" style="padding-left:36px;">
+          </div>
+          <div class="section-action">
+            <button class="btn btn-outline btn-sm" onclick="markAll(true)">Mark all present</button>
+            <button class="btn btn-outline btn-sm" onclick="markAll(false)">Clear all</button>
+          </div>
+          <div class="player-list" id="playerList">
+            <div class="empty-state"><div class="icon">👥</div>No players yet. Add some above!</div>
+          </div>
         </div>
       </div>
 
-      <div class="pt-col">
+      <div class="pt-col pt-side">
         <!-- SHARE (QR) + CHECK-IN (right) -->
         <div class="share-card" id="shareCard" style="display:none;">
           <div class="share-card-title">Share with Players</div>
@@ -1248,32 +1279,6 @@ input:focus, textarea:focus { border-color: var(--army); }
           </div>
           <div id="cohostList"></div>
         </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Attendance</div>
-      <div class="stat-row">
-        <div class="stat-chip">
-          <div class="stat-val" id="presentCount">0</div>
-          <div class="stat-label">Present</div>
-        </div>
-        <div class="stat-chip">
-          <div class="stat-val" id="totalCount">0</div>
-          <div class="stat-label">Total</div>
-        </div>
-      </div>
-      <div class="skill-counts" id="skillCounts"></div>
-      <div style="position:relative;margin-bottom:12px;">
-        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:1rem;">🔍</span>
-        <input type="text" id="attendanceSearch" placeholder="Search players..." oninput="renderPlayers()" style="padding-left:36px;">
-      </div>
-      <div class="section-action">
-        <button class="btn btn-outline btn-sm" onclick="markAll(true)">Mark all present</button>
-        <button class="btn btn-outline btn-sm" onclick="markAll(false)">Clear all</button>
-      </div>
-      <div class="player-list" id="playerList">
-        <div class="empty-state"><div class="icon">👥</div>No players yet. Add some above!</div>
       </div>
     </div>
   </div>
@@ -3584,7 +3589,7 @@ window.addEventListener('resize',function(){
 });
 function switchTab(name) {
   const isLive = name==='live';
-  document.querySelector('.container').classList.toggle('courts-wide', isLive || name==='rankings');
+  document.querySelector('.container').classList.add('courts-wide');
   const order=['players','live','rankings'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active', order[i]===name));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
