@@ -226,30 +226,49 @@ header h1 {
 .tab-panel.active { display: block; }
 
 /* Players page: compact spacing — tighter cards, smaller margins */
-#tab-players { padding-top: 12px; }
-#tab-players .card { padding: 13px 14px; margin-bottom: 10px; }
-#tab-players .card-title { margin-bottom: 9px; }
-#tab-players .share-card { padding: 13px 14px; margin-bottom: 10px; }
-#tab-players .checkin-panel { margin-top: 10px; padding: 10px 12px; }
-#tab-players .stat-row { margin-bottom: 10px; }
-#tab-players .stat-chip { padding: 8px 10px; }
-#tab-players .stat-val { font-size: 1.35rem; }
-#tab-players .section-action { margin-bottom: 10px; }
+#tab-players { padding-top: 10px; }
+#tab-players .card { padding: 11px 12px; margin-bottom: 8px; }
+#tab-players .card-title { margin-bottom: 7px; }
+#tab-players .stat-row { margin-bottom: 8px; }
+#tab-players .stat-chip { padding: 6px 10px; }
+#tab-players .stat-val { font-size: 1.3rem; }
+#tab-players .section-action { margin-bottom: 8px; }
 #tab-players textarea,
 #tab-players input[type="text"],
 #tab-players input[type="date"],
-#tab-players input[type="time"] { padding: 9px 12px; }
-#tab-players .player-list { gap: 6px; }
-#tab-players .player-row { padding: 8px 12px; }
-#tab-players .empty-state { padding: 22px 16px; }
-#tab-players .empty-state .icon { font-size: 1.8rem; margin-bottom: 6px; }
+#tab-players input[type="time"] { padding: 8px 11px; }
+#tab-players .player-list { gap: 5px; }
+#tab-players .player-row { padding: 7px 10px; }
+#tab-players .empty-state { padding: 20px 16px; }
+#tab-players .empty-state .icon { font-size: 1.7rem; margin-bottom: 6px; }
+/* Share + Check-in cards: shrink the link boxes, labels, buttons */
+#tab-players .share-card { padding: 11px 12px; margin-bottom: 8px; }
+#tab-players .share-card-title { margin-bottom: 6px; }
+#tab-players .share-link-label { margin-bottom: 4px; }
+#tab-players .share-link-box { padding: 7px 10px; font-size: 0.7rem; line-height: 1.4; margin-bottom: 8px; }
+#tab-players .share-btns { gap: 6px; }
+#tab-players .share-btn { padding: 5px 11px; font-size: 0.72rem; }
+#tab-players .checkin-panel { margin-top: 8px; padding: 9px 11px; }
+#tab-players .checkin-head { margin-bottom: 6px; }
+#tab-players .checkin-panel .share-link-box { margin-bottom: 0; }
+/* Two-column top: Add Players (left) | Share + Check-in (right); stacks on phones */
+#tab-players .players-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; margin-bottom: 8px; }
+#tab-players .pt-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+#tab-players .players-top .card,
+#tab-players .players-top .share-card,
+#tab-players .players-top .checkin-panel { margin: 0; }
 @media (max-width: 600px) {
-  #tab-players { padding-top: 10px; }
-  #tab-players .card { padding: 11px 12px; margin-bottom: 8px; }
-  #tab-players .share-card { padding: 11px 12px; margin-bottom: 8px; }
-  #tab-players .stat-val { font-size: 1.25rem; }
-  #tab-players .player-row { padding: 7px 10px; }
+  #tab-players .players-top { grid-template-columns: 1fr; }
+  #tab-players { padding-top: 8px; }
+  #tab-players .card { padding: 10px 11px; margin-bottom: 7px; }
+  #tab-players .share-card { padding: 10px 11px; margin-bottom: 7px; }
+  #tab-players .stat-val { font-size: 1.2rem; }
+  #tab-players .player-row { padding: 6px 9px; }
 }
+/* Rankings: two columns — Leaderboard (left) | Game History (right); stacks below 820px */
+#tab-rankings .rankings-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+#tab-rankings .rankings-top > .card { margin-bottom: 0; }
+@media (max-width: 820px) { #tab-rankings .rankings-top { grid-template-columns: 1fr; } }
 
 /* ===== CARDS ===== */
 .card {
@@ -434,7 +453,10 @@ input:focus, textarea:focus { border-color: var(--army); }
   color: white;
   flex-shrink: 0;
 }
-.player-name { flex: 1; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
+.player-name { font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-name-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.edit-name-btn { background: none; border: none; cursor: pointer; font-size: 0.72rem; line-height: 1; padding: 2px 3px; opacity: 0.4; flex-shrink: 0; }
+.edit-name-btn:hover { opacity: 0.9; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex-shrink: 0; }
 .status-dot.present { background: var(--army); }
 [data-theme="dark"] .status-dot.present { background: var(--accent); }
@@ -1174,52 +1196,59 @@ input:focus, textarea:focus { border-color: var(--army); }
       <button class="btn btn-primary btn-full" onclick="startSession()">Start Session</button>
     </div>
 
-    <!-- SHARE CARD — always visible once session is active -->
-    <div class="share-card" id="shareCard" style="display:none;">
-      <div class="share-card-title">Share with Players</div>
-      <div id="shareQrWrap" style="display:none;">
-        <div style="display:flex;justify-content:center;margin-bottom:10px;">
-          <div style="background:white;border-radius:10px;padding:8px;line-height:0;display:inline-block;">
-            <div id="qrContainer"></div>
+    <div class="players-top">
+      <div class="pt-col">
+        <!-- ADD PLAYERS (left) -->
+        <div class="card">
+          <div class="card-title">Add Players</div>
+          <textarea id="playerNameInput" placeholder="Add one name per line, or paste a list from Reclub:&#10;Eve&#10;Jude&#10;Alysson" rows="3" style="resize:vertical;margin-bottom:8px;"></textarea>
+          <button class="btn btn-primary btn-full" onclick="addPlayer()">Add Players</button>
+        </div>
+      </div>
+
+      <div class="pt-col">
+        <!-- SHARE (QR) + CHECK-IN (right) -->
+        <div class="share-card" id="shareCard" style="display:none;">
+          <div class="share-card-title">Share with Players</div>
+          <div id="shareQrWrap" style="display:none;">
+            <div style="display:flex;justify-content:center;margin-bottom:10px;">
+              <div style="background:white;border-radius:10px;padding:8px;line-height:0;display:inline-block;">
+                <div id="qrContainer"></div>
+              </div>
+            </div>
+            <div style="text-align:center;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;opacity:0.65;margin-bottom:12px;">Scan to view live</div>
+          </div>
+          <div class="share-link-label">View Link</div>
+          <div class="share-link-box" id="shareLinkDisplay" onclick="copyViewLink()">Generating...</div>
+          <div class="share-btns">
+            <button class="share-btn" onclick="copyViewLink()">📋 Copy Link</button>
+            <button class="share-btn" onclick="var w=document.getElementById('shareQrWrap');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
           </div>
         </div>
-        <div style="text-align:center;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;opacity:0.65;margin-bottom:12px;">Scan to view live</div>
-      </div>
-      <div class="share-link-label">View Link</div>
-      <div class="share-link-box" id="shareLinkDisplay" onclick="copyViewLink()">Generating...</div>
-      <div class="share-btns">
-        <button class="share-btn" onclick="copyViewLink()">📋 Copy Link</button>
-        <button class="share-btn" onclick="var w=document.getElementById('shareQrWrap');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
-      </div>
-    </div>
 
-      <div class="checkin-panel" id="checkinPanel">
-        <div class="checkin-head">
-          <span class="checkin-title">Player check-in</span>
-          <button class="checkin-toggle" id="checkinToggleBtn" onclick="toggleCheckinOpen()">Open</button>
+        <div class="checkin-panel" id="checkinPanel">
+          <div class="checkin-head">
+            <span class="checkin-title">Player check-in</span>
+            <button class="checkin-toggle" id="checkinToggleBtn" onclick="toggleCheckinOpen()">Open</button>
+          </div>
+          <div class="share-link-box" id="checkinLinkDisplay" onclick="copyCheckinLink()">Generating...</div>
+          <button class="checkin-toggle" style="margin-top:8px;margin-left:auto;display:block;background:var(--surface2);color:var(--muted);" onclick="var w=document.getElementById('checkinQrContainer');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
+          <div class="checkin-qr" id="checkinQrContainer" style="display:none;"></div>
+          <div id="checkinPending"></div>
         </div>
-        <div class="share-link-box" id="checkinLinkDisplay" onclick="copyCheckinLink()">Generating...</div>
-        <button class="checkin-toggle" style="margin-top:8px;width:100%;" onclick="var w=document.getElementById('checkinQrContainer');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
-        <div class="checkin-qr" id="checkinQrContainer" style="display:none;"></div>
-        <div id="checkinPending"></div>
-      </div>
 
-      <div class="checkin-panel" id="cohostPanel" style="display:none;">
-        <div class="checkin-head">
-          <span class="checkin-title">Co-host</span>
-          <button class="checkin-toggle" id="cohostOpenBtn" onclick="toggleCohostOpen()">Closed</button>
+        <div class="checkin-panel" id="cohostPanel" style="display:none;">
+          <div class="checkin-head">
+            <span class="checkin-title">Co-host</span>
+            <button class="checkin-toggle" id="cohostOpenBtn" onclick="toggleCohostOpen()">Closed</button>
+          </div>
+          <div id="cohostInviteBody" style="display:none;">
+            <div class="share-link-box" id="cohostLinkDisplay" onclick="copyCohostLink()">Generating...</div>
+            <button class="checkin-toggle" style="margin-top:8px;width:100%;" onclick="regenCohostLink()">New link (invalidates old links)</button>
+          </div>
+          <div id="cohostList"></div>
         </div>
-        <div id="cohostInviteBody" style="display:none;">
-          <div class="share-link-box" id="cohostLinkDisplay" onclick="copyCohostLink()">Generating...</div>
-          <button class="checkin-toggle" style="margin-top:8px;width:100%;" onclick="regenCohostLink()">New link (invalidates old links)</button>
-        </div>
-        <div id="cohostList"></div>
       </div>
-
-    <div class="card">
-      <div class="card-title">Add Players</div>
-      <textarea id="playerNameInput" placeholder="Enter one name per line:&#10;Eve&#10;Jude&#10;Alysson&#10;Jan" rows="5" style="resize:vertical;margin-bottom:10px;"></textarea>
-      <button class="btn btn-primary btn-full" onclick="addPlayer()">Add Players</button>
     </div>
 
     <div class="card">
@@ -1317,6 +1346,7 @@ input:focus, textarea:focus { border-color: var(--army); }
         <button class="share-btn" style="margin-top:8px;" onclick="var w=document.getElementById('qrBoxRankings');var sh=w.style.display==='none';w.style.display=sh?'':'none';this.textContent=sh?'Hide QR':'Show QR';">Show QR</button>
       </div>
     </div>
+    <div class="rankings-top">
     <div class="card">
       <div class="rank-head">
         <div class="card-title" style="margin-bottom:0;">Leaderboard</div>
@@ -1347,6 +1377,7 @@ input:focus, textarea:focus { border-color: var(--army); }
       <div id="gameHistory">
         <div class="empty-state"><div class="icon">📋</div>No games played yet.</div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -1972,13 +2003,25 @@ function renderPlayers() {
   list.innerHTML=filtered.map(p=>`
     <div class="player-row ${p.present?'present':'absent'}">
       <div class="player-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div>
-      <span class="player-name">${esc(p.name)}</span>
+      <div class="player-name-wrap"><span class="player-name">${esc(p.name)}</span><button class="edit-name-btn" onclick="editPlayerName(${p.id})" title="Edit name">✏️</button></div>
       <div class="status-dot ${p.present?'present':''}"></div>
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
       <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})" title="${p.present?'On court - tap to put on hold':'On hold - tap to add back to queue'}">${p.present?'Here ✓':'Add to queue'}</button>
       <button class="remove-btn" onclick="removePlayer(${p.id})" title="Delete permanently">🗑</button>
     </div>`).join('');
+}
+
+function editPlayerName(id){
+  const p=getPlayer(id); if(!p) return;
+  const input=prompt('Edit player name:', p.name);
+  if(input===null) return;
+  const name=input.trim();
+  if(!name){ showToast("Name can't be empty."); return; }
+  if(players.some(o=>o.id!==id && (o.name||'').toLowerCase()===name.toLowerCase())){ showToast('That name is already taken.'); return; }
+  const old=p.name; p.name=name;
+  renderPlayers(); renderQueue(); renderCourts(); renderRankings(); renderGameHistory(); saveState();
+  showToast(`Renamed ${old} → ${name}`);
 }
 
 function renderCheckinPanel(){
@@ -3541,7 +3584,7 @@ window.addEventListener('resize',function(){
 });
 function switchTab(name) {
   const isLive = name==='live';
-  document.querySelector('.container').classList.toggle('courts-wide', isLive);
+  document.querySelector('.container').classList.toggle('courts-wide', isLive || name==='rankings');
   const order=['players','live','rankings'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active', order[i]===name));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
