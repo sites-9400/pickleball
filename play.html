@@ -1052,17 +1052,21 @@ input:focus, textarea:focus { border-color: var(--army); }
 .sec-eyebrow{font-size:0.66rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);}
 .addbar-btn{margin-left:auto;}
 .btn-sm{padding:7px 13px;font-size:0.78rem;}
-/* Artifact-style dark Waiting Queue panel */
-.queue-panel{background:#20241a;border-color:#20241a;}
-.queue-panel > .card-title{color:#fff;}
-.queue-panel > p{color:#9aa37e!important;}
-.queue-panel .mq-section-label{color:#c6cfa8!important;}
-.queue-panel .divider{background:rgba(255,255,255,0.08);}
-.queue-panel .queue-item{border-color:rgba(255,255,255,0.06)!important;background:transparent;}
-.queue-panel .queue-rank{color:var(--accent)!important;font-weight:900;}
-.queue-panel .queue-name{color:#EEF0E8!important;}
-.queue-panel .queue-idle{color:#9aa37e!important;}
-.queue-panel .queue-idle.long{color:#F2C94C!important;}
+/* Compact matchmaking: narrow dark Queue + Up Next cards side-by-side (artifact) */
+.queue-panel{background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;}
+.queue-panel > .card-title, .queue-panel > p{display:none!important;}
+.mm-grid{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;}
+.mm-queue{flex:0 0 300px;max-width:340px;background:#20241a;border-radius:12px;padding:10px 12px 6px;box-shadow:var(--shadow);}
+.mm-qhead{font-size:0.7rem;font-weight:900;letter-spacing:0.06em;text-transform:uppercase;color:#fff;margin-bottom:4px;}
+.mm-qhead span{color:var(--accent);}
+.mm-queue .queue-item{border-color:rgba(255,255,255,0.06)!important;background:transparent;padding:5px 2px;}
+.mm-queue .queue-rank{color:var(--accent)!important;font-weight:900;}
+.mm-queue .queue-name{color:#EEF0E8!important;}
+.mm-queue .queue-idle{color:#9aa37e!important;font-size:0.64rem;}
+.mm-queue .queue-idle.long{color:#E9C46A!important;}
+.mm-queue .mini-avatar{width:22px;height:22px;font-size:0.58rem;}
+.mm-upnext{flex:1;min-width:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,300px));gap:12px;align-content:start;}
+.mm-empty{color:var(--muted);font-size:0.78rem;padding:14px;text-align:center;}
 </style>
 </head>
 <body>
@@ -3290,19 +3294,23 @@ function renderQueue() {
     return;
   }
   const freeWaiting=getFreeWaiting();
-  let html='';
-  if(matchQueue.length){
-    html+=`<div class="mq-section-label" style="color:var(--ink);">📋 Upcoming Matches</div>`;
-    matchQueue.forEach((m,i)=>{html+=mqMatchCard(m,`Match ${i+1}`,i===0);});
-    html+=`<div class="divider"></div>`;
-  }
+  let html='<div class="mm-grid">';
+  // left: narrow dark Queue of waiting players
+  html+='<div class="mm-queue"><div class="mm-qhead">Queue <span>'+freeWaiting.length+'</span></div>';
   if(freeWaiting.length){
-    html+=`<div class="mq-section-label" style="color:var(--muted);">⏳ Still Waiting</div>`;
-    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}">${p.lastPlayedRound===-1?'Not played':globalRound-p.lastPlayedRound+'r ago'}</span></div>`).join('');
+    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}">${p.lastPlayedRound===-1?'—':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
+  } else {
+    html+='<div class="mm-empty">No one waiting.</div>';
   }
-  if(!matchQueue.length&&!freeWaiting.length){
-    html='<div class="empty-state"><div class="icon">⏳</div>No one waiting right now.</div>';
+  html+='</div>';
+  // right: Up Next / On Deck cards
+  html+='<div class="mm-upnext">';
+  if(matchQueue.length){
+    matchQueue.forEach((m,i)=>{html+=mqMatchCard(m,`Up Next ${i+1}`,i===0);});
+  } else {
+    html+='<div class="mm-empty">No upcoming matches yet.</div>';
   }
+  html+='</div></div>';
   el.innerHTML=html;
 }
 
