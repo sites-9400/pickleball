@@ -1012,7 +1012,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ls-nm{font-size:0.82rem;font-weight:800;color:var(--ink);white-space:nowrap;}
 .ls-stat{font-size:0.66rem;font-weight:700;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums;}
 /* Artifact-style court cards */
-.court-grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,400px));gap:12px;justify-content:center;}
+.court-grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,400px));gap:12px;justify-content:start;}
 .court-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);padding:0;}
 .court-header{background:#20241a;color:#fff;display:flex;align-items:center;gap:8px;padding:9px 11px;border:none;border-radius:0;}
 .court-name-input{background:transparent!important;border:none!important;color:#fff!important;font-weight:800;font-size:0.86rem;padding:0;flex:0 1 auto;width:auto;max-width:130px;letter-spacing:0.01em;}
@@ -1048,7 +1048,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ct-cancel:hover{border-color:var(--red);background:rgba(192,57,43,0.06);}
 /* Declutter: hide the big share card on Live; compact add-court header */
 #shareCardCourts{display:none!important;}
-.addbar{display:flex;align-items:center;gap:10px;margin:0 2px 12px;}
+.addbar{display:flex;align-items:center;gap:10px;margin:0 0 12px;}
 .sec-eyebrow{font-size:0.66rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);}
 .addbar-btn{margin-left:auto;}
 .btn-sm{padding:7px 13px;font-size:0.78rem;}
@@ -2512,7 +2512,7 @@ function renderLadder(){
   const active=ladderActiveCourts();
   const allDone=ladderAllReported();
   let html=`<div class="ladder-bar"><div class="ladder-round">Round ${ladder.round}</div><div class="ladder-bar-actions"><button class="btn btn-outline btn-sm" onclick="resetLadder()">Reset</button><button class="btn btn-accent btn-sm" ${allDone?'':'disabled'} onclick="advanceLadderRound()">Advance Round →</button></div></div>`;
-  html+='<div class="court-grid-layout">';
+  html+='<div class="court-grid-layout" style="'+courtGridStyle(active.length)+'">';
   active.forEach((c,i)=>{
     const rank = i===0 ? '#1 · Top' : (i===active.length-1 ? `#${i+1} · Bottom` : `#${i+1}`);
     const aWon=c.submitted&&c.score1>c.score2, bWon=c.submitted&&c.score2>c.score1;
@@ -3043,7 +3043,7 @@ function renderCourts() {
       ${isHolding ? '' : `<button class="ct-cancel" onclick="cancelMatch(${def.id})">Cancel match</button>`}
     </div></div>`;
   }).join('');
-  el.innerHTML='<div class="court-grid-layout">'+cards+'</div>';
+  el.innerHTML='<div class="court-grid-layout" style="'+courtGridStyle(courtDefs.length)+'">'+cards+'</div>';
 }
 
 // ===== TOURNAMENT SETUP (round-robin / bracket) =====
@@ -3460,6 +3460,23 @@ function toggleAddCourt(){
   r.style.display=show?'':'none';
   if(show){ var i=document.getElementById('newCourtName'); if(i) i.focus(); }
 }
+// Balanced court grid: columns = ceil(sqrt(n)) (4->2x2, 5->3x2, 6->3x2, 3->2+1),
+// capped by how many ~280px columns actually fit so phones/tablets stack.
+function courtGridStyle(n){
+  if(!n) return '';
+  var cw=(document.querySelector('.container')||{}).clientWidth||1000;
+  var fit=Math.max(1,Math.floor((cw-20)/292));
+  var cols=Math.max(1,Math.min(Math.ceil(Math.sqrt(n)),fit,n));
+  return 'grid-template-columns:repeat('+cols+',minmax(280px,400px))';
+}
+var _courtRzT;
+window.addEventListener('resize',function(){
+  clearTimeout(_courtRzT);
+  _courtRzT=setTimeout(function(){
+    var t=document.getElementById('tab-courts');
+    if(t&&t.classList.contains('active')&&typeof renderCourts==='function') renderCourts();
+  },160);
+});
 function switchTab(name) {
   const isLive = name==='live';
   document.querySelector('.container').classList.toggle('courts-wide', isLive);
