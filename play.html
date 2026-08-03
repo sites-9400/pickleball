@@ -81,24 +81,24 @@ body {
 header {
   background: var(--header-bg);
   color: #fff;
-  padding: 14px 20px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   position: sticky;
   top: 0;
   z-index: 100;
   box-shadow: 0 2px 10px rgba(0,0,0,0.25);
 }
 .logo {
-  width: 36px; height: 36px;
+  width: 30px; height: 30px;
   background: var(--accent);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0;
+  font-size: 16px; flex-shrink: 0;
 }
 header h1 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   flex: 1;
@@ -134,25 +134,26 @@ header h1 {
 .session-bar {
   background: var(--bar-bg);
   color: #fff;
-  padding: 9px 20px;
+  padding: 5px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   position: sticky;
-  top: 64px;
+  top: 50px;
   z-index: 95;
 }
 .session-bar.ended { background: var(--bar-ended); }
 .session-bar.hidden { display: none; }
 .session-clock {
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   letter-spacing: 0.06em;
+  line-height: 1.15;
 }
 .session-info {
   flex: 1;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
   opacity: 0.82;
   letter-spacing: 0.02em;
@@ -179,14 +180,14 @@ header h1 {
   background: var(--surface);
   border-bottom: 2px solid var(--line);
   position: sticky;
-  top: 64px; /* updated by updateTabOffset() when session bar shows */
+  top: 50px; /* updated by updateTabOffset() when session bar shows */
   z-index: 95;
   transition: top 0.15s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .tab-btn {
   flex: 1;
-  padding: 13px 4px;
+  padding: 10px 4px;
   border: none;
   background: none;
   font-family: var(--font);
@@ -202,6 +203,20 @@ header h1 {
 }
 .tab-btn.active { color: var(--army); border-bottom-color: var(--army); }
 [data-theme="dark"] .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Compact the sticky header/session bars on phones (they eat vertical space) */
+@media (max-width: 600px) {
+  header { padding: 6px 12px; gap: 8px; }
+  .logo { width: 26px; height: 26px; font-size: 14px; }
+  header h1 { font-size: 0.98rem; }
+  .session-badge { font-size: 0.66rem; padding: 3px 8px; }
+  .theme-toggle { padding: 4px 8px; font-size: 0.9rem; }
+  .session-bar { padding: 4px 12px; gap: 8px; }
+  .session-clock { font-size: 0.86rem; }
+  .session-info { font-size: 0.66rem; }
+  .btn-end-session { padding: 4px 10px; font-size: 0.7rem; }
+  .tab-btn { padding: 9px 4px; font-size: 0.72rem; }
+}
 
 /* ===== CONTAINER ===== */
 .container { max-width: 640px; margin: 0 auto; padding: 0 16px; }
