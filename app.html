@@ -2226,6 +2226,18 @@ function modeLabel(){
   const m = {waittime:'By wait time', balanced:'Balanced', random:'Numbering', manual:'Manual', ladder:'King of the court', roundrobin:'Round robin', bracket:'Bracket', challenge:'Challenge courts'}[mm()] || mm();
   return `${f} · ${m}`;
 }
+// Court/bench-adaptive matchmaking settings for Numbering + Balanced.
+// healthy pool (enough players + a real bench) -> stronger partner-mixing (beta) and
+// stricter wait-priority (K); thin pools stay gentle. decay + recent-partner blocker
+// (blockWindow) are always on. See docs/superpowers/specs/2026-08-06-numbering-court-adaptive-design.md
+function adaptiveConfig(){
+  const present = presentPlayers().length;
+  const courts  = courtDefs.length;
+  const healthy = present >= 12 && (present - 4 * courts) >= 3;
+  return { beta: healthy ? 12 : 1, decay: 1, K: healthy ? 4 : 1.5, blockWindow: 3 };
+}
+// "Up Next" preview only helps flow with many courts finishing often; hide it below 4.
+function showUpNext(){ return courtDefs.length >= 4; }
 // Pick the players + teams for the next match per the session's matchmaking style.
 function chooseMatchPlayers(){
   const need=matchSize();
@@ -2235,11 +2247,11 @@ function chooseMatchPlayers(){
   // Balanced doubles: take the longest-waiting 4, then snake-pair by declared skill level.
   if(style==='balanced' && ts===2){
     // Balanced doubles: longest-waiting window + anti-repeat draw, then most skill-even split.
-    return window.balancedMatch(pool, gameHistory, globalRound, {});
+    return window.balancedMatch(pool, gameHistory, globalRound, adaptiveConfig());
   }
   // Numbering (random): fair-weighted draw + anti-repeat opponents (see fairWeightedMatch).
   if(style==='random'){
-    return window.fairWeightedMatch(pool, gameHistory, globalRound, {teamSize:ts});
+    return window.fairWeightedMatch(pool, gameHistory, globalRound, {teamSize:ts, ...adaptiveConfig()});
   }
   // Waittime / balanced-singles: longest-waiting N, random pairing.
   const chosen = pool.slice(0,need);
@@ -3403,14 +3415,17 @@ function renderQueue() {
     html+='<div class="mm-empty">No one waiting.</div>';
   }
   html+='</div>';
-  // right: Up Next / On Deck cards
-  html+='<div class="mm-upnext">';
-  if(matchQueue.length){
-    matchQueue.forEach((m,i)=>{html+=mqMatchCard(m,`Up Next ${i+1}`,i===0);});
-  } else {
-    html+='<div class="mm-empty">No upcoming matches yet.</div>';
+  // right: Up Next / On Deck cards — hidden for Numbering/Balanced below 4 courts
+  if(!((mm()==='random'||mm()==='balanced') && !showUpNext())){
+    html+='<div class="mm-upnext">';
+    if(matchQueue.length){
+      matchQueue.forEach((m,i)=>{html+=mqMatchCard(m,`Up Next ${i+1}`,i===0);});
+    } else {
+      html+='<div class="mm-empty">No upcoming matches yet.</div>';
+    }
+    html+='</div>';
   }
-  html+='</div></div>';
+  html+='</div>';
   el.innerHTML=html;
 }
 

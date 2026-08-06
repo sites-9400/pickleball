@@ -135,10 +135,11 @@ never trades away balance, no tolerance knob is needed.
    `MAX_QUEUED` at `1` (internal seat flow depends on a ready match). Don't touch other modes.
 5. **`tournament.js` `fairWeightedMatch`** (split step ~L165): add the recent-partner
    blocker as the primary sort key over the existing split cost. New `blockWindow` option
-   (default 3); `0` disables (preserves current output for callers/tests).
+   **defaulting to `0` (off)** so existing callers/tests are byte-for-byte unchanged; the
+   app opts in by passing `blockWindow: 3` via `adaptiveConfig()`.
 6. **`tournament.js` `balancedMatch`** (split step ~L226): among the minimum-skill-gap
    splits, add the recent-partner blocker ahead of the existing repeat-cost tie-break.
-   Same `blockWindow` option/default. Skill gap remains the top sort key (no balance loss).
+   Same `blockWindow` option (default `0`). Skill gap remains the top sort key (no balance loss).
 
 Non-goals: no change to opponent handling (`alpha`), no change to Balanced's skill-balance
 priority or draw window `W`, no change to other modes, no change to the draw's core
