@@ -110,6 +110,21 @@ export function checkinToPlayer(entry, existingPlayers) {
 // [{team1Ids, team2Ids}]. Returns {team1:[ids], team2:[ids]} or null.
 const _pairKey = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
 
+// Partner pairs from the last W games (recent-partner blocker). Returns a Set of pair keys.
+// W = 0 -> empty set (blocker disabled), preserving prior split behaviour.
+function _recentPartnerPairs(gameHistory, W) {
+  const s = new Set();
+  const h = gameHistory || [];
+  const n = Math.min(W, h.length);
+  for (let i = 0; i < n; i++) {
+    const g = h[i] || {};
+    const t1 = g.team1Ids || [], t2 = g.team2Ids || [];
+    if (t1.length === 2) s.add(_pairKey(t1[0], t1[1]));
+    if (t2.length === 2) s.add(_pairKey(t2[0], t2[1]));
+  }
+  return s;
+}
+
 export function buildHistoryScores(gameHistory, decay) {
   const opp = {}, part = {};
   const h = gameHistory || [];
@@ -126,7 +141,7 @@ export function buildHistoryScores(gameHistory, decay) {
 
 export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
   const { K = 1.5, alpha = 8, beta = 1, gamma = 1, decay = 0.95,
-          teamSize = 2, rng = Math.random } = opts;
+          teamSize = 2, rng = Math.random, blockWindow = 0 } = opts;
   const need = teamSize * 2;
   if (!pool || pool.length < need) return null;
 
@@ -159,17 +174,21 @@ export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
 
   if (teamSize === 1) return { team1: [chosen[0].id], team2: [chosen[1].id] };
 
-  // 2) doubles: choose the freshest 2v2 split, ties broken randomly
+  // 2) doubles: avoid recent partners first (blocker), then freshest split, ties random
   const [a, b, c, d] = chosen;
   const splits = [[[a, b], [c, d]], [[a, c], [b, d]], [[a, d], [b, c]]];
+  const recent = _recentPartnerPairs(gameHistory, blockWindow);
+  const blockCount = x => (recent.has(_pairKey(x[0][0].id, x[0][1].id)) ? 1 : 0)
+                        + (recent.has(_pairKey(x[1][0].id, x[1][1].id)) ? 1 : 0);
   const cost = x =>
       partS(x[0][0].id, x[0][1].id) + partS(x[1][0].id, x[1][1].id)
     + gamma * (oppS(x[0][0].id, x[1][0].id) + oppS(x[0][0].id, x[1][1].id)
              + oppS(x[0][1].id, x[1][0].id) + oppS(x[0][1].id, x[1][1].id));
-  const costs = splits.map(cost);
-  const min = Math.min(...costs);
-  const best = splits.filter((_, i) => costs[i] === min);
-  const pick = best[Math.floor(rng() * best.length)];
+  const minBlock = Math.min(...splits.map(blockCount));
+  let cand = splits.filter(x => blockCount(x) === minBlock);   // fewest recent-partner repeats
+  const minCost = Math.min(...cand.map(cost));
+  cand = cand.filter(x => cost(x) === minCost);                // then freshest
+  const pick = cand[Math.floor(rng() * cand.length)];         // then random
   return { team1: [pick[0][0].id, pick[0][1].id], team2: [pick[1][0].id, pick[1][1].id] };
 }
 
@@ -180,7 +199,7 @@ export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
 // 2) pick the most skill-even 2v2 split, tie-broken by lowest repeat cost.
 export function balancedMatch(pool, gameHistory, currentRound, opts = {}) {
   const { W = 8, K = 1.5, alpha = 8, beta = 1, gamma = 1, lambda = 0,
-          decay = 0.95, rng = Math.random } = opts;
+          decay = 0.95, rng = Math.random, blockWindow = 0 } = opts;
   const need = 4;
   if (!pool || pool.length < need) return null;
 
@@ -212,19 +231,23 @@ export function balancedMatch(pool, gameHistory, currentRound, opts = {}) {
     remaining.splice(idx, 1);
   }
 
-  // 2) most skill-even split; tie -> lowest repeat cost; tie -> random
+  // 2) most skill-even split; tie -> avoid recent partners (blocker); tie -> lowest repeat cost; tie -> random
   const sk = p => skillRank(p.skill);
   const [a, b, c, d] = chosen;
   const splits = [[[a, b], [c, d]], [[a, c], [b, d]], [[a, d], [b, c]]];
+  const recent = _recentPartnerPairs(gameHistory, blockWindow);
+  const blockCount = x => (recent.has(_pairKey(x[0][0].id, x[0][1].id)) ? 1 : 0)
+                        + (recent.has(_pairKey(x[1][0].id, x[1][1].id)) ? 1 : 0);
   const skillGap = x => Math.abs((sk(x[0][0]) + sk(x[0][1])) - (sk(x[1][0]) + sk(x[1][1])));
   const repeatCost = x =>
       partS(x[0][0].id, x[0][1].id) + partS(x[1][0].id, x[1][1].id)
     + gamma * (oppS(x[0][0].id, x[1][0].id) + oppS(x[0][0].id, x[1][1].id)
              + oppS(x[0][1].id, x[1][0].id) + oppS(x[0][1].id, x[1][1].id));
   const combined = x => skillGap(x) + lambda * repeatCost(x);
-  let cand = splits.map(x => ({ x, cg: combined(x), rc: repeatCost(x) }));
-  const minCg = Math.min(...cand.map(o => o.cg)); cand = cand.filter(o => o.cg === minCg);
-  const minRc = Math.min(...cand.map(o => o.rc)); cand = cand.filter(o => o.rc === minRc);
+  let cand = splits.map(x => ({ x, cg: combined(x), bc: blockCount(x), rc: repeatCost(x) }));
+  const minCg = Math.min(...cand.map(o => o.cg)); cand = cand.filter(o => o.cg === minCg);  // skill-even is top priority
+  const minBc = Math.min(...cand.map(o => o.bc)); cand = cand.filter(o => o.bc === minBc);  // then avoid recent partners
+  const minRc = Math.min(...cand.map(o => o.rc)); cand = cand.filter(o => o.rc === minRc);  // then freshest overall
   const pick = cand[Math.floor(rng() * cand.length)].x;
   return { team1: [pick[0][0].id, pick[0][1].id], team2: [pick[1][0].id, pick[1][1].id] };
 }
