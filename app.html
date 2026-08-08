@@ -459,9 +459,25 @@ input:focus, textarea:focus { border-color: var(--army); }
   flex-shrink: 0;
 }
 .player-name { font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
-.player-name-wrap { flex: 1; display: flex; align-items: center; gap: 4px; }
+.player-name-wrap { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pn-top { display: flex; align-items: center; gap: 4px; }
 .name-edit-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.82rem; padding: 0 2px; line-height: 1; opacity: 0.45; transition: opacity 0.15s, color 0.15s; flex-shrink: 0; }
 .name-edit-btn:hover { opacity: 1; color: var(--gold); }
+/* Attendance audit: check-in time chip under the name + expandable in/out timeline */
+.checkin-time { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; max-width: 100%; font-family: var(--font); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.01em; color: var(--muted); background: none; border: none; padding: 1px 0; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.checkin-time .dot { color: var(--accent); font-weight: 900; font-size: 0.7rem; line-height: 1; }
+.checkin-time.left .dot { color: #C0392B; }
+.checkin-time .car { font-size: 0.6rem; opacity: 0.55; }
+.checkin-time.blank { color: var(--muted); opacity: 0.7; font-weight: 600; cursor: default; }
+.checkin-time:not(.blank):hover { color: var(--ink); }
+.checkin-time:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.attend-timeline { margin: 3px 0 2px 46px; padding: 9px 12px; background: var(--surface2); border-left: 2.5px solid var(--accent); border-radius: 0 8px 8px 0; }
+.tl-row { display: flex; align-items: center; gap: 9px; font-size: 0.73rem; padding: 2.5px 0; font-variant-numeric: tabular-nums; }
+.tl-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.tl-dot.in { background: var(--accent); }
+.tl-dot.out { background: #C0392B; }
+.tl-ev { font-weight: 700; color: var(--ink); width: 78px; }
+.tl-time { color: var(--muted); font-weight: 600; }
 .edit-name-btn { background: none; border: none; cursor: pointer; font-size: 0.72rem; line-height: 1; padding: 2px 3px; opacity: 0.4; flex-shrink: 0; }
 .edit-name-btn:hover { opacity: 0.9; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex-shrink: 0; }
@@ -1242,6 +1258,7 @@ input:focus, textarea:focus { border-color: var(--army); }
           <div class="section-action">
             <button class="btn btn-outline btn-sm" onclick="markAll(true)">Mark all present</button>
             <button class="btn btn-outline btn-sm" onclick="markAll(false)">Clear all</button>
+            <button class="btn btn-outline btn-sm" onclick="exportAttendanceCSV()" title="Download the attendance log as CSV">⤓ Export CSV</button>
           </div>
           <div class="player-list" id="playerList">
             <div class="empty-state"><div class="icon">👥</div>No players yet. Add some above!</div>
@@ -1666,7 +1683,7 @@ window._fbApplyRemote = function(s) {
     if (c && !c.submitted) activeScores[el.id] = { value: el.value, match: _scoreKey(c) };
   });
 
-  players      = normArr(s.players).map(p => ({ ...p, skill: p.skill || 'intermediate', via: p.via || 'manual' }));
+  players      = normArr(s.players).map(p => ({ ...p, skill: p.skill || 'intermediate', via: p.via || 'manual', events: Array.isArray(p.events) ? p.events : [] }));
   courts       = normCourts(s.courts);
   courtDefs    = normArr(s.courtDefs);
   matchQueue   = normMatchQueue(s.matchQueue);
@@ -1960,7 +1977,7 @@ function addPlayer() {
   let added=0, skipped=0;
   names.forEach(name=>{
     if(players.find(p=>p.name.toLowerCase()===name.toLowerCase())){skipped++;return;}
-    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate',via:'manual'});
+    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate',via:'manual',events:[]});
     added++;
   });
   input.value=''; rebuildMatchQueue(); renderPlayers(); saveState();
@@ -1968,8 +1985,74 @@ function addPlayer() {
   else if(added) showToast(`${added} player${added>1?'s':''} added!`);
   else showToast('All names already exist.');
 }
+// ===== ATTENDANCE AUDIT =====
+// Record a presence transition on the player. Dedups: an 'in' only after a non-'in'
+// state, an 'out' only after an 'in' — so mark-all / rapid toggles don't double-log.
+function logPresence(p, present, ts){
+  if(!p) return;
+  if(!Array.isArray(p.events)) p.events=[];
+  const last=p.events.length?p.events[p.events.length-1].t:null;
+  if(present && last!=='in') p.events.push({t:'in', ts:ts||Date.now()});
+  else if(!present && last==='in') p.events.push({t:'out', ts:ts||Date.now()});
+}
+function fmtTime(ts){ try{ return new Date(ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }catch(e){ return ''; } }
+let expandedAttend=new Set();   // player ids whose in/out timeline is expanded
+function toggleAttend(id){ if(expandedAttend.has(id)) expandedAttend.delete(id); else expandedAttend.add(id); renderPlayers(); }
+window.toggleAttend=toggleAttend;
+// The check-in-time chip under a player's name.
+function checkinChip(p){
+  const evs=Array.isArray(p.events)?p.events:[];
+  const firstIn=evs.find(e=>e.t==='in');
+  const expandable=evs.length>0;
+  const car=expandable?`<span class="car">${expandedAttend.has(p.id)?'▴':'▾'}</span>`:'';
+  if(p.present){
+    if(firstIn) return `<button class="checkin-time" aria-expanded="${expandedAttend.has(p.id)}" onclick="toggleAttend(${p.id})"><span class="dot">●</span> Here · ${fmtTime(firstIn.ts)} ${car}</button>`;
+    return `<span class="checkin-time blank">Here</span>`;   // present before audit existed — no arrival on record
+  }
+  if(evs.length){
+    const lastOut=[...evs].reverse().find(e=>e.t==='out');
+    return `<button class="checkin-time left" aria-expanded="${expandedAttend.has(p.id)}" onclick="toggleAttend(${p.id})"><span class="dot">●</span> Left ${fmtTime((lastOut||evs[evs.length-1]).ts)} ${car}</button>`;
+  }
+  return `<span class="checkin-time blank">Not checked in yet</span>`;
+}
+function attendTimeline(p){
+  const evs=Array.isArray(p.events)?p.events:[];
+  if(!evs.length || !expandedAttend.has(p.id)) return '';
+  let seenIn=false;
+  const rows=evs.map(e=>{
+    let label; if(e.t==='in'){ label=seenIn?'Back':'Checked in'; seenIn=true; } else label='On hold';
+    return `<div class="tl-row"><span class="tl-dot ${e.t}"></span><span class="tl-ev">${label}</span><span class="tl-time">${fmtTime(e.ts)}</span></div>`;
+  }).join('');
+  return `<div class="attend-timeline">${rows}</div>`;
+}
+function exportAttendanceCSV(){
+  if(!players.length){ showToast('No players to export.'); return; }
+  const q=s=>{ s=String(s==null?'':s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const ab={beginner:'Beg',intermediate:'Int',advanced:'Adv'};
+  const rows=[['Player','Skill','Via','Checked in','Status','Timeline']];
+  players.forEach(p=>{
+    const evs=Array.isArray(p.events)?p.events:[];
+    const firstIn=evs.find(e=>e.t==='in');
+    const status=p.present?'Here':(evs.length?'On hold':'Never');
+    rows.push([p.name, ab[p.skill||'intermediate'], (p.via==='qr'?'QR':'manual'),
+      firstIn?fmtTime(firstIn.ts):'—', status,
+      evs.length?evs.map(e=>`${e.t} ${fmtTime(e.ts)}`).join('; '):'—']);
+  });
+  const csv=rows.map(r=>r.map(q).join(',')).join('\n');
+  const date=new Date().toISOString().slice(0,10);
+  const slug=((typeof sessionName!=='undefined'&&sessionName)||'session').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'session';
+  try{
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    const a=document.createElement('a'); a.href=url; a.download=`attendance-${slug}-${date}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){}
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(csv).catch(()=>{});
+  showToast('Attendance exported (downloaded + copied).');
+}
+window.exportAttendanceCSV=exportAttendanceCSV;
 function togglePresent(id) {
   const p=getPlayer(id); p.present=!p.present;
+  logPresence(p, p.present, Date.now());
   if(p.present&&!queueOrder.includes(id)) queueOrder.push(id);
   if(!p.present) queueOrder=queueOrder.filter(q=>q!==id);
   rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
@@ -2007,7 +2090,8 @@ function removePlayer(id) {
   showToast(`${p.name} removed.`);
 }
 function markAll(val) {
-  players.forEach(p=>{p.present=val;if(val&&!queueOrder.includes(p.id))queueOrder.push(p.id);});
+  const now=Date.now();
+  players.forEach(p=>{p.present=val;logPresence(p,val,now);if(val&&!queueOrder.includes(p.id))queueOrder.push(p.id);});
   if(!val) queueOrder=[];
   rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
 }
@@ -2038,14 +2122,20 @@ function renderPlayers() {
   if(!players.length){list.innerHTML='<div class="empty-state"><div class="icon">👥</div>No players yet. Add some above!</div>';return;}
   if(!filtered.length){list.innerHTML='<div class="empty-state"><div class="icon">🔍</div>No players match your search.</div>';return;}
   list.innerHTML=filtered.map(p=>`
+    <div class="player-rowwrap">
     <div class="player-row ${p.present?'present':'absent'}">
       <div class="player-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div>
-      <div class="player-name-wrap"><span class="player-name">${esc(p.name)}</span><button class="name-edit-btn" onclick="editPlayerName(${p.id})" title="Edit name">✎</button></div>
+      <div class="player-name-wrap">
+        <div class="pn-top"><span class="player-name">${esc(p.name)}</span><button class="name-edit-btn" onclick="editPlayerName(${p.id})" title="Edit name">✎</button></div>
+        ${checkinChip(p)}
+      </div>
       <div class="status-dot ${p.present?'present':''}"></div>
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
       <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})" title="${p.present?'On court - tap to put on hold':'On hold - tap to add back to queue'}">${p.present?'Here ✓':'Add to queue'}</button>
       <button class="remove-btn" onclick="removePlayer(${p.id})" title="Delete permanently">🗑</button>
+    </div>
+    ${attendTimeline(p)}
     </div>`).join('');
 }
 
@@ -2071,9 +2161,9 @@ function approveCheckin(key){
   const res=window.checkinToPlayer ? window.checkinToPlayer(entry, players) : null;
   if(res && res.markPresentName){
     const ex=players.find(p=>p&&typeof p.name==='string'&&p.name.toLowerCase()===res.markPresentName.toLowerCase());
-    if(ex){ ex.present=true; if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
+    if(ex){ ex.present=true; logPresence(ex, true, entry.ts||Date.now()); if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
   } else if(res && res.player){
-    const p=res.player; p.id=++playerIdCounter; players.push(p); if(!queueOrder.includes(p.id)) queueOrder.push(p.id);
+    const p=res.player; p.id=++playerIdCounter; players.push(p); logPresence(p, true, entry.ts||Date.now()); if(!queueOrder.includes(p.id)) queueOrder.push(p.id);
   }
   delete pendingCheckins[key];
   window._removeCheckin && window._removeCheckin(key);
@@ -3677,6 +3767,7 @@ window._importCheckin = function(key, entry) {
     const ex = players.find(p => p && typeof p.name === 'string' && p.name.toLowerCase() === res.markPresentName.toLowerCase());
     if (ex) {
       ex.present = true;
+      logPresence(ex, true, entry.ts||Date.now());
       if (!queueOrder.includes(ex.id)) queueOrder.push(ex.id);
       rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
       showToast(`${ex.name} marked here.`);
