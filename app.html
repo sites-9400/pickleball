@@ -1381,16 +1381,16 @@ input:focus, textarea:focus { border-color: var(--army); }
         <button class="sort-pill" onclick="setSort('winpct')">By Win%</button>
         <button class="sort-pill" onclick="setSort('ptpct')">By Pt%</button>
       </div>
-      <div style="position:relative;margin-bottom:12px;">
-        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:1rem;">🔍</span>
-        <input type="text" id="rankSearch" placeholder="Search players..." oninput="renderRankings()" style="padding-left:36px;">
-      </div>
       <div id="rankTable">
         <div class="empty-state"><div class="icon">🏆</div>Rankings appear after games are submitted.</div>
       </div>
     </div>
     <div class="card">
       <div class="card-title">Game History</div>
+      <div id="historySearchWrap" style="position:relative;margin-bottom:10px;display:none;">
+        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:1rem;">🔍</span>
+        <input type="text" id="historySearch" placeholder="Search a player's games..." oninput="renderGameHistory()" style="padding-left:36px;">
+      </div>
       <div id="gameHistory">
         <div class="empty-state"><div class="icon">📋</div>No games played yet.</div>
       </div>
@@ -1503,7 +1503,6 @@ let courts = [];
 let courtDefs = [];
 let matchQueue = [];
 let gameHistory = [];
-let historyFilter = 'all';   // 'all' or a player id — filters Game History to one player
 let globalRound = 0;
 let playerIdCounter = 0;
 let courtIdCounter = 0;
@@ -3488,11 +3487,7 @@ function renderRankings() {
   });
   const col2=rankSort==='wins'?'Wins':rankSort==='points'?'Points':rankSort==='winpct'?'Win%':'Pt%';
   const col2Val=p=>rankSort==='wins'?p.wins:rankSort==='points'?p.points:rankSort==='winpct'?`${p.winPct}%`:`${p.ptPct}%`;
-  // Search filters the displayed rows but keeps each player's true rank/medal from the full sorted list.
-  const q=(document.getElementById('rankSearch')?.value||'').toLowerCase().trim();
-  const rows=sorted.map((p,i)=>({p,i})).filter(({p})=>!q||p.name.toLowerCase().includes(q));
-  if(!rows.length){el.innerHTML='<div class="empty-state"><div class="icon">🔍</div>No players match your search.</div>';return;}
-  el.innerHTML=`<table class="rank-table"><thead><tr><th>#</th><th>Player</th><th class="sorted">${col2}</th><th>GP</th><th>Score Diff</th></tr></thead><tbody>${rows.map(({p,i})=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-num">${medal||i+1}</span></td><td><span class="player-tag"><span class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${esc(p.name)}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
+  el.innerHTML=`<table class="rank-table"><thead><tr><th>#</th><th>Player</th><th class="sorted">${col2}</th><th>GP</th><th>Score Diff</th></tr></thead><tbody>${sorted.map((p,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-num">${medal||i+1}</span></td><td><span class="player-tag"><span class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${esc(p.name)}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
 }
 function renderStandingsStrip(){
   const card=document.getElementById('liveStandingsCard');
@@ -3566,38 +3561,32 @@ function commitEditScore(){
   closeEditScore();
   showToast(missing?`Score updated. ${missing} player(s) left the session; their rankings were not changed.`:'Score updated!');
 }
-function setHistoryFilter(v){ historyFilter = v; renderGameHistory(); }
-function historyEntryHasPlayer(g, pid){
-  const key=String(pid);
-  return [...(g.team1Ids||[]), ...(g.team2Ids||[])].map(String).includes(key);
-}
 function renderGameHistory() {
+  const wrap=document.getElementById('historySearchWrap');
   const el=document.getElementById('gameHistory');
-  if(!gameHistory.length){el.innerHTML='<div class="empty-state"><div class="icon">📋</div>No games played yet.</div>';return;}
-  // Players that appear anywhere in the history -> filter dropdown options.
-  const idsInHistory=new Set();
-  gameHistory.forEach(g=>[...(g.team1Ids||[]),...(g.team2Ids||[])].forEach(id=>idsInHistory.add(String(id))));
-  if(historyFilter!=='all' && !idsInHistory.has(String(historyFilter))) historyFilter='all';   // selected player left / cleared
-  const filterPlayers=players.filter(p=>idsInHistory.has(String(p.id))).sort((a,b)=>a.name.localeCompare(b.name));
-  const options=`<option value="all">All players</option>`+filterPlayers.map(p=>`<option value="${p.id}"${String(historyFilter)===String(p.id)?' selected':''}>${esc(p.name)}</option>`).join('');
-  const filterBar=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><label style="font-size:0.78rem;font-weight:600;color:var(--muted);">Filter</label><select id="historyFilter" onchange="setHistoryFilter(this.value)" style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input-bg);color:var(--ink);font-weight:600;font-size:0.85rem;">${options}</select></div>`;
+  if(!gameHistory.length){ if(wrap) wrap.style.display='none'; el.innerHTML='<div class="empty-state"><div class="icon">📋</div>No games played yet.</div>';return;}
+  if(wrap) wrap.style.display='';   // search is available once there are games
+  const q=(document.getElementById('historySearch')?.value||'').toLowerCase().trim();
+  // Match on the player names shown in each entry — works even after a player leaves.
+  const nameHit=g=>[...(g.team1||[]),...(g.team2||[])].some(n=>String(n).toLowerCase().includes(q));
   // Keep the ORIGINAL index so Edit targets the right entry after filtering.
-  const items=gameHistory.map((g,idx)=>({g,idx})).filter(x=>historyFilter==='all' || historyEntryHasPlayer(x.g, historyFilter));
+  const items=gameHistory.map((g,idx)=>({g,idx})).filter(x=>!q || nameHit(x.g));
+  // When the search narrows to a single player, show their W/L record (as the dropdown used to).
   let summary='';
-  if(historyFilter!=='all'){
-    const nm=esc(getPlayer(Number(historyFilter))?.name||'Player');
-    let w=0,l=0;
-    items.forEach(({g})=>{
-      const onT1=(g.team1Ids||[]).map(String).includes(String(historyFilter));
-      if(g.score1>g.score2){ onT1?w++:l++; } else if(g.score2>g.score1){ onT1?l++:w++; }
-    });
-    summary=`<div style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:10px;">${nm} — ${items.length} game${items.length!==1?'s':''} · ${w} W / ${l} L</div>`;
+  if(q){
+    const matched=new Set();
+    gameHistory.forEach(g=>[...(g.team1||[]),...(g.team2||[])].forEach(n=>{ if(String(n).toLowerCase().includes(q)) matched.add(n); }));
+    if(matched.size===1){
+      const nm=[...matched][0]; let w=0,l=0;
+      items.forEach(({g})=>{ const onT1=(g.team1||[]).includes(nm); if(g.score1>g.score2){ onT1?w++:l++; } else if(g.score2>g.score1){ onT1?l++:w++; } });
+      summary=`<div style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:10px;">${esc(nm)} — ${items.length} game${items.length!==1?'s':''} · ${w} W / ${l} L</div>`;
+    }
   }
   const list = items.length ? items.map(({g,idx})=>{
     const winner=g.score1>g.score2?g.team1:g.score2>g.score1?g.team2:null;
     return `<div class="history-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:0.72rem;font-weight:600;color:var(--muted);">Rd ${g.round} · ${esc(g.courtName||'Court '+g.court)}</span><span style="display:flex;align-items:center;gap:8px;"><span class="history-score">${g.score1} – ${g.score2}</span><button class="hist-edit-btn" onclick="openEditScore(${idx})" title="Edit score">✏️</button></span></div><div class="history-players">${esc(g.team1.join(' & '))} vs ${esc(g.team2.join(' & '))}</div>${winner?`<span class="badge badge-gold" style="margin-top:5px;">🏆 ${esc(winner.join(' & '))}</span>`:`<span class="badge" style="background:var(--surface2);color:var(--muted);margin-top:5px;">Tie</span>`}</div>`;
-  }).join('') : `<div class="empty-state" style="padding:16px 0;"><div class="icon">📋</div>No games for this player yet.</div>`;
-  el.innerHTML = filterBar + summary + list;
+  }).join('') : `<div class="empty-state" style="padding:16px 0;"><div class="icon">🔍</div>No games match that name.</div>`;
+  el.innerHTML = summary + list;
 }
 
 // ===== TABS =====
