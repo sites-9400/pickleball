@@ -460,6 +460,8 @@ input:focus, textarea:focus { border-color: var(--army); }
 }
 .player-name { font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
 .player-name-wrap { flex: 1; display: flex; align-items: center; gap: 4px; }
+.name-edit-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.82rem; padding: 0 2px; line-height: 1; opacity: 0.45; transition: opacity 0.15s, color 0.15s; flex-shrink: 0; }
+.name-edit-btn:hover { opacity: 1; color: var(--gold); }
 .edit-name-btn { background: none; border: none; cursor: pointer; font-size: 0.72rem; line-height: 1; padding: 2px 3px; opacity: 0.4; flex-shrink: 0; }
 .edit-name-btn:hover { opacity: 0.9; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex-shrink: 0; }
@@ -639,6 +641,9 @@ input:focus, textarea:focus { border-color: var(--army); }
   flex-shrink: 0;
 }
 .swap-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(212,160,23,0.08); }
+/* In-match caution: this player is on a live court — swapping disrupts a game in progress. */
+.swap-btn.in-match { border-style: solid; border-color: rgba(192,57,43,0.5); color: #C0392B; }
+.swap-btn.in-match:hover { border-color: #C0392B; color: #fff; background: rgba(192,57,43,0.9); }
 .vs-badge {
   font-size: 0.72rem;
   font-weight: 900;
@@ -774,6 +779,9 @@ input:focus, textarea:focus { border-color: var(--army); }
 }
 .swap-option:hover { background: var(--swap-hover); border-color: var(--army); }
 [data-theme="dark"] .swap-option:hover { border-color: var(--accent); }
+/* Caution: this candidate is currently in a live match — taking them disrupts a game. */
+.swap-option.in-match { border-color: rgba(192,57,43,0.45); background: rgba(192,57,43,0.05); }
+.swap-option.in-match:hover { border-color: #C0392B; background: rgba(192,57,43,0.12); }
 .swap-name { flex: 1; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
 .swap-idle {
   font-size: 0.72rem;
@@ -837,6 +845,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   letter-spacing: 0.02em;
 }
 .queue-idle.long { background: rgba(212,160,23,0.2); color: var(--gold); }
+.queue-gp { font-size: 0.72rem; font-weight: 700; color: var(--muted); background: var(--line); padding: 3px 8px; border-radius: 20px; letter-spacing: 0.02em; flex-shrink: 0; }
 
 /* ===== RANKINGS ===== */
 .sort-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -1103,6 +1112,8 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ct-pl-name{font-size:0.84rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 .ct-swap{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.92rem;padding:0 2px;line-height:1;flex-shrink:0;}
 .ct-swap:hover{color:var(--gold);}
+.ct-swap.in-match{color:#C0392B;}
+.ct-swap.in-match:hover{color:#fff;background:rgba(192,57,43,0.85);border-radius:4px;}
 .ct-pl-lvl{margin-left:auto;font-size:0.52rem;font-weight:900;letter-spacing:0.04em;padding:2px 5px;border-radius:4px;background:var(--surface2);color:var(--muted);flex-shrink:0;}
 .ct-vs{align-self:center;font-size:0.62rem;font-weight:900;color:var(--muted);padding:0 3px;}
 .ct-foot{display:flex;align-items:center;gap:7px;padding:9px 10px;border-top:1px solid var(--line);}
@@ -1132,6 +1143,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .mm-queue .queue-name{color:#EEF0E8!important;}
 .mm-queue .queue-idle{color:#9aa37e!important;font-size:0.64rem;}
 .mm-queue .queue-idle.long{color:#E9C46A!important;}
+.mm-queue .queue-gp{color:#c7cbb2!important;font-size:0.64rem;background:rgba(255,255,255,0.06);padding:2px 6px;}
 .mm-queue .mini-avatar{width:22px;height:22px;font-size:0.58rem;}
 .mm-upnext{flex:1;min-width:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,300px));gap:12px;align-content:start;order:-1;}
 .mm-empty{color:var(--muted);font-size:0.78rem;padding:14px;text-align:center;}
@@ -1296,11 +1308,7 @@ input:focus, textarea:focus { border-color: var(--army); }
     <div class="addbar">
       <span class="sec-eyebrow">Live Courts</span>
       <span class="mode-badge" id="modeBadge"></span>
-      <button class="btn btn-accent btn-sm addbar-btn" type="button" onclick="toggleAddCourt()">+ Add Court</button>
-    </div>
-    <div class="input-row" id="addCourtRow" style="display:none;margin-bottom:12px;">
-      <input type="text" id="newCourtName" placeholder="Court name (e.g. Court 1, Main Court)" onkeydown="if(event.key==='Enter')addCourt()">
-      <button class="btn btn-accent" onclick="addCourt()">Add</button>
+      <button class="btn btn-accent btn-sm addbar-btn" type="button" onclick="addCourt()">+ Add Court</button>
     </div>
     <div id="courtAlert"></div>
     <div class="live-flow">
@@ -1372,6 +1380,10 @@ input:focus, textarea:focus { border-color: var(--army); }
         <button class="sort-pill" onclick="setSort('wins')">By Wins</button>
         <button class="sort-pill" onclick="setSort('winpct')">By Win%</button>
         <button class="sort-pill" onclick="setSort('ptpct')">By Pt%</button>
+      </div>
+      <div style="position:relative;margin-bottom:12px;">
+        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:1rem;">🔍</span>
+        <input type="text" id="rankSearch" placeholder="Search players..." oninput="renderRankings()" style="padding-left:36px;">
       </div>
       <div id="rankTable">
         <div class="empty-state"><div class="icon">🏆</div>Rankings appear after games are submitted.</div>
@@ -2000,6 +2012,19 @@ function markAll(val) {
   if(!val) queueOrder=[];
   rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
 }
+function editPlayerName(id){
+  const p=getPlayer(id); if(!p) return;
+  const next=prompt(`Edit name for ${p.name}`, p.name);
+  if(next===null) return;                              // cancelled
+  const name=next.trim();
+  if(!name){ showToast('Name cannot be empty.'); return; }
+  if(name===p.name) return;                            // unchanged
+  if(players.some(o=>o.id!==id && o.name.toLowerCase()===name.toLowerCase())){ showToast('Another player already has that name.'); return; }
+  p.name=name;
+  renderPlayers(); renderCourts(); renderQueue(); renderRankings(); renderGameHistory(); renderStandingsStrip(); saveState();
+  showToast('Name updated.');
+}
+window.editPlayerName = editPlayerName;
 function renderPlayers() {
   const list=document.getElementById('playerList');
   const search=(document.getElementById('attendanceSearch')?.value||'').toLowerCase().trim();
@@ -2016,7 +2041,7 @@ function renderPlayers() {
   list.innerHTML=filtered.map(p=>`
     <div class="player-row ${p.present?'present':'absent'}">
       <div class="player-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div>
-      <div class="player-name-wrap"><span class="player-name">${esc(p.name)}</span></div>
+      <div class="player-name-wrap"><span class="player-name">${esc(p.name)}</span><button class="name-edit-btn" onclick="editPlayerName(${p.id})" title="Edit name">✎</button></div>
       <div class="status-dot ${p.present?'present':''}"></div>
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
@@ -2342,8 +2367,9 @@ function nextCourtName() {
   return `Court ${n}`;
 }
 function addCourt() {
+  // One tap adds an auto-named court ("Court 1", "Court 2", ...) — rename it inline on the card.
   const input=document.getElementById('newCourtName');
-  const name=input.value.trim()||nextCourtName();
+  const name=(input&&input.value.trim())||nextCourtName();
   if(courtDefs.find(d=>d.name.toLowerCase()===name.toLowerCase())){showToast(`"${name}" already exists.`);return;}
   const id=++courtIdCounter;
   courtDefs.push({id,name});
@@ -2351,7 +2377,7 @@ function addCourt() {
   if(mm()==='challenge') rebuildMatchQueue();
   // Round robin / bracket: pull the next scheduled match onto the new court.
   else if((mm()==='roundrobin'||mm()==='bracket') && tournament && tournament.started) fillCourtsFromTournament();
-  input.value=''; renderCourts(); saveState(); showToast(`${name} added!`);
+  if(input) input.value=''; renderCourts(); saveState(); showToast(`${name} added!`);
 }
 let closeCourtContext = null;
 function removeCourt(courtId) {
@@ -2635,13 +2661,13 @@ function renderLadder(){
         <div class="ct-head-row"><span class="ct-score-head">Score</span></div>
         <div class="ct-row">
           <span class="ct-tag t1">A</span>
-          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span>`:c.team1.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(getPlayer(id)?.name||'?')}<button class="swap-btn" onclick="openSwapModal(${c.id},'team1',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team1)}${aWon?' 🏆':''}</span>`:c.team1.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(getPlayer(id)?.name||'?')}<button class="swap-btn in-match" onclick="openSwapModal(${c.id},'team1',${i})" title="In a live match — swap only if needed">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score1_${c.id}" value="${v(c.score1)}">
         </div>
         <div class="ct-vs">VS</div>
         <div class="ct-row">
           <span class="ct-tag t2">B</span>
-          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(getPlayer(id)?.name||'?')}<button class="swap-btn" onclick="openSwapModal(${c.id},'team2',${i})" title="Swap player">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(getPlayer(id)?.name||'?')}<button class="swap-btn in-match" onclick="openSwapModal(${c.id},'team2',${i})" title="In a live match — swap only if needed">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}">
         </div>
         <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
@@ -2858,7 +2884,9 @@ function _openSwapOptions(outgoingId) {
   // Suggest a genuinely free player when there is one, rather than poaching a reserved slot.
   const autoPool=queueCands.filter(c=>!c.tag);
   const autoId=window.bestSkillMatch?(window.bestSkillMatch(outgoing?.skill||'intermediate', autoPool.length?autoPool:queueCands)):null;
-  const chip=(id,name,tag)=>`<div class="swap-option" onclick="confirmSwap(${id})">${esc(name)}${tag?` <span style="color:var(--muted);font-size:0.7rem;">${tag}</span>`:''}</div>`;
+  // A player currently in a live match (trade = same court, playing = another court):
+  // flag the option red so an admin only pulls them out when they mean to.
+  const chip=(id,name,tag)=>{const caution=tag==='trade'||tag==='playing';return `<div class="swap-option${caution?' in-match':''}" onclick="confirmSwap(${id})">${esc(name)}${tag?` <span style="font-size:0.7rem;color:${caution?'#C0392B':'var(--muted)'};">${tag}</span>`:''}</div>`;};
   // Trade section (court swaps, doubles+): switch sides with a player on the OTHER team of this court. Match-scoped, no queue needed.
   let tradeHtml='';
   if(swapContext&&swapContext.type==='court'&&teamSize()>1){
@@ -3135,7 +3163,7 @@ function renderCourts() {
       </div></div>`;
     }
     const teamCol=(tp,tk,lbl,cls)=>`<div class="ct-team ${cls}"><span class="ct-team-lbl">${lbl}</span>`+
-      tp.map((p,i)=>`<div class="ct-pl"><span class="ct-pl-name">${esc(p?.name||'?')}</span><button class="ct-swap" onclick="openSwapModal(${def.id},'${tk}',${i})" title="Swap player">⇄</button><span class="ct-pl-lvl">${skillAbbr(p)}</span></div>`).join('')+`</div>`;
+      tp.map((p,i)=>`<div class="ct-pl"><span class="ct-pl-name">${esc(p?.name||'?')}</span><button class="ct-swap in-match" onclick="openSwapModal(${def.id},'${tk}',${i})" title="In a live match — swap only if needed">⇄</button><span class="ct-pl-lvl">${skillAbbr(p)}</span></div>`).join('')+`</div>`;
     const isHolding = mm()==='challenge' && (!c.team2 || !c.team2.length);
     return `<div class="court-card">${header}<div class="court-body">
       <div class="ct-teams">
@@ -3410,7 +3438,7 @@ function renderQueue() {
   // left: narrow dark Queue of waiting players
   html+='<div class="mm-queue"><div class="mm-qhead">Queue <span>'+freeWaiting.length+'</span></div>';
   if(freeWaiting.length){
-    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}">${p.lastPlayedRound===-1?'—':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
+    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><span class="queue-gp" title="Games played this session">${p.gamesPlayed}G</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}" title="Rounds since last played">${p.lastPlayedRound===-1?'—':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
   } else {
     html+='<div class="mm-empty">No one waiting.</div>';
   }
@@ -3460,7 +3488,11 @@ function renderRankings() {
   });
   const col2=rankSort==='wins'?'Wins':rankSort==='points'?'Points':rankSort==='winpct'?'Win%':'Pt%';
   const col2Val=p=>rankSort==='wins'?p.wins:rankSort==='points'?p.points:rankSort==='winpct'?`${p.winPct}%`:`${p.ptPct}%`;
-  el.innerHTML=`<table class="rank-table"><thead><tr><th>#</th><th>Player</th><th class="sorted">${col2}</th><th>GP</th><th>Score Diff</th></tr></thead><tbody>${sorted.map((p,i)=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-num">${medal||i+1}</span></td><td><span class="player-tag"><span class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${esc(p.name)}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
+  // Search filters the displayed rows but keeps each player's true rank/medal from the full sorted list.
+  const q=(document.getElementById('rankSearch')?.value||'').toLowerCase().trim();
+  const rows=sorted.map((p,i)=>({p,i})).filter(({p})=>!q||p.name.toLowerCase().includes(q));
+  if(!rows.length){el.innerHTML='<div class="empty-state"><div class="icon">🔍</div>No players match your search.</div>';return;}
+  el.innerHTML=`<table class="rank-table"><thead><tr><th>#</th><th>Player</th><th class="sorted">${col2}</th><th>GP</th><th>Score Diff</th></tr></thead><tbody>${rows.map(({p,i})=>{const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';const diff=p.scoreDiff;const dc=diff>0?'pos':diff<0?'neg':'zero';const ds=diff>0?`+${diff}`:diff===0?'±0':`${diff}`;return`<tr class="rank-${i+1}"><td><span class="rank-num">${medal||i+1}</span></td><td><span class="player-tag"><span class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</span>${esc(p.name)}</span></td><td><strong>${col2Val(p)}</strong></td><td style="color:var(--muted)">${p.gamesPlayed}</td><td><span class="score-diff ${dc}">${ds}</span></td></tr>`;}).join('')}</tbody></table>`;
 }
 function renderStandingsStrip(){
   const card=document.getElementById('liveStandingsCard');
@@ -3569,12 +3601,6 @@ function renderGameHistory() {
 }
 
 // ===== TABS =====
-function toggleAddCourt(){
-  var r=document.getElementById('addCourtRow'); if(!r) return;
-  var show=r.style.display==='none';
-  r.style.display=show?'':'none';
-  if(show){ var i=document.getElementById('newCourtName'); if(i) i.focus(); }
-}
 // Balanced court grid: columns = ceil(sqrt(n)) (4->2x2, 5->3x2, 6->3x2, 3->2+1),
 // capped by how many ~280px columns actually fit so phones/tablets stack.
 function courtGridStyle(n){
