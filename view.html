@@ -141,7 +141,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 </head>
 <body>
 <header>
-  <div class="logo" style="padding:0;overflow:hidden;background:transparent;"><img src="logo.png" alt="Paddle District" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" onerror="this.style.display='none'"></div>
+  <div class="logo" style="padding:0;overflow:visible;background:transparent;width:auto;height:auto;border-radius:0;"><img src="logo.png" alt="Paddle District" style="height:30px;width:auto;display:block;object-fit:contain;" onerror="this.style.display='none'"></div>
   <div class="header-text">
     <h1 id="viewSessionName">Pickleball Open Play</h1>
     <p id="viewSessionDate">Live View — Read Only</p>
@@ -169,6 +169,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 <!-- QR Code library (global, loaded before the module) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="common.js"></script>
+<script src="recap.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
@@ -317,21 +318,9 @@ function showEndedState(s) {
   document.getElementById('viewSessionDate').textContent = dateStr + ' · Ended';
   const finalTime = (s.sessionStartTime && s.sessionEndTime) ? fmt(s.sessionEndTime - s.sessionStartTime) : '--:--:--';
   document.getElementById('viewClock').textContent = finalTime;
-  const players = s.players || [];
-  const gh = s.gameHistory || [];
-  const activePlayers = players.filter(p => p.gamesPlayed > 0).length;
   document.getElementById('mainContent').innerHTML = `
-    <div class="ended-banner">
-      <div class="ended-banner-icon">🏁</div>
-      <div class="ended-banner-title">Session Complete</div>
-      <div class="ended-banner-sub">${escapeHtml(s.sessionName || 'Open Play')}</div>
-    </div>
-    <div class="ended-stats">
-      <div class="ended-stat"><div class="ended-stat-val">${finalTime}</div><div class="ended-stat-label">Duration</div></div>
-      <div class="ended-stat"><div class="ended-stat-val">${gh.length}</div><div class="ended-stat-label">Games</div></div>
-      <div class="ended-stat"><div class="ended-stat-val">${activePlayers}</div><div class="ended-stat-label">Players</div></div>
-    </div>
-    <div class="section-header">🏆 Final Standings</div>
+    <div id="viewRecap" style="margin-bottom:20px;"></div>
+    <div class="section-header">🏆 Full Standings</div>
     <div class="card-v">
       <button class="rank-info-btn-v" onclick="toggleRankInfoV()">ⓘ How it's scored</button>
       <div class="rank-info-v" id="rankInfoPanelV">
@@ -356,6 +345,7 @@ function showEndedState(s) {
     <div class="section-header">📋 Match History</div>
     <input type="text" id="historySearch" class="history-search" placeholder="🔍 Search by player name…" oninput="searchHistory()" autocomplete="off">
     <div class="card-v" id="vHistory"></div>`;
+  if (window.PDRecap) PDRecap.render(document.getElementById('viewRecap'), s, { viewUrl: window.location.href });
   renderRankings(s);
   renderHistory(s);
   renderViewStandings(s);

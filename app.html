@@ -1185,7 +1185,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 
 <header>
   <a href="dashboard.html" onclick="return confirmLeave()" style="color:white;text-decoration:none;font-size:1.2rem;padding:4px 6px;flex-shrink:0;font-weight:700;" title="Dashboard">←</a>
-  <div class="logo" style="padding:0;overflow:hidden;background:transparent;"><img src="logo.png" alt="Paddle District" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" onerror="this.style.display='none'"></div>
+  <div class="logo" style="padding:0;overflow:visible;background:transparent;width:auto;height:auto;border-radius:0;"><img src="logo.png" alt="Paddle District" style="height:26px;width:auto;display:block;object-fit:contain;" onerror="this.style.display='none'"></div>
   <h1 id="headerSessionName">Paddle District</h1>
   <span class="session-badge" id="sessionBadge">0 players</span>
   <div class="sync-dot" id="syncDot" title="Sync status"></div>
@@ -1207,6 +1207,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   <button class="tab-btn active" onclick="switchTab('players')">Players</button>
   <button class="tab-btn" onclick="switchTab('live')">Live</button>
   <button class="tab-btn" onclick="switchTab('rankings')">Rankings</button>
+  <button class="tab-btn" id="tabBtnRecap" style="display:none" onclick="switchTab('recap')">Recap</button>
 </div>
 
 <div class="container courts-wide">
@@ -1415,6 +1416,11 @@ input:focus, textarea:focus { border-color: var(--army); }
     </div>
   </div>
 
+  <!-- RECAP TAB (ended-only) -->
+  <div class="tab-panel" id="tab-recap">
+    <div id="recapContainer"></div>
+  </div>
+
 </div>
 
 <!-- SWAP MODAL -->
@@ -1513,6 +1519,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 <div class="toast" id="toast"></div>
 
 <script src="common.js"></script>
+<script src="recap.js"></script>
 <script>
 // ===== STATE =====
 let players = [];
@@ -1736,7 +1743,7 @@ window._fbApplyRemote = function(s) {
   // later remote updates never pull the user off the tab they're viewing.
   if (!window._didInitialTab) {
     window._didInitialTab = true;
-    switchTab(hasActiveCourts ? 'live' : 'players');
+    switchTab(sessionEnded ? 'recap' : (hasActiveCourts ? 'live' : 'players'));
   }
 
   // Restore in-progress score inputs — only onto the same match, and never
@@ -1821,6 +1828,10 @@ function applySessionUI() {
     if (newBtn) newBtn.style.display = 'none';
     if (!sessionTimerInterval) sessionTimerInterval = setInterval(updateSessionClock, 1000);
   }
+  // Recap tab is end-of-session only: reveal it when ended, re-render if it's the open tab.
+  const recapBtn = document.getElementById('tabBtnRecap');
+  if (recapBtn) recapBtn.style.display = sessionEnded ? '' : 'none';
+  if (sessionEnded && document.getElementById('tab-recap').classList.contains('active')) renderRecapTab();
   // Owner-only End/New Session controls (UI-enforced per cohost spec §3)
   if (_access !== 'owner') {
     if (btn) btn.style.display = 'none';
@@ -1901,7 +1912,8 @@ function confirmEndSession() {
   if (window._fbForceImmediate) window._fbForceImmediate(); // bypass 80ms debounce — can't let navigation cancel this write
   saveState();
   document.getElementById('endOverlay').classList.add('hidden');
-  showToast('Session ended — tap "New Session" to start another.', 3500);
+  switchTab('recap'); // finale: drop straight into the recap
+  showToast('Session ended — here’s your recap.', 3500);
 }
 function newSession() {
   if (!confirm('Go back to Dashboard to start a new session?')) return;
@@ -3706,7 +3718,7 @@ window.addEventListener('resize',function(){
 function switchTab(name) {
   const isLive = name==='live';
   document.querySelector('.container').classList.add('courts-wide');
-  const order=['players','live','rankings'];
+  const order=['players','live','rankings','recap'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active', order[i]===name));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   if(isLive){
@@ -3715,7 +3727,16 @@ function switchTab(name) {
   } else {
     document.getElementById(`tab-${name}`).classList.add('active');
     if(name==='rankings'){ renderRankings(); renderGameHistory(); }
+    if(name==='recap'){ renderRecapTab(); }
   }
+}
+// End-of-session recap graphic (podium + top 10 + QR + save-as-image), shared with view.html.
+function renderRecapTab() {
+  const el = document.getElementById('recapContainer');
+  if (!el || !window.PDRecap) return;
+  PDRecap.render(el,
+    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime },
+    { viewUrl: window._getViewLink ? window._getViewLink() : '' });
 }
 
 function confirmLeave() {
