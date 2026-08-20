@@ -141,7 +141,7 @@ export function buildHistoryScores(gameHistory, decay) {
 
 export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
   const { K = 1.5, alpha = 8, beta = 1, gamma = 1, decay = 0.95,
-          teamSize = 2, rng = Math.random, blockWindow = 0 } = opts;
+          teamSize = 2, rng = Math.random, blockWindow = 0, lockedPairs = [] } = opts;
   const need = teamSize * 2;
   if (!pool || pool.length < need) return null;
 
@@ -150,6 +150,25 @@ export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
   const partS = (a, b) => s.part[_pairKey(a, b)] || 0;
   const waitOf = p => currentRound - (p.lastPlayedRound == null ? -1 : p.lastPlayedRound);
   const selW = p => Math.pow(waitOf(p) + 1, K);
+
+  // Locked pairs (doubles only): draw each pair whose BOTH members are present as
+  // one same-team unit. No active pairs -> fall through to the normal path unchanged.
+  if (teamSize === 2 && lockedPairs && lockedPairs.length) {
+    const byId = new Map(pool.map(p => [p.id, p]));
+    const used = new Set();
+    const activePairs = [];
+    for (const lp of lockedPairs) {
+      if (!lp || lp.length < 2) continue;
+      const [x, y] = lp;
+      if (x === y || used.has(x) || used.has(y) || !byId.has(x) || !byId.has(y)) continue;
+      activePairs.push([byId.get(x), byId.get(y)]);
+      used.add(x); used.add(y);
+    }
+    if (activePairs.length) {
+      return _lockedWeightedMatch(pool, activePairs,
+        { need, selW, oppS, partS, alpha, beta, gamma, blockWindow, gameHistory, rng });
+    }
+  }
 
   // 1) weighted pick without replacement, penalising recent opponents/partners
   const remaining = pool.slice();
@@ -175,6 +194,13 @@ export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
   if (teamSize === 1) return { team1: [chosen[0].id], team2: [chosen[1].id] };
 
   // 2) doubles: avoid recent partners first (blocker), then freshest split, ties random
+  return _doublesSplit(chosen, gameHistory, { oppS, partS, gamma, blockWindow, rng });
+}
+
+// Best 2v2 split of a fixed foursome: fewest recent-partner repeats (blocker),
+// then freshest overall, ties random. Extracted so locked-pair draws reuse it.
+function _doublesSplit(chosen, gameHistory, ctx) {
+  const { oppS, partS, gamma, blockWindow, rng } = ctx;
   const [a, b, c, d] = chosen;
   const splits = [[[a, b], [c, d]], [[a, c], [b, d]], [[a, d], [b, c]]];
   const recent = _recentPartnerPairs(gameHistory, blockWindow);
@@ -190,6 +216,59 @@ export function fairWeightedMatch(pool, gameHistory, currentRound, opts = {}) {
   cand = cand.filter(x => cost(x) === minCost);                // then freshest
   const pick = cand[Math.floor(rng() * cand.length)];         // then random
   return { team1: [pick[0][0].id, pick[0][1].id], team2: [pick[1][0].id, pick[1][1].id] };
+}
+
+// Locked-pair draw (doubles). Each active pair (both members present) is one unit,
+// prioritised in the wait-order by its LONGER-waiting member, and always placed on
+// the same team — exempt from the recent-partner blocker. Solo players and any
+// leftover foursome fall back to the normal wait-weighted draw + best split.
+function _lockedWeightedMatch(pool, activePairs, ctx) {
+  const { need, selW, oppS, partS, alpha, beta, gamma, blockWindow, gameHistory, rng } = ctx;
+  const paired = new Set();
+  for (const [a, b] of activePairs) { paired.add(a.id); paired.add(b.id); }
+
+  const units = activePairs.map(([a, b]) => ({ players: [a, b], pair: true }));
+  for (const p of pool) if (!paired.has(p.id)) units.push({ players: [p], pair: false });
+
+  const unitW = u => Math.max(...u.players.map(selW));   // longer-waiting member drives priority
+  const remaining = units.slice();
+  const chosenUnits = [];
+  const chosenPlayers = [];
+  while (chosenPlayers.length < need) {
+    const slots = need - chosenPlayers.length;
+    const eligible = remaining.filter(u => u.players.length <= slots);
+    if (!eligible.length) break;                          // e.g. 1 slot left, only pairs remain
+    const weights = eligible.map(u => {
+      let pen = 1;
+      if (chosenPlayers.length) {
+        let so = 0, sp = 0;
+        for (const c of u.players) for (const q of chosenPlayers) { so += oppS(c.id, q.id); sp += partS(c.id, q.id); }
+        pen = 1 / (1 + alpha * so + beta * sp);
+      }
+      return unitW(u) * pen;
+    });
+    const total = weights.reduce((x, y) => x + y, 0);
+    let r = rng() * total, idx = 0;
+    for (; idx < weights.length; idx++) { r -= weights[idx]; if (r <= 0) break; }
+    if (idx >= eligible.length) idx = eligible.length - 1;
+    const u = eligible[idx];
+    chosenUnits.push(u);
+    for (const p of u.players) chosenPlayers.push(p);
+    remaining.splice(remaining.indexOf(u), 1);
+  }
+  if (chosenPlayers.length < need) return null;
+
+  const pairUnits = chosenUnits.filter(u => u.pair);
+  if (pairUnits.length === 0) {
+    // no locked pair got drawn -> ordinary foursome, ordinary split
+    return _doublesSplit(chosenPlayers, gameHistory, { oppS, partS, gamma, blockWindow, rng });
+  }
+  // one or two locked pairs: each pair is a full team; any two solos form the other team
+  const teams = [];
+  for (const u of pairUnits) teams.push(u.players.map(p => p.id));
+  const solos = chosenPlayers.filter(p => !teams.flat().includes(p.id)).map(p => p.id);
+  if (solos.length) teams.push(solos);
+  return { team1: teams[0], team2: teams[1] };
 }
 
 // ===== Balanced mode: skill-even teams + anti-repeat (match PickleQ "Auto-balanced") =====

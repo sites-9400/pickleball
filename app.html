@@ -476,6 +476,18 @@ input:focus, textarea:focus { border-color: var(--army); }
 .pn-top { display: flex; align-items: center; gap: 4px; }
 .name-edit-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.82rem; padding: 0 2px; line-height: 1; opacity: 0.45; transition: opacity 0.15s, color 0.15s; flex-shrink: 0; }
 .name-edit-btn:hover { opacity: 1; color: var(--gold); }
+/* Pair lock-in: roster button/chip + 🔗 badge shown on queue/court where partners appear */
+.lock-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.9rem; padding: 0 3px; line-height: 1; opacity: 0.5; transition: opacity 0.15s, color 0.15s; flex-shrink: 0; }
+.lock-btn:hover { opacity: 1; color: var(--army); }
+.lock-btn.locked { opacity: 1; color: var(--army); }
+.lock-chip { display: inline-flex; align-items: center; gap: 3px; align-self: flex-start; max-width: 100%; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.01em; color: var(--army); background: none; border: none; padding: 1px 0; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-theme="dark"] .lock-chip { color: var(--accent); }
+.lock-badge { color: var(--army); margin-left: 3px; flex-shrink: 0; }
+[data-theme="dark"] .lock-badge { color: var(--accent); }
+.lock-ico { vertical-align: -0.15em; }
+.lock-chip .lock-ico { vertical-align: -0.16em; }
+.lock-chip .lock-x { opacity: 0.55; font-weight: 700; margin-left: 1px; }
+.lock-hint { font-size: 0.72rem; color: var(--muted); margin: 2px 0 8px; }
 /* Attendance audit: check-in time chip under the name + expandable in/out timeline */
 .checkin-time { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; max-width: 100%; font-family: var(--font); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.01em; color: var(--muted); background: none; border: none; padding: 1px 0; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .checkin-time .dot { color: var(--accent); font-weight: 900; font-size: 0.7rem; line-height: 1; }
@@ -1453,6 +1465,18 @@ input:focus, textarea:focus { border-color: var(--army); }
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="lockOverlay" onclick="closeLockModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="lockTitle">Lock a partner</div>
+    <div class="modal-sub" id="lockSub">They'll always play together, on the same team.</div>
+    <div id="lockHint" class="lock-hint hidden"></div>
+    <input id="lockSearch" type="text" placeholder="Search players…" autocomplete="off" oninput="filterLockOptions()" style="width:100%;box-sizing:border-box;padding:8px 10px;margin:4px 0 8px;border-radius:8px;border:1px solid var(--line);background:var(--input-bg);color:var(--ink);font-size:0.9rem;">
+    <div id="lockOptions"></div>
+    <div id="lockNoMatch" class="hidden" style="text-align:center;color:var(--muted);font-size:0.82rem;padding:10px 0;">No players match your search.</div>
+    <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeLockModal()">Cancel</button>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="cancelOverlay" onclick="closeCancelModal(event)">
   <div class="modal">
     <div class="modal-title">Cancel match</div>
@@ -2002,7 +2026,7 @@ function addPlayer() {
   let added=0, skipped=0;
   names.forEach(name=>{
     if(players.find(p=>p.name.toLowerCase()===name.toLowerCase())){skipped++;return;}
-    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate',via:'manual',events:[]});
+    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate',via:'manual',events:[],partnerId:null});
     added++;
   });
   input.value=''; rebuildMatchQueue(); renderPlayers(); saveState();
@@ -2133,6 +2157,84 @@ function editPlayerName(id){
   showToast('Name updated.');
 }
 window.editPlayerName = editPlayerName;
+
+// ===== PAIR LOCK-IN (admin) =====
+// A locked pair always plays together on the same team in Numbering mode (see
+// lockedPairsList + fairWeightedMatch). Locks are symmetric and survive save/reload.
+function partnerOf(id){ const p=getPlayer(id); if(!p||p.partnerId==null) return null; const q=getPlayer(p.partnerId); return (q&&q.partnerId===id)?q:null; }
+// Clean monochrome padlock icon (inherits currentColor) — replaces the loud emoji glyph.
+function lockIco(px){ const s=px||13; return `<svg class="lock-ico" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`; }
+// Padlock badge for queue/court where a locked player appears.
+function lockBadge(id){ const q=partnerOf(id); return q?` <span class="lock-badge" title="Locked with ${esc(q.name)}">${lockIco(11)}</span>`:''; }
+// Roster row: chip under the name when paired (tap to unlock); a lock button when not.
+function lockChip(id){ const q=partnerOf(id); return q?`<button class="lock-chip" onclick="unlockPartner(${id})" title="Locked with ${esc(q.name)} — tap to unlock">${lockIco(12)} ${esc(q.name)} <span class="lock-x">✕</span></button>`:''; }
+function lockRowBtn(id){ return partnerOf(id)?'':`<button class="lock-btn" onclick="openLockModal(${id})" title="Lock a partner">${lockIco(15)}</button>`; }
+function lockPartner(aId,bId){
+  const a=getPlayer(aId), b=getPlayer(bId);
+  if(!a||!b||a.id===b.id) return;
+  // break any pre-existing lock on either side before forming the new one (keep it symmetric)
+  [a,b].forEach(p=>{ if(p.partnerId!=null){ const old=getPlayer(p.partnerId); if(old) old.partnerId=null; p.partnerId=null; } });
+  a.partnerId=b.id; b.partnerId=a.id;
+  rebuildMatchQueue(); renderPlayers(); renderCourts(); renderQueue(); saveState();
+  showToast(`${a.name} & ${b.name} locked as partners.`);
+}
+function unlockPartner(id){
+  const p=getPlayer(id); if(!p) return;
+  const partner=p.partnerId!=null?getPlayer(p.partnerId):null;
+  if(partner) partner.partnerId=null;
+  p.partnerId=null;
+  rebuildMatchQueue(); renderPlayers(); renderCourts(); renderQueue(); saveState();
+  showToast(partner?`${p.name} & ${partner.name} unlocked.`:`${p.name} unlocked.`);
+}
+let _lockCtxId=null;
+function openLockModal(id){
+  const p=getPlayer(id); if(!p) return;
+  _lockCtxId=id;
+  document.getElementById('lockTitle').textContent=`Lock a partner for ${p.name}`;
+  const hint=document.getElementById('lockHint');
+  if(mm()!=='random'){ hint.textContent=`Partner locks only take effect in Numbering mode — this session is ${modeLabel()}. The lock is saved and applies when you switch to Numbering.`; hint.classList.remove('hidden'); }
+  else hint.classList.add('hidden');
+  const cands=presentPlayers().filter(q=>q.id!==id).sort((a,b)=>a.name.localeCompare(b.name));
+  const opt=q=>{
+    const elsewhere=q.partnerId!=null && q.partnerId!==id;
+    const tag=elsewhere?`locked with ${esc(getPlayer(q.partnerId)?.name||'?')}`:'';
+    return `<div class="swap-option${elsewhere?' in-match':''}" onclick="confirmLock(${q.id})">${esc(q.name)}${tag?` <span style="font-size:0.7rem;color:#C0392B;">${tag}</span>`:''}</div>`;
+  };
+  document.getElementById('lockOptions').innerHTML = cands.length
+    ? cands.map(opt).join('')
+    : '<div style="color:var(--muted);font-size:0.8rem;padding:8px;">No other present players to lock with.</div>';
+  const s=document.getElementById('lockSearch'); if(s) s.value='';
+  document.getElementById('lockNoMatch').classList.add('hidden');
+  filterLockOptions();
+  document.getElementById('lockOverlay').classList.remove('hidden');
+}
+function filterLockOptions(){
+  const q=(document.getElementById('lockSearch')?.value||'').trim().toLowerCase();
+  const container=document.getElementById('lockOptions'); if(!container) return;
+  let anyMatch=false;
+  [...container.children].forEach(el=>{
+    if(!el.classList.contains('swap-option')) return;
+    const show=!q||el.textContent.toLowerCase().includes(q);
+    el.style.display=show?'':'none';
+    if(show) anyMatch=true;
+  });
+  const noMatch=document.getElementById('lockNoMatch');
+  if(noMatch) noMatch.classList.toggle('hidden', anyMatch || !q);
+}
+function confirmLock(partnerId){
+  if(_lockCtxId==null) return;
+  const a=_lockCtxId;
+  closeLockModal();
+  lockPartner(a, partnerId);
+}
+function closeLockModal(e){
+  if(e&&e.target!==document.getElementById('lockOverlay')) return;
+  document.getElementById('lockOverlay').classList.add('hidden');
+  _lockCtxId=null;
+}
+window.openLockModal=openLockModal; window.closeLockModal=closeLockModal;
+window.filterLockOptions=filterLockOptions; window.confirmLock=confirmLock; window.unlockPartner=unlockPartner;
+
 function renderPlayers() {
   const list=document.getElementById('playerList');
   const search=(document.getElementById('attendanceSearch')?.value||'').toLowerCase().trim();
@@ -2153,8 +2255,10 @@ function renderPlayers() {
       <div class="player-name-wrap">
         <div class="pn-top"><span class="player-name">${esc(p.name)}</span><button class="name-edit-btn" onclick="editPlayerName(${p.id})" title="Edit name">✎</button></div>
         ${checkinChip(p)}
+        ${lockChip(p.id)}
       </div>
       <div class="status-dot ${p.present?'present':''}"></div>
+      ${lockRowBtn(p.id)}
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
       <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})" title="${p.present?'On court - tap to put on hold':'On hold - tap to add back to queue'}">${p.present?'Here ✓':'Add to queue'}</button>
@@ -2358,6 +2462,18 @@ function fmt(){ return sessionMode.format === 'singles' ? 'singles' : 'doubles';
 function mm(){ return sessionMode.matchmaking || 'waittime'; }
 function teamSize(){ return fmt()==='singles' ? 1 : 2; }
 function matchSize(){ return teamSize()*2; }
+// Locked partner pairs as [id, partnerId] tuples (symmetric, de-duped). The matchmaker
+// treats each pair whose BOTH members are free as one same-team unit; others stay dormant.
+function lockedPairsList(){
+  const out=[], seen=new Set();
+  for(const p of players){
+    if(p.partnerId==null || seen.has(p.id)) continue;
+    const q=getPlayer(p.partnerId);
+    if(!q || q.partnerId!==p.id) continue; // only mutual locks
+    out.push([p.id,q.id]); seen.add(p.id); seen.add(q.id);
+  }
+  return out;
+}
 function ratingOf(p){ return p && p.gamesPlayed ? (p.wins - p.losses) : 0; }
 function skillAbbr(p){ return ({beginner:'BEG',intermediate:'INT',advanced:'ADV'})[(p&&p.skill)||'intermediate']; }
 function modeLabel(){
@@ -2390,7 +2506,7 @@ function chooseMatchPlayers(){
   }
   // Numbering (random): fair-weighted draw + anti-repeat opponents (see fairWeightedMatch).
   if(style==='random'){
-    return window.fairWeightedMatch(pool, gameHistory, globalRound, {teamSize:ts, ...adaptiveConfig()});
+    return window.fairWeightedMatch(pool, gameHistory, globalRound, {teamSize:ts, lockedPairs:lockedPairsList(), ...adaptiveConfig()});
   }
   // Waittime / balanced-singles: longest-waiting N, random pairing.
   const chosen = pool.slice(0,need);
@@ -3277,7 +3393,7 @@ function renderCourts() {
       </div></div>`;
     }
     const teamCol=(tp,tk,lbl,cls)=>`<div class="ct-team ${cls}"><span class="ct-team-lbl">${lbl}</span>`+
-      tp.map((p,i)=>`<div class="ct-pl"><span class="ct-pl-name">${esc(p?.name||'?')}</span><button class="ct-swap in-match" onclick="openSwapModal(${def.id},'${tk}',${i})" title="In a live match — swap only if needed">⇄</button><span class="ct-pl-lvl">${skillAbbr(p)}</span></div>`).join('')+`</div>`;
+      tp.map((p,i)=>`<div class="ct-pl"><span class="ct-pl-name">${esc(p?.name||'?')}${p?lockBadge(p.id):''}</span><button class="ct-swap in-match" onclick="openSwapModal(${def.id},'${tk}',${i})" title="In a live match — swap only if needed">⇄</button><span class="ct-pl-lvl">${skillAbbr(p)}</span></div>`).join('')+`</div>`;
     const isHolding = mm()==='challenge' && (!c.team2 || !c.team2.length);
     return `<div class="court-card">${header}<div class="court-body">
       <div class="ct-teams">
@@ -3518,7 +3634,7 @@ function mqMatchCard(m,label,isNext) {
   const teamHtml=(players,teamKey)=>players.map((p,i)=>`
     <div class="mq-team-player">
       <span class="mini-avatar" style="background:${avatarColor(p?.name||'?')};">${initials(p?.name||'?')}</span>
-      <span class="mq-player-name">${esc(p?.name||'?')}</span>
+      <span class="mq-player-name">${esc(p?.name||'?')}${p?lockBadge(p.id):''}</span>
       <button class="swap-btn" onclick="openQueueSwapModal(${m.id},'${teamKey}',${i})">⇄</button>
     </div>`).join('');
   return `<div class="${cardCls}">
@@ -3552,7 +3668,7 @@ function renderQueue() {
   // left: narrow dark Queue of waiting players
   html+='<div class="mm-queue"><div class="mm-qhead">Queue <span>'+freeWaiting.length+'</span></div>';
   if(freeWaiting.length){
-    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><span class="queue-gp" title="Games played this session">${p.gamesPlayed}G</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}" title="Rounds since last played">${p.lastPlayedRound===-1?'—':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
+    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}${lockBadge(p.id)}</span><span class="queue-gp" title="Games played this session">${p.gamesPlayed}G</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}" title="Rounds since last played">${p.lastPlayedRound===-1?'—':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
   } else {
     html+='<div class="mm-empty">No one waiting.</div>';
   }
