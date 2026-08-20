@@ -4,7 +4,7 @@
 // stale-while-revalidate, version-pinned CDN modules are cache-first, and
 // Firebase auth/database traffic is never intercepted. Real offline play is
 // the separate local-first milestone — this only keeps the shell usable.
-const CACHE = 'pickled-v1';
+const CACHE = 'pickled-v2';
 const PRECACHE = [
   './index.html',
   './dashboard.html',
