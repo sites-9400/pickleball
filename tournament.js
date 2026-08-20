@@ -105,6 +105,34 @@ export function checkinToPlayer(entry, existingPlayers) {
   } };
 }
 
+// Import a past session's roster as NAMES ONLY. sourcePlayers is that session's
+// `players` array (may hold an {_empty:true} sentinel, blanks, or junk). Returns
+// fresh player objects (same shape as a manual add) with stats reset, skill left at
+// the default, and new ids counting up from counterStart. Dedupes case-insensitively
+// against existingPlayers and within the source; every real-name drop counts as skipped.
+// Pure — the caller pushes res.players and adopts res.nextCounter as its id counter.
+export function mergeImportedNames(sourcePlayers, existingPlayers, counterStart) {
+  const players = [];
+  let counter = counterStart | 0, skipped = 0;
+  const seen = new Set();                              // lower-cased names already claimed
+  (existingPlayers || []).forEach(p => {
+    if (p && typeof p.name === 'string') seen.add(p.name.trim().toLowerCase());
+  });
+  (sourcePlayers || []).forEach(src => {
+    const name = (src && typeof src.name === 'string') ? src.name.trim() : '';
+    if (!name) return;                                 // blanks / sentinel / junk: not counted
+    const key = name.toLowerCase();
+    if (seen.has(key)) { skipped++; return; }          // dupe (vs existing or earlier in source)
+    seen.add(key);
+    players.push({
+      id: ++counter, name, present: false, gamesPlayed: 0, wins: 0, losses: 0,
+      points: 0, pointsAgainst: 0, lastPlayedRound: -1, skill: 'intermediate',
+      via: 'import', events: [], partnerId: null
+    });
+  });
+  return { players, added: players.length, skipped, nextCounter: counter };
+}
+
 // ===== Numbering mode: fair-weighted draw + anti-repeat =====
 // Pure. pool: [{id, lastPlayedRound}]. gameHistory: most-recent-first
 // [{team1Ids, team2Ids}]. Returns {team1:[ids], team2:[ids]} or null.

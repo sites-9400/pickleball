@@ -807,6 +807,20 @@ input:focus, textarea:focus { border-color: var(--army); }
   letter-spacing: 0.01em;
   margin-bottom: 16px;
 }
+.import-list { display: flex; flex-direction: column; gap: 8px; }
+.import-empty { font-size: 0.82rem; color: var(--muted); text-align: center; padding: 18px 8px; }
+.import-row {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; text-align: left;
+  padding: 11px 13px; border-radius: 10px;
+  background: var(--surface); border: 1px solid rgba(0,0,0,0.12);
+  cursor: pointer; font-family: inherit;
+}
+.import-row:hover { border-color: var(--accent); }
+.import-row.disabled { opacity: 0.5; cursor: default; }
+.import-row.disabled:hover { border-color: rgba(0,0,0,0.12); }
+.import-row-name { font-size: 0.9rem; font-weight: 800; color: var(--ink); }
+.import-row-meta { font-size: 0.74rem; font-weight: 500; color: var(--muted); }
 .swap-option {
   display: flex;
   align-items: center;
@@ -1262,6 +1276,7 @@ input:focus, textarea:focus { border-color: var(--army); }
           <div class="card-title">Add Players</div>
           <textarea id="playerNameInput" placeholder="Add one name per line, or paste a list from Reclub:&#10;Eve&#10;Jude&#10;Alysson" rows="3" style="resize:vertical;margin-bottom:8px;"></textarea>
           <button class="btn btn-primary btn-full" onclick="addPlayer()">Add Players</button>
+          <button class="btn btn-outline btn-full" id="importPrevBtn" style="margin-top:8px;" onclick="openImportSessions()">⤵ Import from a previous session</button>
 
           <div class="divider"></div>
 
@@ -1527,6 +1542,16 @@ input:focus, textarea:focus { border-color: var(--army); }
     <div id="manualOptions" class="manual-options"></div>
     <button class="btn btn-accent btn-full" id="manualStartBtn" style="margin-top:12px" onclick="confirmManualPick()" disabled>Start Match</button>
     <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="closeManualModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- IMPORT PREVIOUS ROSTER MODAL -->
+<div class="modal-overlay hidden" id="importOverlay" onclick="closeImportModal(event)">
+  <div class="modal">
+    <div class="modal-title">Import players</div>
+    <div class="modal-sub">Copy the names from one of your previous sessions. Everyone comes in fresh — no scores, not checked in.</div>
+    <div id="importList" class="import-list"><div class="import-empty">Loading…</div></div>
+    <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeImportModal()">Cancel</button>
   </div>
 </div>
 
@@ -1876,6 +1901,9 @@ function applySessionUI() {
   } else if (btn) {
     btn.style.display = '';
   }
+  // Import-previous-roster is owner-only too (it lists the owner's own sessions).
+  const importBtn = document.getElementById('importPrevBtn');
+  if (importBtn) importBtn.style.display = (_access === 'owner') ? '' : 'none';
   updateSessionClock();
   updateTabOffset();
 }
@@ -2033,6 +2061,44 @@ function addPlayer() {
   if(added&&skipped) showToast(`${added} added, ${skipped} skipped (duplicates).`);
   else if(added) showToast(`${added} player${added>1?'s':''} added!`);
   else showToast('All names already exist.');
+}
+// ===== IMPORT PREVIOUS ROSTER — names only, fresh players (owner only) =====
+async function openImportSessions(){
+  if(_access!=='owner'){ showToast('Only the session owner can import players.'); return; }
+  const list=document.getElementById('importList');
+  list.innerHTML='<div class="import-empty">Loading your sessions…</div>';
+  document.getElementById('importOverlay').classList.remove('hidden');
+  let sessions=[];
+  try{ sessions=await window._loadImportSessions(); }
+  catch(e){ list.innerHTML='<div class="import-empty">Couldn’t load your sessions — check your connection and try again.</div>'; return; }
+  renderImportList(sessions);
+}
+function renderImportList(sessions){
+  const list=document.getElementById('importList');
+  if(!sessions||!sessions.length){ list.innerHTML='<div class="import-empty">No other sessions to import from yet.</div>'; return; }
+  list.innerHTML=sessions.map(s=>{
+    const meta=[s.date, s.playerCount?`${s.playerCount} player${s.playerCount!==1?'s':''}`:'no players'].filter(Boolean).join(' · ');
+    const disabled=s.playerCount===0;
+    return `<button class="import-row${disabled?' disabled':''}"${disabled?' disabled':''} onclick="importFromSession('${s.id}')">`
+      +`<span class="import-row-name">${esc(s.name)}</span>`
+      +`<span class="import-row-meta">${esc(meta)}</span></button>`;
+  }).join('');
+}
+async function importFromSession(id){
+  let src=[];
+  try{ src=await window._loadSessionPlayers(id); }
+  catch(e){ showToast('Couldn’t load that session — try again.'); return; }
+  const res=window._mergeImportedNames(src, players, playerIdCounter);
+  if(!res.added){ showToast(res.skipped?'Everyone from that session is already here.':'That session has no players to import.'); closeImportModal(); return; }
+  players.push(...res.players);
+  playerIdCounter=res.nextCounter;
+  rebuildMatchQueue(); renderPlayers(); saveState();
+  closeImportModal();
+  showToast(res.skipped?`${res.added} added, ${res.skipped} skipped (already here).`:`${res.added} player${res.added!==1?'s':''} imported!`);
+}
+function closeImportModal(e){
+  if(e && e.target!==document.getElementById('importOverlay')) return;
+  document.getElementById('importOverlay').classList.add('hidden');
 }
 // ===== ATTENDANCE AUDIT =====
 // Record a presence transition on the player. Dedups: an 'in' only after a non-'in'
@@ -3942,7 +4008,7 @@ window._importCheckin = function(key, entry) {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch, checkinToPlayer, fairWeightedMatch, balancedMatch } from './tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch, checkinToPlayer, fairWeightedMatch, balancedMatch, mergeImportedNames } from './tournament.js';
 import { computeIdentity, accessState, joinEligibility, genCohostToken, buildCohostLink } from './cohost.js';
 window.computeIdentity = computeIdentity;
 window.accessState = accessState;
@@ -3988,6 +4054,38 @@ window._setCohostOpen = (open) => set(ref(_db, `sessions/${_SESSION_ID}/cohostOp
 window._writeCohostToken = (tok) => set(ref(_db, `cohostTokens/${_SESSION_ID}`), tok);
 window._readCohostToken = () => get(ref(_db, `cohostTokens/${_SESSION_ID}`)).then(s => s.val()).catch(() => null);
 window._removeCohost = (uid) => remove(ref(_db, `sessions/${_SESSION_ID}/cohosts/${uid}`));
+// ── IMPORT PREVIOUS ROSTER — read-only bridges (same paths the dashboard uses) ──
+window._mergeImportedNames = mergeImportedNames;
+window._loadImportSessions = async () => {
+  const uid = window._uid;
+  if (!uid) return [];
+  const idxSnap = await get(ref(_db, `users/${uid}/sessions`)).catch(() => null);
+  const idx = (idxSnap && idxSnap.exists()) ? idxSnap.val() : null;
+  if (!idx) return [];
+  const ids = Object.keys(idx).filter(id => id !== _SESSION_ID);
+  const rows = await Promise.all(ids.map(id =>
+    get(ref(_db, `sessions/${id}`)).then(s => {
+      if (!s.exists()) return null;
+      const v = s.val();
+      const pl = v.players;
+      const playerCount = (!pl || pl._empty) ? 0
+        : Array.isArray(pl) ? pl.filter(Boolean).length
+        : Object.keys(pl).filter(k => k !== '_empty').length;
+      return { id, name: v.name || v.sessionName || 'Open Play', date: v.date || '',
+               createdAt: v.createdAt || v.sessionStartTime || 0, playerCount };
+    }).catch(() => null)
+  ));
+  return rows.filter(Boolean).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+};
+window._loadSessionPlayers = async (id) => {
+  if (!id) return [];
+  const s = await get(ref(_db, `sessions/${id}/players`)).catch(() => null);
+  if (!s || !s.exists()) return [];
+  const v = s.val();
+  if (Array.isArray(v)) return v.filter(Boolean);
+  if (v && typeof v === 'object') return Object.keys(v).filter(k => k !== '_empty').map(k => v[k]).filter(Boolean);
+  return [];
+};
 const _COHOST_URL_TOKEN = _urlParams.get('cohost');
 window._cohostUrlToken = () => _COHOST_URL_TOKEN;
 window._joinAsCohost = (sName) => {
