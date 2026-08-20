@@ -228,7 +228,7 @@
           '<div class="pdr-podium">' +
             podCard(r.podium[1], 1) + podCard(r.podium[0], 0) + podCard(r.podium[2], 2) +
           '</div>' +
-          '<div class="pdr-sec" style="margin-top:22px"><h3>Top ' + Math.min(10, r.top10.length) + ' · Most Wins</h3><span>' + esc(showAll) + '</span></div>' +
+          '<div class="pdr-sec" style="margin-top:22px"><h3>Top ' + Math.min(10, r.top10.length) + '</h3><span>' + esc(showAll) + '</span></div>' +
           '<div class="pdr-top">' + r.top10.map(topRow).join('') + '</div>' +
         '</div>' +
         '<div class="pdr-foot"><div>See you next <b>OPEN PLAY</b></div><div class="r">Paddle District</div></div>' +
