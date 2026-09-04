@@ -847,6 +847,9 @@ input:focus, textarea:focus { border-color: var(--army); }
   border-radius: 20px;
   letter-spacing: 0.02em;
 }
+/* Games played this session — mirrors .queue-gp in the Waiting Queue panel so a
+   candidate reads the same in a modal as in the queue list. */
+.swap-gp, .manual-chip-gp { font-size: 0.72rem; font-weight: 700; color: var(--muted); background: var(--line); padding: 3px 8px; border-radius: 20px; letter-spacing: 0.02em; flex-shrink: 0; }
 .swap-section-label{font-size:0.66rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:12px 0 6px;}
 .end-modal {
   background: var(--surface);
@@ -2023,8 +2026,8 @@ function exportCSV() {
     const ptPct=tot>0?Math.round(p.points/tot*100):0;
     rows.push([p.name,p.present?'Yes':'No',p.gamesPlayed,p.wins,p.losses,p.points,p.pointsAgainst,winPct+'%',ptPct+'%']);
   });
-  rows.push([]); rows.push(['Round','Court','Team A','Team B','Score A','Score B']);
-  gameHistory.forEach(g=>rows.push([g.round,g.courtName||g.court,g.team1.join(' & '),g.team2.join(' & '),g.score1,g.score2]));
+  rows.push([]); rows.push([histRoundIsReal()?'Round':'Game','Court','Team A','Team B','Score A','Score B']);
+  gameHistory.forEach((g,i)=>rows.push([histRoundIsReal()?g.round:gameNo(i),g.courtName||g.court,g.team1.join(' & '),g.team2.join(' & '),g.score1,g.score2]));
   const cell=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   const blob=new Blob([rows.map(r=>r.map(cell).join(',')).join('\n')],{type:'text/csv'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
@@ -3022,7 +3025,7 @@ function renderManualPick(){
   const avail=freeForManual();
   document.getElementById('manualOptions').innerHTML = avail.length
     ? avail.map(p=>{ const idx=sel.indexOf(p.id); const on=idx>=0;
-        return `<button class="manual-chip ${on?'on':''}" onpointerdown="manualDragStart(event,${p.id})" onclick="toggleManualPlayer(${p.id})"><span class="manual-chip-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span><span class="manual-chip-name">${esc(p.name)}</span>${on?`<span class="manual-chip-slot">${idx<ts?'A':'B'}</span>`:''}</button>`;
+        return `<button class="manual-chip ${on?'on':''}" onpointerdown="manualDragStart(event,${p.id})" onclick="toggleManualPlayer(${p.id})"><span class="manual-chip-av" style="background:${avatarColor(p.name)}">${initials(p.name)}</span><span class="manual-chip-name">${esc(p.name)}</span><span class="manual-chip-gp" title="Games played this session">${p.gamesPlayed}G</span>${on?`<span class="manual-chip-slot">${idx<ts?'A':'B'}</span>`:''}</button>`;
       }).join('')
     : '<div style="color:var(--muted);font-size:0.85rem;font-weight:500;text-align:center;padding:14px;">No available players right now.</div>';
   const btn=document.getElementById('manualStartBtn');
@@ -3182,7 +3185,13 @@ function _openSwapOptions(outgoingId) {
   const autoId=window.bestSkillMatch?(window.bestSkillMatch(outgoing?.skill||'intermediate', autoPool.length?autoPool:queueCands)):null;
   // A player currently in a live match (trade = same court, playing = another court):
   // flag the option red so an admin only pulls them out when they mean to.
-  const chip=(id,name,tag)=>{const caution=tag==='trade'||tag==='playing';return `<div class="swap-option${caution?' in-match':''}" onclick="confirmSwap(${id})">${esc(name)}${tag?` <span style="font-size:0.7rem;color:${caution?'#C0392B':'var(--muted)'};">${tag}</span>`:''}</div>`;};
+  // Every candidate shows games played this session: picking a sub is a fairness
+  // call, and the admin was having to leave the modal to check the queue list.
+  const chip=(id,name,tag)=>{
+    const caution=tag==='trade'||tag==='playing';
+    const gp=getPlayer(id)?.gamesPlayed;
+    return `<div class="swap-option${caution?' in-match':''}" onclick="confirmSwap(${id})"><span class="swap-name">${esc(name)}${tag?` <span style="font-size:0.7rem;color:${caution?'#C0392B':'var(--muted)'};">${tag}</span>`:''}</span>${gp==null?'':`<span class="swap-gp" title="Games played this session">${gp}G</span>`}</div>`;
+  };
   // Trade section (court swaps, doubles+): switch sides with a player on the OTHER team of this court. Match-scoped, no queue needed.
   let tradeHtml='';
   if(swapContext&&swapContext.type==='court'&&teamSize()>1){
@@ -3215,7 +3224,9 @@ function filterSwapOptions(){
   let anyMatch=false;
   kids.forEach(el=>{
     if(el.classList.contains('swap-option')){
-      const show = !q || el.textContent.toLowerCase().includes(q);
+      // Name (+ its tag) only — the games-played pill must not answer a name search.
+      const hay = (el.querySelector('.swap-name') || el).textContent.toLowerCase();
+      const show = !q || hay.includes(q);
       el.style.display = show ? '' : 'none';
       if(show) anyMatch=true;
     }
@@ -3814,6 +3825,19 @@ function resolveHistPlayers(ids,names){
   if(ids&&ids.length) return ids.map(id=>getPlayer(id));
   return (names||[]).map(n=>players.find(p=>p.name===n));
 }
+// Game History numbers games by POSITION, not by the court's round stamp.
+// globalRound is consumed the moment a match is placed on a court, but a
+// history row is only written when a score is submitted -- so a cancelled match
+// (or a court closed without recording) burned its number and left a gap.
+// gameHistory is newest-first, so the oldest entry is game 1.
+function gameNo(idx){ return gameHistory.length - idx; }
+// ...but only in the queue modes, where the stamp is a running match counter.
+// Round robin / bracket take round from the generated schedule, and ladder from
+// ladder.round -- those are REAL rounds shared by every match in them (round 1
+// of a 10-team round robin is 5 games), nothing burns a number, and grouping by
+// them is the point. Show the genuine round there.
+function histRoundIsReal(){ const m=mm(); return m==='roundrobin'||m==='bracket'||m==='ladder'; }
+function histLabel(g,idx){ return histRoundIsReal() ? `Rd ${g.round}` : `Game ${gameNo(idx)}`; }
 function findHistIndex(snap){
   return gameHistory.findIndex(g=>g.round===snap.round&&g.court===snap.court&&g.score1===snap.s1&&g.score2===snap.s2&&(g.team1||[]).join(' & ')===snap.names1&&(g.team2||[]).join(' & ')===snap.names2);
 }
@@ -3821,7 +3845,7 @@ let editCtx=null;
 function openEditScore(idx){
   const g=gameHistory[idx]; if(!g) return;
   editCtx={round:g.round,court:g.court,s1:g.score1,s2:g.score2,names1:(g.team1||[]).join(' & '),names2:(g.team2||[]).join(' & ')};
-  document.getElementById('editScoreSub').textContent=`Rd ${g.round} · ${g.courtName||'Court '+g.court}`;
+  document.getElementById('editScoreSub').textContent=`${histLabel(g,idx)} · ${g.courtName||'Court '+g.court}`;
   document.getElementById('editT1Names').textContent=editCtx.names1||'Team 1';
   document.getElementById('editT2Names').textContent=editCtx.names2||'Team 2';
   document.getElementById('editScore1').value=g.score1;
@@ -3881,7 +3905,7 @@ function renderGameHistory() {
   }
   const list = items.length ? items.map(({g,idx})=>{
     const winner=g.score1>g.score2?g.team1:g.score2>g.score1?g.team2:null;
-    return `<div class="history-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:0.72rem;font-weight:600;color:var(--muted);">Rd ${g.round} · ${esc(g.courtName||'Court '+g.court)}</span><span style="display:flex;align-items:center;gap:8px;"><span class="history-score">${g.score1} – ${g.score2}</span><button class="hist-edit-btn" onclick="openEditScore(${idx})" title="Edit score">✏️</button></span></div><div class="history-players">${esc(g.team1.join(' & '))} vs ${esc(g.team2.join(' & '))}</div>${winner?`<span class="badge badge-gold" style="margin-top:5px;">🏆 ${esc(winner.join(' & '))}</span>`:`<span class="badge" style="background:var(--surface2);color:var(--muted);margin-top:5px;">Tie</span>`}</div>`;
+    return `<div class="history-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:0.72rem;font-weight:600;color:var(--muted);">${histLabel(g,idx)} · ${esc(g.courtName||'Court '+g.court)}</span><span style="display:flex;align-items:center;gap:8px;"><span class="history-score">${g.score1} – ${g.score2}</span><button class="hist-edit-btn" onclick="openEditScore(${idx})" title="Edit score">✏️</button></span></div><div class="history-players">${esc(g.team1.join(' & '))} vs ${esc(g.team2.join(' & '))}</div>${winner?`<span class="badge badge-gold" style="margin-top:5px;">🏆 ${esc(winner.join(' & '))}</span>`:`<span class="badge" style="background:var(--surface2);color:var(--muted);margin-top:5px;">Tie</span>`}</div>`;
   }).join('') : `<div class="empty-state" style="padding:16px 0;"><div class="icon">🔍</div>No games match that name.</div>`;
   el.innerHTML = summary + list;
 }

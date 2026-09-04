@@ -272,15 +272,40 @@
     if (!card) return;
     var label = btn ? btn.textContent : '';
     if (btn) { btn.disabled = true; btn.textContent = 'Rendering…'; }
+
+    // Capture a detached clone rather than the live card, for two reasons:
+    //  1) The card uses container-type:inline-size for its responsive @container
+    //     rules — html2canvas 1.4.1 mishandles CSS containment and silently drops
+    //     contained children (the QR + its caption came out blank). Forcing the
+    //     clone to the fixed 680px wide layout with containment off renders the QR.
+    //  2) The clone excludes the "Save image" button, so the exported PNG never
+    //     shows the transient "Rendering…" state (or the button at all).
+    var clone = card.cloneNode(true);
+    clone.style.containerType = 'normal';
+    clone.style.width = '680px';
+    clone.style.maxWidth = '680px';
+    clone.style.margin = '0';
+    clone.style.boxShadow = 'none';
+    var act = clone.querySelector('.pdr-actions');
+    if (act && act.parentNode) act.parentNode.removeChild(act);
+    var holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:680px;pointer-events:none;';
+    holder.appendChild(clone);
+    document.body.appendChild(holder);
+
+    function cleanup() { if (holder.parentNode) holder.parentNode.removeChild(holder); }
+
     loadH2C().then(function (h2c) {
-      return h2c(card, { backgroundColor: '#f7f4ea', scale: Math.min(3, (global.devicePixelRatio || 1) * 2), useCORS: true });
+      return h2c(clone, { backgroundColor: '#f7f4ea', scale: Math.min(3, (global.devicePixelRatio || 1) * 2), useCORS: true, width: 680, windowWidth: 720 });
     }).then(function (canvas) {
       var a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
       a.download = 'paddle-district-recap-' + new Date().toISOString().slice(0, 10) + '.png';
       a.click();
+      cleanup();
       if (btn) { btn.disabled = false; btn.textContent = label; }
     }).catch(function () {
+      cleanup();
       if (btn) { btn.disabled = false; btn.textContent = 'Save unavailable — use the QR'; setTimeout(function(){ btn.textContent = label; }, 2600); }
     });
   }

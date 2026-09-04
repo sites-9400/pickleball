@@ -506,27 +506,47 @@ function renderQueue(s) {
   const el = document.getElementById('vQueue');
   if(!el) return;
   const present = (s.players||[]).filter(p=>p.present);
-  const mq = s.matchQueue||[];
-  if(!present.length && !mq.length){ el.innerHTML='<div class="empty-v">No players present yet.</div>'; return; }
+  if(!present.length){ el.innerHTML='<div class="empty-v">No players present yet.</div>'; return; }
 
   const playingIds = new Set();
   (s.courts||[]).filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>playingIds.add(id)));
-  const mqIds = new Set(); mq.forEach(m=>[...m.team1,...m.team2].forEach(id=>mqIds.add(id)));
-  const freeWaiting = present.filter(p=>!playingIds.has(p.id)&&!mqIds.has(p.id));
+
+  const mq = s.matchQueue||[];
+  // Mirror app.html exactly: it hides the Up Next cards for Random/Balanced below 4
+  // courts (showUpNext = courtDefs.length >= 4). Keep the two views consistent — the
+  // matchmaking mode/queue are owned by app.html; here we only read them to display.
+  const mode = (s.mode && s.mode.matchmaking) || 'waittime';
+  const showUpNext = !((mode==='random'||mode==='balanced') && (s.courtDefs||[]).length < 4);
 
   let html='';
 
-  // Upcoming Matches
-  if(mq.length){
+  // Upcoming Matches — only when app.html would show them.
+  if(showUpNext && mq.length){
     html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink);margin-bottom:8px;">📋 Upcoming Matches</div>`;
     mq.forEach((m,i)=>{ html+=mqCardView(m, `Match ${i+1}`, i===0, s.players||[]); });
     html+=`<div style="height:1px;background:var(--line);margin:10px 0;"></div>`;
   }
 
-  // Free waiting
-  if(freeWaiting.length){
-    html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:7px;">⏳ Still Waiting</div>`;
-    html+=freeWaiting.map((p,i)=>`<div class="queue-view-item"><div class="queue-view-rank">${i+1}</div><div class="player-chip-avatar" style="background:${avatarColor(p.name)};width:26px;height:26px;">${initials(p.name)}</div><span class="queue-view-name">${escapeHtml(p.name)}</span></div>`).join('');
+  // Waiting list. When Up Next is shown, queued players live in the cards, so exclude
+  // them here (matches app.html's left-hand Queue). When Up Next is hidden, fold queued
+  // players into the waiting list — up-next first — so nobody silently disappears.
+  const byId = new Map(present.map(p=>[p.id,p]));
+  const seen = new Set(playingIds);
+  const waiting = [];
+  if(showUpNext){
+    mq.forEach(m=>[...m.team1,...m.team2].forEach(id=>seen.add(id)));
+  } else {
+    mq.forEach(m=>[...m.team1,...m.team2].forEach(id=>{
+      if(byId.has(id) && !seen.has(id)){ seen.add(id); waiting.push(byId.get(id)); }
+    }));
+  }
+  present.forEach(p=>{ if(!seen.has(p.id)){ seen.add(p.id); waiting.push(p); } });
+
+  if(waiting.length){
+    if(showUpNext && mq.length){
+      html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:7px;">⏳ Still Waiting</div>`;
+    }
+    html+=waiting.map((p,i)=>`<div class="queue-view-item"><div class="queue-view-rank">${i+1}</div><div class="player-chip-avatar" style="background:${avatarColor(p.name)};width:26px;height:26px;">${initials(p.name)}</div><span class="queue-view-name">${escapeHtml(p.name)}</span></div>`).join('');
   }
 
   if(!html) html='<div class="empty-v">No one waiting right now.</div>';
@@ -574,12 +594,18 @@ function renderHistory(s) {
     ? gh.filter(g=>[...(g.team1||[]),...(g.team2||[])].some(n=>(n||'').toLowerCase().includes(q)))
     : gh;
   if(!games.length){el.innerHTML='<div class="empty-v"><div class="icon">🔍</div>No games match that name.</div>';return;}
+  // Mirror app.html: round robin / bracket / ladder stamp a REAL round shared by
+  // every match in it, so show that. The queue modes stamp a running match
+  // counter that a cancelled match burns a hole in -- number those by position.
+  const md=(s.mode && s.mode.matchmaking)||'waittime';
+  const realRound = md==='roundrobin'||md==='bracket'||md==='ladder';
+  const label=g=>realRound?`Rd ${g.round}`:`Game ${gh.length-gh.indexOf(g)}`;
   el.innerHTML=games.map(g=>{
     const t1=escapeHtml((g.team1||[]).join(' & ')), t2=escapeHtml((g.team2||[]).join(' & '));
     const winner=g.score1>g.score2?t1:g.score2>g.score1?t2:null;
     return `<div class="history-view-item">
       <div class="history-view-top">
-        <span class="history-view-meta">Rd ${g.round} · ${escapeHtml(g.courtName||'Court '+g.court)}</span>
+        <span class="history-view-meta">${label(g)} · ${escapeHtml(g.courtName||'Court '+g.court)}</span>
         <span class="history-view-score">${g.score1} – ${g.score2}</span>
       </div>
       <div class="history-view-players">${t1} vs ${t2}</div>

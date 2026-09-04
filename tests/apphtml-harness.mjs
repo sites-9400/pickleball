@@ -38,7 +38,7 @@ export function loadApp() {
       },
       setAttribute() {}, getAttribute() { return null; },
       querySelector() { return null; }, querySelectorAll() { return []; },
-      addEventListener() {},
+      addEventListener() {}, click() {}, href: '', download: '',
       set innerHTML(v) { captured[id] = v; syncInputsFromHtml(v); },
       get innerHTML() { return captured[id] || ''; },
     };
@@ -67,8 +67,11 @@ export function loadApp() {
     buildTeams: T.buildTeams, generateRoundRobin: T.generateRoundRobin,
     computeStandings: T.computeStandings, nextEligibleMatch: T.nextEligibleMatch,
   };
+  const blobs = [];   // text of every Blob the page builds (CSV / JSON exports)
   const ctx = vm.createContext({
     document: documentMock, window: windowMock,
+    Blob: class { constructor(parts) { blobs.push((parts || []).join('')); } },
+    URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     navigator: { clipboard: { writeText() { return Promise.resolve(); } } },
     setInterval() { return 1; }, clearInterval() {},
@@ -82,7 +85,7 @@ export function loadApp() {
   vm.runInContext(code, ctx);
   vm.runInContext('showToast = () => {};', ctx);
   const run = js => vm.runInContext(js, ctx);
-  return { run, captured, els, windowMock };
+  return { run, captured, els, windowMock, blobs };
 }
 
 // Minimal-but-valid remote snapshot; override fields per test.
