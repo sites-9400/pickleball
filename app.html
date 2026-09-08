@@ -2202,9 +2202,34 @@ function exportAttendanceCSV(){
   showToast('Attendance exported (downloaded + copied).');
 }
 window.exportAttendanceCSV=exportAttendanceCSV;
+// A player joining or rejoining mid-session must not arrive holding a huge wait
+// score. lastPlayedRound of -1 ("never played") or a value from before they stepped
+// out both feed waitOf() as though they had sat through the whole session: a 7:34pm
+// walk-in at round 60 scored a wait of 61 and outweighed the longest-waiting regular
+// by ~11,000:1, so they took the very next match every time. Seed them to the median
+// wait of the players currently waiting -- they enter as an average-waiting player,
+// neither jumping the queue nor being sent to the back. A player whose real wait is
+// already below the median keeps it; stepping out briefly must not cost them.
+function seedWaitClock(p){
+  if(!p || globalRound<=0) return;          // pre-start: everyone is equal, leave it
+  // Everyone still waiting for a game, whether or not they have already been slotted
+  // into an upcoming match -- a queued player has not played yet, so their wait is
+  // just as real and belongs in the median. Only players on a live court are excluded.
+  const onCourt=new Set();
+  courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>onCourt.add(id)));
+  const waits=presentPlayers()
+    .filter(q=>q.id!==p.id && !onCourt.has(q.id) && q.lastPlayedRound>=0)
+    .map(q=>globalRound-q.lastPlayedRound)
+    .sort((a,b)=>a-b);
+  if(!waits.length) return;                 // nobody to measure against yet
+  const median=waits[Math.floor(waits.length/2)];
+  if(p.lastPlayedRound>=0 && globalRound-p.lastPlayedRound<=median) return;
+  p.lastPlayedRound=globalRound-median;
+}
 function togglePresent(id) {
   const p=getPlayer(id); p.present=!p.present;
   logPresence(p, p.present, Date.now());
+  if(p.present) seedWaitClock(p);
   if(p.present&&!queueOrder.includes(id)) queueOrder.push(id);
   if(!p.present) queueOrder=queueOrder.filter(q=>q!==id);
   rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
@@ -2393,9 +2418,9 @@ function approveCheckin(key){
   const res=window.checkinToPlayer ? window.checkinToPlayer(entry, players) : null;
   if(res && res.markPresentName){
     const ex=players.find(p=>p&&typeof p.name==='string'&&p.name.toLowerCase()===res.markPresentName.toLowerCase());
-    if(ex){ ex.present=true; logPresence(ex, true, entry.ts||Date.now()); if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
+    if(ex){ ex.present=true; logPresence(ex, true, entry.ts||Date.now()); seedWaitClock(ex); if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
   } else if(res && res.player){
-    const p=res.player; p.id=++playerIdCounter; players.push(p); logPresence(p, true, entry.ts||Date.now()); if(!queueOrder.includes(p.id)) queueOrder.push(p.id);
+    const p=res.player; p.id=++playerIdCounter; players.push(p); logPresence(p, true, entry.ts||Date.now()); seedWaitClock(p); if(!queueOrder.includes(p.id)) queueOrder.push(p.id);
   }
   delete pendingCheckins[key];
   window._removeCheckin && window._removeCheckin(key);
