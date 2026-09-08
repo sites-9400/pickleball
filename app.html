@@ -2019,15 +2019,26 @@ function exportJSON() {
   a.click(); showToast('JSON exported!');
 }
 function exportCSV() {
-  const rows=[['Name','Present','Games','Wins','Losses','Points','Points Against','Win%','Pt%']];
+  const DASH='\u2014';
+  const rows=[['Name','Present','Games','Wins','Losses','Points','Points Against','Win%','Pt%','Games/hr','Checked in','Left','On site (min)']];
   players.forEach(p=>{
     const winPct=p.gamesPlayed>0?Math.round(p.wins/p.gamesPlayed*100):0;
     const tot=p.points+p.pointsAgainst;
     const ptPct=tot>0?Math.round(p.points/tot*100):0;
-    rows.push([p.name,p.present?'Yes':'No',p.gamesPlayed,p.wins,p.losses,p.points,p.pointsAgainst,winPct+'%',ptPct+'%']);
+    // Time on site is what makes the games column readable: 8 games in 90 minutes and
+    // 8 games in 5 hours are not the same night.
+    const a=attendanceSpan(p);
+    const rate=a.mins>0?(p.gamesPlayed/(a.mins/60)).toFixed(2):DASH;
+    rows.push([p.name,p.present?'Yes':'No',p.gamesPlayed,p.wins,p.losses,p.points,p.pointsAgainst,winPct+'%',ptPct+'%',
+      rate, a.inTs?fmtStamp(a.inTs):DASH, a.outTs?fmtStamp(a.outTs):DASH, a.mins==null?DASH:a.mins]);
   });
-  rows.push([]); rows.push([histRoundIsReal()?'Round':'Game','Court','Team A','Team B','Score A','Score B']);
-  gameHistory.forEach((g,i)=>rows.push([histRoundIsReal()?g.round:gameNo(i),g.courtName||g.court,g.team1.join(' & '),g.team2.join(' & '),g.score1,g.score2]));
+  rows.push([]); rows.push([histRoundIsReal()?'Round':'Game','Court','Team A','Team B','Score A','Score B','Started','Ended','Length (min)']);
+  gameHistory.forEach((g,i)=>{
+    // Sessions played before games were timed have no startedAt to report.
+    const len=(g.startedAt&&g.endedAt)?Math.max(0,Math.round((g.endedAt-g.startedAt)/60000)):null;
+    rows.push([histRoundIsReal()?g.round:gameNo(i),g.courtName||g.court,g.team1.join(' & '),g.team2.join(' & '),g.score1,g.score2,
+      g.startedAt?fmtStamp(g.startedAt):DASH, g.endedAt?fmtStamp(g.endedAt):DASH, len==null?DASH:len]);
+  });
   const cell=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   const blob=new Blob([rows.map(r=>r.map(cell).join(',')).join('\n')],{type:'text/csv'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
@@ -2114,6 +2125,29 @@ function logPresence(p, present, ts){
   else if(!present && last==='in') p.events.push({t:'out', ts:ts||Date.now()});
 }
 function fmtTime(ts){ try{ return new Date(ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }catch(e){ return ''; } }
+// Same clock time as fmtTime, but keeps the date when an event falls outside the
+// session's own day — a check-in toggled the morning after must not export as a
+// bare "2:09 PM" and read as though it happened mid-session.
+function fmtStamp(ts){
+  if(!ts) return '';
+  try{
+    const d=new Date(ts);
+    const t=d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+    const base=sessionStartTime?new Date(sessionStartTime):null;
+    if(base && d.toDateString()===base.toDateString()) return t;
+    return `${d.toLocaleDateString([], {month:'short', day:'numeric'})} ${t}`;
+  }catch(e){ return ''; }
+}
+// When a player arrived, when they left, and how long they were on site. A player
+// still here is counted to the session end (or now, if it is still running).
+function attendanceSpan(p){
+  const evs=Array.isArray(p.events)?p.events:[];
+  const firstIn=evs.find(e=>e.t==='in');
+  const lastOut=p.present?null:[...evs].reverse().find(e=>e.t==='out');
+  if(!firstIn) return {inTs:null, outTs:lastOut?lastOut.ts:null, mins:null};
+  const end=lastOut?lastOut.ts:(sessionEndTime||Date.now());
+  return {inTs:firstIn.ts, outTs:lastOut?lastOut.ts:null, mins:Math.max(0,Math.round((end-firstIn.ts)/60000))};
+}
 let expandedAttend=new Set();   // player ids whose in/out timeline is expanded
 function toggleAttend(id){ if(expandedAttend.has(id)) expandedAttend.delete(id); else expandedAttend.add(id); renderPlayers(); }
 window.toggleAttend=toggleAttend;
@@ -2796,7 +2830,7 @@ function submitScore(courtId) {
       gameHistory.unshift({ round: m.round, court: c.id, courtName: c.name || ('Court ' + c.id),
         team1: c.team1.map(id => getPlayer(id)?.name || '?'), team2: c.team2.map(id => getPlayer(id)?.name || '?'),
         team1Ids: [...c.team1], team2Ids: [...c.team2], tMatchId: c.tMatchId,
-        score1: s1, score2: s2 });
+        score1: s1, score2: s2, startedAt: c.startedAt || null, endedAt: Date.now() });
     }
     c.score1 = s1; c.score2 = s2; c.submitted = true;
     fillCourtsFromTournament();
@@ -2817,7 +2851,7 @@ function submitScore(courtId) {
   } else { allFour.forEach(id=>{const p=getPlayer(id);if(p){p.points+=s1;p.pointsAgainst+=s2;}}); }
   const t1names=c.team1.map(id=>getPlayer(id)?.name||'?');
   const t2names=c.team2.map(id=>getPlayer(id)?.name||'?');
-  gameHistory.unshift({round:c.round,court:c.id,courtName:c.name||`Court ${c.id}`,team1:t1names,team2:t2names,team1Ids:[...c.team1],team2Ids:[...c.team2],score1:s1,score2:s2});
+  gameHistory.unshift({round:c.round,court:c.id,courtName:c.name||`Court ${c.id}`,team1:t1names,team2:t2names,team1Ids:[...c.team1],team2Ids:[...c.team2],score1:s1,score2:s2,startedAt:c.startedAt||null,endedAt:Date.now()});
   if(mm()==='challenge' && winTeam){
     const winnerIds=[...winTeam];
     const loserIds=[...loseTeam];
@@ -2901,7 +2935,7 @@ function saveLadderResult(courtId){
     const winScore=Math.max(s1,s2), loseScore=Math.min(s1,s2);
     winTeam.forEach(id=>{const p=getPlayer(id);if(p){p.wins++;p.points+=winScore;p.pointsAgainst+=loseScore;}});
     loseTeam.forEach(id=>{const p=getPlayer(id);if(p){p.losses++;p.points+=loseScore;p.pointsAgainst+=winScore;}});
-    gameHistory.unshift({round:ladder.round,court:c.id,courtName:c.name||`Court ${c.id}`,team1:c.team1.map(id=>getPlayer(id)?.name||'?'),team2:c.team2.map(id=>getPlayer(id)?.name||'?'),team1Ids:[...c.team1],team2Ids:[...c.team2],score1:s1,score2:s2});
+    gameHistory.unshift({round:ladder.round,court:c.id,courtName:c.name||`Court ${c.id}`,team1:c.team1.map(id=>getPlayer(id)?.name||'?'),team2:c.team2.map(id=>getPlayer(id)?.name||'?'),team1Ids:[...c.team1],team2Ids:[...c.team2],score1:s1,score2:s2,startedAt:c.startedAt||null,endedAt:Date.now()});
   }
   renderCourts(); renderRankings(); renderGameHistory(); saveState();
   showToast('Result saved.');
@@ -3283,8 +3317,12 @@ function confirmSwap(incomingId) {
       const p=getPlayer(outgoingId); if(p){ p.present=false; }
       queueOrder=queueOrder.filter(q=>q!==outgoingId);
     } else {
-      if(!queueOrder.includes(outgoingId)) queueOrder.push(outgoingId);
-      const p=getPlayer(outgoingId); if(p) p.lastPlayedRound=globalRound;
+      // They were pulled off the court before that game ever counted, so nothing is
+      // owed: leave lastPlayedRound on their last REAL game (stamping globalRound here
+      // charged them a phantom round and sank them to the bottom of getFreeWaiting),
+      // and put them back at the head of the line — the same fate the queue-swap
+      // branch below already gives a bumped player.
+      queueOrder=[outgoingId,...queueOrder.filter(id=>id!==outgoingId)];
     }
     closeSwapModal();
     // Re-pick the auto-built upcoming matches: they were chosen from a pool
