@@ -1300,8 +1300,8 @@ input:focus, textarea:focus { border-color: var(--army); }
             <input type="text" id="attendanceSearch" placeholder="Search players..." oninput="renderPlayers()" style="padding-left:36px;">
           </div>
           <div class="section-action">
-            <button class="btn btn-outline btn-sm" onclick="markAll(true)">Mark all present</button>
-            <button class="btn btn-outline btn-sm" onclick="markAll(false)">Clear all</button>
+            <button class="btn btn-outline btn-sm" id="markAllPresentBtn" onclick="markAll(true)">Mark all present</button>
+            <button class="btn btn-outline btn-sm" id="markAllClearBtn" onclick="markAll(false)">Clear all</button>
             <button class="btn btn-outline btn-sm" onclick="exportAttendanceCSV()" title="Download the attendance log as CSV">⤓ Export CSV</button>
           </div>
           <div class="player-list" id="playerList">
@@ -1369,7 +1369,7 @@ input:focus, textarea:focus { border-color: var(--army); }
     <div class="addbar">
       <span class="sec-eyebrow">Live Courts</span>
       <span class="mode-badge" id="modeBadge"></span>
-      <button class="btn btn-accent btn-sm addbar-btn" type="button" onclick="addCourt()">+ Add Court</button>
+      <button class="btn btn-accent btn-sm addbar-btn" id="addCourtBtn" type="button" onclick="addCourt()">+ Add Court</button>
     </div>
     <div id="courtAlert"></div>
     <div class="live-flow">
@@ -1893,6 +1893,11 @@ function applySessionUI() {
     if (newBtn) newBtn.style.display = 'none';
     if (!sessionTimerInterval) sessionTimerInterval = setInterval(updateSessionClock, 1000);
   }
+  // Roster and court-adding controls are meaningless on a closed record — hide them so
+  // nothing looks tappable. The functions are guarded too (endedGuard).
+  ['markAllPresentBtn','markAllClearBtn','addCourtBtn'].forEach(id=>{
+    const e=document.getElementById(id); if(e) e.style.display = sessionEnded ? 'none' : '';
+  });
   // Recap tab is end-of-session only: reveal it when ended, re-render if it's the open tab.
   const recapBtn = document.getElementById('tabBtnRecap');
   if (recapBtn) recapBtn.style.display = sessionEnded ? '' : 'none';
@@ -1983,6 +1988,16 @@ function confirmEndSession() {
   switchTab('recap'); // finale: drop straight into the recap
   showToast('Session ended — here’s your recap.', 3500);
 }
+// An ended session is a closed record: no new matches, scores, swaps or check-ins.
+// Ending used to only flip the flag, stop the clock and open the recap, leaving every
+// mutating function callable. Continue (continueSession) reopens the session, so this is
+// a lock, not a freeze. Guard the functions as well as hiding the controls -- a co-host's
+// stale page, or a queued QR scan, can still call them after the owner ends the night.
+function endedGuard(){
+  if(!sessionEnded) return false;
+  showToast('Session ended — tap Continue to reopen it.');
+  return true;
+}
 function newSession() {
   if (!confirm('Go back to Dashboard to start a new session?')) return;
   window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'dashboard.html';
@@ -2007,43 +2022,27 @@ function tickCourtTimers() {
 }
 
 // ===== EXPORT =====
+// The snapshot shape Firebase stores, so an export taken here is byte-identical to the
+// one the dashboard produces for the same session — buildSessionCSV/buildSessionJSON in
+// tournament.js are the single implementation.
+function sessionSnapshot(){
+  return { name:sessionName, sessionName, mode:sessionMode, players, gameHistory,
+           sessionStartTime, sessionEndTime, sessionEnded };
+}
+function _downloadExport(text, type, ext){
+  const stamp=new Date().toISOString().slice(0,10);
+  const blob=new Blob([text],{type});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`${(sessionName||'session').replace(/\s+/g,'-')}-${stamp}.${ext}`;
+  a.click();
+}
 function exportJSON() {
-  const data = {
-    session: { name:sessionName, startTime:sessionStartTime?new Date(sessionStartTime).toISOString():null, endTime:sessionEndTime?new Date(sessionEndTime).toISOString():null, duration:sessionStartTime?formatDuration((sessionEndTime||Date.now())-sessionStartTime):null },
-    players: players.map(p=>({name:p.name,present:p.present,gamesPlayed:p.gamesPlayed,wins:p.wins,losses:p.losses,points:p.points,pointsAgainst:p.pointsAgainst})),
-    gameHistory
-  };
-  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `${sessionName.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.json`;
-  a.click(); showToast('JSON exported!');
+  _downloadExport(window.buildSessionJSON(sessionSnapshot()), 'application/json', 'json');
+  showToast('JSON exported!');
 }
 function exportCSV() {
-  const DASH='\u2014';
-  const rows=[['Name','Present','Games','Wins','Losses','Points','Points Against','Win%','Pt%','Games/hr','Checked in','Left','On site (min)']];
-  players.forEach(p=>{
-    const winPct=p.gamesPlayed>0?Math.round(p.wins/p.gamesPlayed*100):0;
-    const tot=p.points+p.pointsAgainst;
-    const ptPct=tot>0?Math.round(p.points/tot*100):0;
-    // Time on site is what makes the games column readable: 8 games in 90 minutes and
-    // 8 games in 5 hours are not the same night.
-    const a=attendanceSpan(p);
-    const rate=a.mins>0?(p.gamesPlayed/(a.mins/60)).toFixed(2):DASH;
-    rows.push([p.name,p.present?'Yes':'No',p.gamesPlayed,p.wins,p.losses,p.points,p.pointsAgainst,winPct+'%',ptPct+'%',
-      rate, a.inTs?fmtStamp(a.inTs):DASH, a.outTs?fmtStamp(a.outTs):DASH, a.mins==null?DASH:a.mins]);
-  });
-  rows.push([]); rows.push([histRoundIsReal()?'Round':'Game','Court','Team A','Team B','Score A','Score B','Started','Ended','Length (min)']);
-  gameHistory.forEach((g,i)=>{
-    // Sessions played before games were timed have no startedAt to report.
-    const len=(g.startedAt&&g.endedAt)?Math.max(0,Math.round((g.endedAt-g.startedAt)/60000)):null;
-    rows.push([histRoundIsReal()?g.round:gameNo(i),g.courtName||g.court,g.team1.join(' & '),g.team2.join(' & '),g.score1,g.score2,
-      g.startedAt?fmtStamp(g.startedAt):DASH, g.endedAt?fmtStamp(g.endedAt):DASH, len==null?DASH:len]);
-  });
-  const cell=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
-  const blob=new Blob([rows.map(r=>r.map(cell).join(',')).join('\n')],{type:'text/csv'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`${sessionName.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click(); showToast('CSV exported!');
+  _downloadExport(window.buildSessionCSV(sessionSnapshot()), 'text/csv', 'csv');
+  showToast('CSV exported!');
 }
 
 // ===== PLAYERS =====
@@ -2125,29 +2124,6 @@ function logPresence(p, present, ts){
   else if(!present && last==='in') p.events.push({t:'out', ts:ts||Date.now()});
 }
 function fmtTime(ts){ try{ return new Date(ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }catch(e){ return ''; } }
-// Same clock time as fmtTime, but keeps the date when an event falls outside the
-// session's own day — a check-in toggled the morning after must not export as a
-// bare "2:09 PM" and read as though it happened mid-session.
-function fmtStamp(ts){
-  if(!ts) return '';
-  try{
-    const d=new Date(ts);
-    const t=d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-    const base=sessionStartTime?new Date(sessionStartTime):null;
-    if(base && d.toDateString()===base.toDateString()) return t;
-    return `${d.toLocaleDateString([], {month:'short', day:'numeric'})} ${t}`;
-  }catch(e){ return ''; }
-}
-// When a player arrived, when they left, and how long they were on site. A player
-// still here is counted to the session end (or now, if it is still running).
-function attendanceSpan(p){
-  const evs=Array.isArray(p.events)?p.events:[];
-  const firstIn=evs.find(e=>e.t==='in');
-  const lastOut=p.present?null:[...evs].reverse().find(e=>e.t==='out');
-  if(!firstIn) return {inTs:null, outTs:lastOut?lastOut.ts:null, mins:null};
-  const end=lastOut?lastOut.ts:(sessionEndTime||Date.now());
-  return {inTs:firstIn.ts, outTs:lastOut?lastOut.ts:null, mins:Math.max(0,Math.round((end-firstIn.ts)/60000))};
-}
 let expandedAttend=new Set();   // player ids whose in/out timeline is expanded
 function toggleAttend(id){ if(expandedAttend.has(id)) expandedAttend.delete(id); else expandedAttend.add(id); renderPlayers(); }
 window.toggleAttend=toggleAttend;
@@ -2227,6 +2203,7 @@ function seedWaitClock(p){
   p.lastPlayedRound=globalRound-median;
 }
 function togglePresent(id) {
+  if(endedGuard()) return;
   const p=getPlayer(id); p.present=!p.present;
   logPresence(p, p.present, Date.now());
   if(p.present) seedWaitClock(p);
@@ -2267,6 +2244,7 @@ function removePlayer(id) {
   showToast(`${p.name} removed.`);
 }
 function markAll(val) {
+  if(endedGuard()) return;
   const now=Date.now();
   players.forEach(p=>{p.present=val;logPresence(p,val,now);if(val&&!queueOrder.includes(p.id))queueOrder.push(p.id);});
   if(!val) queueOrder=[];
@@ -2389,7 +2367,9 @@ function renderPlayers() {
       ${lockRowBtn(p.id)}
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
-      <button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})" title="${p.present?'On court - tap to put on hold':'On hold - tap to add back to queue'}">${p.present?'Here ✓':'Add to queue'}</button>
+      ${sessionEnded
+        ? `<span class="attendance-toggle ${p.present?'here':''}" style="opacity:0.55;cursor:default;" title="Session ended — tap Continue to reopen">${p.present?'Here ✓':'On hold'}</span>`
+        : `<button class="attendance-toggle ${p.present?'here':''}" onclick="togglePresent(${p.id})" title="${p.present?'On court - tap to put on hold':'On hold - tap to add back to queue'}">${p.present?'Here ✓':'Add to queue'}</button>`}
       <button class="remove-btn" onclick="removePlayer(${p.id})" title="Delete permanently">🗑</button>
     </div>
     ${attendTimeline(p)}
@@ -2414,6 +2394,7 @@ function renderCheckinPanel(){
   _genCheckinQR();
 }
 function approveCheckin(key){
+  if(endedGuard()) return;
   const entry=pendingCheckins[key]; if(!entry) return;
   const res=window.checkinToPlayer ? window.checkinToPlayer(entry, players) : null;
   if(res && res.markPresentName){
@@ -2813,6 +2794,7 @@ function renameCourtDef(courtId,newName) {
   saveState();
 }
 function generateMatchForCourt(courtId) {
+  if(endedGuard()) return;
   if(mm()==='ladder'){ showToast('Ladder mode — use Save Result and Advance Round.'); return; }
   rebuildMatchQueue();
   if(!matchQueue.length){showToast(`Need at least ${matchSize()} waiting players.`);return;}
@@ -2838,6 +2820,7 @@ function updateScore(courtId) {
   c.score2=document.getElementById(`score2_${courtId}`)?.value||'';
 }
 function submitScore(courtId) {
+  if(endedGuard()) return;
   const c=courts.find(ct=>ct.id===courtId);
   const s1=parseInt(document.getElementById(`score1_${courtId}`)?.value);
   const s2=parseInt(document.getElementById(`score2_${courtId}`)?.value);
@@ -2949,6 +2932,7 @@ function resetLadder(){
   startLadder();
 }
 function saveLadderResult(courtId){
+  if(endedGuard()) return;
   const c=courts.find(ct=>ct.id===courtId); if(!c) return;
   const s1=parseInt(document.getElementById(`score1_${courtId}`)?.value);
   const s2=parseInt(document.getElementById(`score2_${courtId}`)?.value);
@@ -2970,6 +2954,7 @@ function saveLadderResult(courtId){
   showToast('Result saved.');
 }
 function advanceLadderRound(){
+  if(endedGuard()) return;
   const active=ladderActiveCourts();
   if(!ladderAllReported()){ showToast('Save a decisive result on every court first.'); return; }
   const n=active.length;
@@ -3029,11 +3014,11 @@ function renderLadder(){
         <div class="ct-vs">VS</div>
         <div class="ct-row">
           <span class="ct-tag t2">B</span>
-          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(getPlayer(id)?.name||'?')}<button class="swap-btn in-match" onclick="openSwapModal(${c.id},'team2',${i})" title="In a live match — swap only if needed">⇄</button></span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
+          <div class="ct-names">${c.submitted?`<span class="ct-name">${teamLabel(c.team2)}${bWon?' 🏆':''}</span>`:c.team2.map((id,i)=>`<span class="ct-name"><span class="ct-name-row">${esc(getPlayer(id)?.name||'?')}${sessionEnded?'':`<button class="swap-btn in-match" onclick="openSwapModal(${c.id},'team2',${i})" title="In a live match — swap only if needed">⇄</button>`}</span><span class="ct-lvl">${skillAbbr(getPlayer(id))}</span></span>`).join('')}</div>
           <input class="ct-score" type="number" min="0" max="99" placeholder="0" id="score2_${c.id}" value="${v(c.score2)}">
         </div>
-        <button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>
-        ${c.submitted?'':`<button class="btn btn-outline btn-full btn-outline-danger" onclick="cancelMatch(${c.id})">Cancel match</button>`}
+        ${sessionEnded?'':`<button class="btn ${c.submitted?'btn-outline':'btn-accent'} btn-full" style="margin-top:14px" onclick="saveLadderResult(${c.id})">${c.submitted?'Update Result':'Save Result'}</button>`}
+        ${(c.submitted||sessionEnded)?'':`<button class="btn btn-outline btn-full btn-outline-danger" onclick="cancelMatch(${c.id})">Cancel match</button>`}
       </div>
     </div>`;
   });
@@ -3306,6 +3291,7 @@ function filterSwapOptions(){
   const nm=document.getElementById('swapNoMatch'); if(nm) nm.classList.toggle('hidden', anyMatch || !q);
 }
 function confirmSwap(incomingId) {
+  if(endedGuard()) return;
   if(!swapContext) return;
   const incoming=getPlayer(incomingId);
   const fate=(document.querySelector('input[name="swapFate"]:checked')?.value)||'queue';
@@ -3400,6 +3386,7 @@ function closeSwapModal(e) {
 }
 let cancelContext = null;
 function cancelMatch(courtId) {
+  if(endedGuard()) return;
   const c = courts.find(ct => ct.id === courtId);
   if (!c || c.submitted) return;
   const mode = mm();
@@ -3433,6 +3420,7 @@ function closeCancelModal(e) {
   cancelContext = null;
 }
 function confirmCancel() {
+  if (endedGuard()) return;
   if (!cancelContext) return;
   const { courtId, variant } = cancelContext;
   const c = courts.find(ct => ct.id === courtId);
@@ -3537,7 +3525,7 @@ function renderCourts() {
       </div></div>`;
     }
     const teamCol=(tp,tk,lbl,cls)=>`<div class="ct-team ${cls}"><span class="ct-team-lbl">${lbl}</span>`+
-      tp.map((p,i)=>`<div class="ct-pl"><span class="ct-pl-name">${esc(p?.name||'?')}${p?lockBadge(p.id):''}</span><button class="ct-swap in-match" onclick="openSwapModal(${def.id},'${tk}',${i})" title="In a live match — swap only if needed">⇄</button><span class="ct-pl-lvl">${skillAbbr(p)}</span></div>`).join('')+`</div>`;
+      tp.map((p,i)=>`<div class="ct-pl"><span class="ct-pl-name">${esc(p?.name||'?')}${p?lockBadge(p.id):''}</span>${sessionEnded?'':`<button class="ct-swap in-match" onclick="openSwapModal(${def.id},'${tk}',${i})" title="In a live match — swap only if needed">⇄</button>`}<span class="ct-pl-lvl">${skillAbbr(p)}</span></div>`).join('')+`</div>`;
     const isHolding = mm()==='challenge' && (!c.team2 || !c.team2.length);
     return `<div class="court-card">${header}<div class="court-body">
       <div class="ct-teams">
@@ -3548,13 +3536,13 @@ function renderCourts() {
           : teamCol(t2,'team2','TEAM 2','t2')}
       </div>
       ${isHolding ? '' : `<div class="ct-foot">
-        <input class="ct-score" type="number" inputmode="numeric" min="0" max="99" placeholder="0" id="score1_${def.id}" value="${(c.score1!==''&&c.score1!=null)?c.score1:''}" oninput="updateScore(${def.id})">
+        <input class="ct-score" type="number" inputmode="numeric" min="0" max="99" placeholder="0" id="score1_${def.id}" value="${(c.score1!==''&&c.score1!=null)?c.score1:''}" oninput="updateScore(${def.id})"${sessionEnded?' readonly':''}>
         <span class="ct-dash">–</span>
-        <input class="ct-score" type="number" inputmode="numeric" min="0" max="99" placeholder="0" id="score2_${def.id}" value="${(c.score2!==''&&c.score2!=null)?c.score2:''}" oninput="updateScore(${def.id})">
-        <button class="ct-submit" onclick="submitScore(${def.id})">Submit Score</button>
+        <input class="ct-score" type="number" inputmode="numeric" min="0" max="99" placeholder="0" id="score2_${def.id}" value="${(c.score2!==''&&c.score2!=null)?c.score2:''}" oninput="updateScore(${def.id})"${sessionEnded?' readonly':''}>
+        ${sessionEnded?'':`<button class="ct-submit" onclick="submitScore(${def.id})">Submit Score</button>`}
       </div>`}
       ${c.tMatchId?`<button class="btn btn-full" style="margin:0 10px 10px" onclick="tSwapMatch(${def.id})">Swap match</button>`:''}
-      ${isHolding ? '' : `<button class="ct-cancel" onclick="cancelMatch(${def.id})">Cancel match</button>`}
+      ${(isHolding||sessionEnded) ? '' : `<button class="ct-cancel" onclick="cancelMatch(${def.id})">Cancel match</button>`}
     </div></div>`;
   }).join('');
   el.innerHTML='<div class="court-grid-layout" style="'+courtGridStyle(courtDefs.length)+'">'+cards+'</div>';
@@ -4069,6 +4057,7 @@ function confirmLeave() {
 
 window._importCheckin = function(key, entry) {
   if (!entry) { window._removeCheckin && window._removeCheckin(key); return; }
+  if (sessionEnded) return;   // hold the scan; Continue reopens the session and re-runs check-in
   const res = window.checkinToPlayer ? window.checkinToPlayer(entry, players) : {skip:true, reason:'invalid'};
   if (res.markPresentName) {
     const ex = players.find(p => p && typeof p.name === 'string' && p.name.toLowerCase() === res.markPresentName.toLowerCase());
@@ -4100,7 +4089,7 @@ window._importCheckin = function(key, entry) {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch, checkinToPlayer, fairWeightedMatch, balancedMatch, mergeImportedNames } from './tournament.js';
+import { buildTeams, generateRoundRobin, computeStandings, nextEligibleMatch, resolveChallengeCourt, skillBalancedTeams, bestSkillMatch, checkinToPlayer, fairWeightedMatch, balancedMatch, mergeImportedNames, buildSessionCSV, buildSessionJSON } from './tournament.js';
 import { computeIdentity, accessState, joinEligibility, genCohostToken, buildCohostLink } from './cohost.js';
 window.computeIdentity = computeIdentity;
 window.accessState = accessState;
@@ -4114,6 +4103,8 @@ window.nextEligibleMatch = nextEligibleMatch;
 window.resolveChallengeCourt = resolveChallengeCourt;
 window.skillBalancedTeams = skillBalancedTeams;
 window.bestSkillMatch = bestSkillMatch;
+window.buildSessionCSV = buildSessionCSV;
+window.buildSessionJSON = buildSessionJSON;
 window.fairWeightedMatch = fairWeightedMatch;
 window.balancedMatch = balancedMatch;
 window.checkinToPlayer = checkinToPlayer;

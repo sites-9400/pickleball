@@ -358,3 +358,120 @@ export function balancedMatch(pool, gameHistory, currentRound, opts = {}) {
   const pick = cand[Math.floor(rng() * cand.length)].x;
   return { team1: [pick[0][0].id, pick[0][1].id], team2: [pick[1][0].id, pick[1][1].id] };
 }
+
+// ===== SESSION EXPORT =====
+// Shared by app.html's export buttons and the dashboard's per-session export, so the two
+// can never drift. Both are handed a raw Firebase session snapshot.
+
+// Firebase drops empty arrays (the app writes an {_empty:true} sentinel in their place)
+// and may return an object keyed by index instead of an array. Accept all three shapes.
+function _list(v) {
+  if (!v || v._empty) return [];
+  if (Array.isArray(v)) return v.filter(x => x != null);
+  return Object.keys(v).filter(k => k !== '_empty').map(k => v[k]).filter(x => x != null);
+}
+// Clock time, but keep the date when the event falls outside the session's own day — a
+// check-in logged while reopening a finished session to export must not read as though it
+// happened mid-session.
+function _stamp(ts, baseTs) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const base = baseTs ? new Date(baseTs) : null;
+    if (base && d.toDateString() === base.toDateString()) return t;
+    return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${t}`;
+  } catch (e) { return ''; }
+}
+// When a player arrived, when they left, and how long they were on site. Someone still
+// here is counted to the session end, or to `now` if it is still running.
+function _span(p, sessionEndTime, now) {
+  const evs = _list(p.events);
+  const firstIn = evs.find(e => e && e.t === 'in');
+  const lastOut = p.present ? null : [...evs].reverse().find(e => e && e.t === 'out');
+  if (!firstIn) return { inTs: null, outTs: lastOut ? lastOut.ts : null, mins: null };
+  const end = lastOut ? lastOut.ts : (sessionEndTime || now);
+  return { inTs: firstIn.ts, outTs: lastOut ? lastOut.ts : null,
+           mins: Math.max(0, Math.round((end - firstIn.ts) / 60000)) };
+}
+const _DASH = '—';
+// Round robin / bracket / ladder have a real round number worth showing; the queue modes
+// number games by position instead (newest game first, as gameHistory is stored).
+function _roundIsReal(mode) { return mode === 'roundrobin' || mode === 'bracket' || mode === 'ladder'; }
+function _len(g) {
+  return (g.startedAt && g.endedAt) ? Math.max(0, Math.round((g.endedAt - g.startedAt) / 60000)) : null;
+}
+
+export function buildSessionCSV(session, opts = {}) {
+  const s = session || {};
+  const now = opts.now != null ? opts.now : Date.now();
+  const start = s.sessionStartTime || null;
+  const mode = (s.mode && s.mode.matchmaking) || 'waittime';
+  const players = _list(s.players);
+  const history = _list(s.gameHistory);
+  const realRound = _roundIsReal(mode);
+
+  const rows = [['Name','Present','Games','Wins','Losses','Points','Points Against','Win%','Pt%',
+                 'Games/hr','Checked in','Left','On site (min)']];
+  players.forEach(p => {
+    const gp = p.gamesPlayed || 0, tot = (p.points || 0) + (p.pointsAgainst || 0);
+    const a = _span(p, s.sessionEndTime, now);
+    rows.push([p.name, p.present ? 'Yes' : 'No', gp, p.wins || 0, p.losses || 0,
+      p.points || 0, p.pointsAgainst || 0,
+      (gp > 0 ? Math.round((p.wins || 0) / gp * 100) : 0) + '%',
+      (tot > 0 ? Math.round((p.points || 0) / tot * 100) : 0) + '%',
+      a.mins > 0 ? (gp / (a.mins / 60)).toFixed(2) : _DASH,
+      a.inTs ? _stamp(a.inTs, start) : _DASH,
+      a.outTs ? _stamp(a.outTs, start) : _DASH,
+      a.mins == null ? _DASH : a.mins]);
+  });
+  rows.push([]);
+  rows.push([realRound ? 'Round' : 'Game','Court','Team A','Team B','Score A','Score B',
+             'Started','Ended','Length (min)']);
+  history.forEach((g, i) => {
+    const len = _len(g);
+    rows.push([realRound ? g.round : history.length - i, g.courtName || g.court,
+      _list(g.team1).join(' & '), _list(g.team2).join(' & '), g.score1, g.score2,
+      g.startedAt ? _stamp(g.startedAt, start) : _DASH,
+      g.endedAt ? _stamp(g.endedAt, start) : _DASH,
+      len == null ? _DASH : len]);
+  });
+  const cell = v => { const t = String(v == null ? '' : v);
+    return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  return rows.map(r => r.map(cell).join(',')).join('\n');
+}
+
+export function buildSessionJSON(session, opts = {}) {
+  const s = session || {};
+  const now = opts.now != null ? opts.now : Date.now();
+  const start = s.sessionStartTime || null;
+  const end = s.sessionEndTime || null;
+  return JSON.stringify({
+    session: {
+      name: s.sessionName || s.name || '',
+      mode: (s.mode && s.mode.matchmaking) || 'waittime',
+      format: (s.mode && s.mode.format) || 'doubles',
+      startTime: start ? new Date(start).toISOString() : null,
+      endTime: end ? new Date(end).toISOString() : null,
+      durationMin: start ? Math.round(((end || now) - start) / 60000) : null,
+      ended: !!s.sessionEnded,
+    },
+    players: _list(s.players).map(p => {
+      const a = _span(p, end, now);
+      return { name: p.name, present: !!p.present, gamesPlayed: p.gamesPlayed || 0,
+        wins: p.wins || 0, losses: p.losses || 0, points: p.points || 0,
+        pointsAgainst: p.pointsAgainst || 0, skill: p.skill || 'intermediate',
+        checkedIn: a.inTs ? _stamp(a.inTs, start) : null,
+        left: a.outTs ? _stamp(a.outTs, start) : null,
+        onSiteMin: a.mins };
+    }),
+    gameHistory: _list(s.gameHistory).map(g => ({
+      round: g.round, court: g.courtName || g.court,
+      team1: _list(g.team1), team2: _list(g.team2),
+      score1: g.score1, score2: g.score2,
+      started: g.startedAt ? new Date(g.startedAt).toISOString() : null,
+      ended: g.endedAt ? new Date(g.endedAt).toISOString() : null,
+      lengthMin: _len(g),
+    })),
+  }, null, 2);
+}

@@ -72,6 +72,14 @@ input:focus{border-color:var(--army);}
 .session-card .btn-sm svg{width:15px;height:15px;}
 .session-meta{font-size:0.75rem;font-weight:500;color:var(--muted);margin-top:2px;letter-spacing:0.01em;}
 .session-actions{display:flex;gap:6px;flex-shrink:0;}
+.export-wrap{position:relative;}
+.export-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:20;background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.14);
+  display:flex;flex-direction:column;min-width:104px;overflow:hidden;}
+.export-menu.hidden{display:none;}
+.export-menu button{border:none;background:none;color:inherit;font:inherit;font-weight:700;
+  font-size:0.78rem;text-align:left;padding:9px 14px;cursor:pointer;}
+.export-menu button:hover{background:var(--surface2);}
 .live-dot{width:8px;height:8px;border-radius:50%;background:#8FB339;animation:blink 2s infinite;flex-shrink:0;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
 .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:0.68rem;font-weight:800;letter-spacing:0.04em;}
@@ -263,6 +271,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebas
 import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 import { getDatabase, ref, push, set, get, update, remove, onValue, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js';
 import { classifyDashboardEntry } from './cohost.js';
+import { buildSessionCSV, buildSessionJSON } from './tournament.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDDyMStj6lavAgA9j6sImmFavauI0lha-E",
@@ -280,6 +289,7 @@ const db = getDatabase(app);
 
 let currentUser = null;
 let deleteTargetId = null;
+let sessionSnapshots = {};
 
 // Auth guard — wait for full resolution before redirecting
 let _authResolved = false;
@@ -352,6 +362,9 @@ function renderSessionList(entries) {
   const list = document.getElementById('sessionList');
   if (!entries.length) { list.innerHTML = emptyState(); return; }
   const sorted = [...entries].sort(([,a],[,b]) => (b.createdAt||0) - (a.createdAt||0));
+  // The cards already carry each session's full snapshot (that is how the game/player
+  // counts are computed), so exporting needs no extra read.
+  sessionSnapshots = {}; sorted.forEach(([id, s]) => { sessionSnapshots[id] = s; });
   list.innerHTML = sorted.map(([id, s, kind]) => sessionCard(id, s, kind)).join('');
   // Live session resume banner
   const live = sorted.find(([,s]) => !s.sessionEnded && s.status !== 'ended');
@@ -458,6 +471,7 @@ function sessionCard(id, s, kind = 'owner') {
   const liveHint = isLive ? '<div style="font-size:0.72rem;font-weight:700;color:var(--army);margin-top:3px;">⚡ Tap to manage</div>' : '';
   const viewHref = basePath + 'view.html?session=' + id;
   const eyeSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const dlSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
   const trashSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
   return `<div class="session-card ${isLive?'session-live':''}" data-id="${id}" onclick="openSession(this.dataset.id)">
     <div class="session-icon">${isLive ? '🟢' : '📋'}</div>
@@ -472,6 +486,13 @@ function sessionCard(id, s, kind = 'owner') {
     </div>
     <div class="session-actions" onclick="event.stopPropagation()">
       <a href="${viewHref}" target="_blank" class="btn btn-outline btn-sm" title="Open live view">${eyeSvg} View</a>
+      <div class="export-wrap">
+        <button class="btn btn-outline btn-sm" onclick="toggleExportMenu('${id}')" title="Export this session">${dlSvg}</button>
+        <div class="export-menu hidden" id="exportMenu-${id}">
+          <button onclick="exportSession('${id}','csv')">CSV</button>
+          <button onclick="exportSession('${id}','json')">JSON</button>
+        </div>
+      </div>
       ${kind === 'cohost' ? '' : `<button class="btn btn-outline btn-sm" onclick="promptDelete('${id}')" title="Delete session" aria-label="Delete session">${trashSvg}</button>`}
     </div>
   </div>`;
@@ -485,6 +506,34 @@ function emptyState() {
 window.openSession = (id) => {
   const basePath = window.location.pathname.replace(/[^/]*$/, '');
   window.location.href = basePath + 'app.html?session=' + id;
+};
+
+window.toggleExportMenu = (id) => {
+  const menu = document.getElementById('exportMenu-' + id);
+  const wasHidden = menu && menu.classList.contains('hidden');
+  document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
+  if (menu && wasHidden) menu.classList.remove('hidden');
+};
+// Any click outside closes an open menu.
+document.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('.export-wrap')) return;
+  document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
+});
+window.exportSession = (id, kind) => {
+  const s = sessionSnapshots[id];
+  document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
+  if (!s) { showToast('Session data not loaded yet — try again.'); return; }
+  // Same builders app.html uses, so this file matches an in-session export exactly.
+  const text = kind === 'json' ? buildSessionJSON(s) : buildSessionCSV(s);
+  const name = (s.name || s.sessionName || 'session').replace(/\s+/g, '-');
+  const stamp = (s.date || new Date().toISOString().slice(0, 10));
+  const blob = new Blob([text], { type: kind === 'json' ? 'application/json' : 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${name}-${stamp}.${kind}`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast(kind.toUpperCase() + ' exported!');
 };
 
 window.promptDelete = (id) => {

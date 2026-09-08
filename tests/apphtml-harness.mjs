@@ -66,6 +66,7 @@ export function loadApp() {
     checkinToPlayer: T.checkinToPlayer, resolveChallengeCourt: T.resolveChallengeCourt,
     buildTeams: T.buildTeams, generateRoundRobin: T.generateRoundRobin,
     computeStandings: T.computeStandings, nextEligibleMatch: T.nextEligibleMatch,
+    buildSessionCSV: T.buildSessionCSV, buildSessionJSON: T.buildSessionJSON,
   };
   const blobs = [];   // text of every Blob the page builds (CSV / JSON exports)
   const ctx = vm.createContext({
