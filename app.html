@@ -4071,6 +4071,7 @@ window._importCheckin = function(key, entry) {
     if (ex) {
       ex.present = true;
       logPresence(ex, true, entry.ts||Date.now());
+      seedWaitClock(ex);
       if (!queueOrder.includes(ex.id)) queueOrder.push(ex.id);
       rebuildMatchQueue(); renderPlayers(); renderQueue(); saveState();
       showToast(`${ex.name} marked here.`);

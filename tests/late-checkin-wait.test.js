@@ -79,3 +79,14 @@ test('the very first player to check in mid-session has nobody to compare to', (
   app.run(`togglePresent('solo');`);
   assert.equal(app.run(`getPlayer('solo').lastPlayedRound`), -1, 'left alone, no crash');
 });
+
+test('QR self-check-in seeds the wait clock too', () => {
+  // _importCheckin is how a latecomer scanning the QR marks themselves present --
+  // the most common late-arrival path, and the one most likely to be a walk-in.
+  const app = loadMidSession([P('qrlate', -1, { present: false, gamesPlayed: 0 })]);
+  app.run(`window._removeCheckin = () => {};`);
+  app.run(`window._importCheckin('k1', { name: 'QRLATE', skill: 'intermediate', ts: Date.now() });`);
+  assert.equal(app.run(`getPlayer('qrlate').present`), true, 'marked present');
+  assert.equal(waitOf(app, 'qrlate'), 5,
+    'a QR check-in must be seeded like every other mid-session arrival');
+});
