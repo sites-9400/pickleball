@@ -2619,8 +2619,12 @@ function adaptiveConfig(){
   const healthy = present >= 12 && (present - 4 * courts) >= 3;
   return { beta: healthy ? 12 : 1, decay: 1, K: healthy ? 4 : 1.5, blockWindow: 3 };
 }
-// "Up Next" preview only helps flow with many courts finishing often; hide it below 4.
-function showUpNext(){ return courtDefs.length >= 4; }
+// "Up Next" preview only helps flow when courts finish often enough to keep a match on
+// deck; below 3 courts there is nothing to preview. Measured at 3 courts over 12 seeded
+// 5-hour nights: reserving the next foursome is free at 24+ players (opponent pairs
+// meeting 3+ went 2.17 -> 2.08), costs a little at 18-20, and is degenerate at 16, where
+// 3 courts plus a reserved match consume all 16 so the "choice" is forced.
+function showUpNext(){ return courtDefs.length >= 3; }
 // Pick the players + teams for the next match per the session's matchmaking style.
 function chooseMatchPlayers(){
   const need=matchSize();

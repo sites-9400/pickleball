@@ -512,11 +512,11 @@ function renderQueue(s) {
   (s.courts||[]).filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>playingIds.add(id)));
 
   const mq = s.matchQueue||[];
-  // Mirror app.html exactly: it hides the Up Next cards for Random/Balanced below 4
-  // courts (showUpNext = courtDefs.length >= 4). Keep the two views consistent — the
+  // Mirror app.html exactly: it hides the Up Next cards for Random/Balanced below 3
+  // courts (showUpNext = courtDefs.length >= 3). Keep the two views consistent — the
   // matchmaking mode/queue are owned by app.html; here we only read them to display.
   const mode = (s.mode && s.mode.matchmaking) || 'waittime';
-  const showUpNext = !((mode==='random'||mode==='balanced') && (s.courtDefs||[]).length < 4);
+  const showUpNext = !((mode==='random'||mode==='balanced') && (s.courtDefs||[]).length < 3);
 
   let html='';
 
