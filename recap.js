@@ -2,7 +2,7 @@
  * Shared end-of-session recap: podium + top 10 + QR, rendered identically in
  * view.html (player-facing ended state) and app.html (admin Recap tab).
  *
- * Exposes window.PDRecap = { buildRecapData, render, saveImage }.
+ * Exposes window.PDRecap = { buildRecapData, render, saveImage, pickSaveStrategy, detectEnv }.
  * buildRecapData is pure (no DOM) and is unit-tested in recap.test.js under Node.
  */
 (function (global) {
@@ -157,6 +157,20 @@
     '.pdr-save{width:100%;border:none;border-radius:9px;background:var(--pdr-army);color:#fff;font-family:inherit;font-weight:800;font-size:.82rem;letter-spacing:.03em;padding:12px;cursor:pointer;transition:filter .15s;}',
     '.pdr-save:hover{filter:brightness(1.08);}',
     '.pdr-save:disabled{opacity:.6;cursor:default;}',
+    '.pdr-save.ready{background:#1f7a3a;animation:pdr-pulse 1.1s ease-in-out 3;}',
+    '@keyframes pdr-pulse{50%{filter:brightness(1.25);}}',
+    // full-screen preview (press-and-hold → Save to Photos)
+    '.pdr-ovl{position:fixed;inset:0;z-index:99999;background:rgba(10,16,12,.96);display:flex;flex-direction:column;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-touch-callout:default;}',
+    '.pdr-ovl-bar{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;}',
+    '.pdr-ovl-hint{flex:1;font-size:.9rem;font-weight:600;line-height:1.3;}',
+    '.pdr-ovl-hint b{color:#ffd66b;}',
+    '.pdr-ovl-close{background:rgba(255,255,255,.14);border:none;color:#fff;font-size:1rem;width:36px;height:36px;border-radius:50%;cursor:pointer;}',
+    '.pdr-ovl-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 12px;}',
+    '.pdr-ovl-img{display:block;width:100%;max-width:680px;margin:0 auto;border-radius:10px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;}',
+    '.pdr-ovl-foot{display:flex;gap:10px;padding:10px 14px calc(14px + env(safe-area-inset-bottom));}',
+    '.pdr-ovl-foot button{flex:1;border:none;border-radius:9px;padding:13px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;}',
+    '.pdr-ovl-share{background:#1f7a3a;color:#fff;}',
+    '.pdr-ovl-done{background:rgba(255,255,255,.14);color:#fff;}',
     '.pdr-empty{padding:40px 20px;text-align:center;color:var(--pdr-muted);font-weight:600;}'
   ].join('');
 
@@ -198,8 +212,9 @@
   }
 
   function render(container, state, opts) {
+    opts = opts || {};
     injectCSS();
-    var r = buildRecapData(state, opts || {});
+    var r = buildRecapData(state, opts);
     if (!r.podium.length) {
       container.innerHTML = '<div class="pdr"><div class="pdr-empty">🏆<br>The recap appears once games have been played.</div></div>';
       return r;
@@ -242,7 +257,10 @@
 
     // Save-as-image
     var btn = container.querySelector('.pdr-save');
-    if (btn) btn.addEventListener('click', function () { saveImage(container.querySelector('#pdr-card'), btn); });
+    var card = container.querySelector('#pdr-card');
+    if (btn) btn.addEventListener('click', function () { saveImage(card, btn); });
+    // Get the PNG ready before the first tap (phones need it in hand at tap time).
+    if (card && !opts.noWarmUp) setTimeout(function () { warmUp(card); }, 400);
 
     return r;
   }
@@ -257,8 +275,23 @@
     } catch (e) { /* leave blank on failure */ }
   }
 
-  // Lazy-load html2canvas, snapshot the card, trigger a PNG download.
+  // ---- save as image ------------------------------------------------------
+  // Why this is shaped the way it is (phone failures, Sep 2026):
+  //  * iOS Safari AND iOS Chrome (every iOS browser is WebKit) ignore or silently
+  //    drop a synthetic <a download> click on a data:/blob: URL, and inside the
+  //    installed PWA (display:standalone) downloads never work at all. There is
+  //    no error to catch — the tap just does nothing.
+  //  * The only route to "Save Image → Photos" on iOS is the share sheet
+  //    (navigator.share with a File). It must be called synchronously inside the
+  //    tap: any await first (CDN script load, html2canvas, toBlob) lets the
+  //    transient user activation expire and iOS drops the sheet, again silently.
+  //  So the PNG is produced AHEAD of the tap (warmed up when the recap renders,
+  //  or on a first tap that then arms the button for a second tap), and the tap
+  //  itself only hands the ready File to the share sheet. If sharing is refused
+  //  or unavailable, a full-screen preview lets the user press-and-hold the image
+  //  → "Save to Photos", which works in every iOS browser.
   var H2C = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+  var FILE_NAME = 'paddle-district-recap';
   function loadH2C() {
     return new Promise(function (resolve, reject) {
       if (global.html2canvas) return resolve(global.html2canvas);
@@ -268,18 +301,40 @@
       document.head.appendChild(s);
     });
   }
-  function saveImage(card, btn) {
-    if (!card) return;
-    var label = btn ? btn.textContent : '';
-    if (btn) { btn.disabled = true; btn.textContent = 'Rendering…'; }
+  function fileName() { return FILE_NAME + '-' + new Date().toISOString().slice(0, 10) + '.png'; }
 
-    // Capture a detached clone rather than the live card, for two reasons:
-    //  1) The card uses container-type:inline-size for its responsive @container
-    //     rules — html2canvas 1.4.1 mishandles CSS containment and silently drops
-    //     contained children (the QR + its caption came out blank). Forcing the
-    //     clone to the fixed 680px wide layout with containment off renders the QR.
-    //  2) The clone excludes the "Save image" button, so the exported PNG never
-    //     shows the transient "Rendering…" state (or the button at all).
+  // Pure: which delivery route to use for this device.
+  //   share    — navigator.share({files}) → iOS/Android share sheet ("Save Image")
+  //   preview  — full-screen image, press-and-hold → Save to Photos (iOS w/o file share)
+  //   download — classic <a download> (desktop browsers)
+  function pickSaveStrategy(env) {
+    env = env || {};
+    if (env.isIOS) return env.canShareFiles ? 'share' : 'preview';
+    if (env.coarse && env.canShareFiles) return 'share';
+    return 'download';
+  }
+
+  function detectEnv() {
+    var nav = global.navigator || {};
+    var ua = nav.userAgent || '';
+    var isIOS = /iP(hone|ad|od)/.test(ua) || (nav.platform === 'MacIntel' && (nav.maxTouchPoints || 0) > 1); // iPadOS masquerades as Mac
+    var coarse = false;
+    try { coarse = !!(global.matchMedia && global.matchMedia('(pointer:coarse)').matches); } catch (e) {}
+    var canShareFiles = false;
+    try {
+      if (nav.share && nav.canShare && typeof File === 'function') {
+        canShareFiles = nav.canShare({ files: [new File([new Uint8Array(1)], 'probe.png', { type: 'image/png' })] });
+      }
+    } catch (e) { canShareFiles = false; }
+    return { isIOS: isIOS, coarse: coarse, canShareFiles: canShareFiles };
+  }
+
+  // Render the card to {file, url}. Captures a detached clone rather than the live
+  // card: the card uses container-type:inline-size for its @container rules and
+  // html2canvas 1.4.1 mishandles containment (QR came out blank); the clone is
+  // forced to the fixed 680px layout with containment off, and drops the button
+  // row so the PNG never shows it.
+  function producePng(card) {
     var clone = card.cloneNode(true);
     clone.style.containerType = 'normal';
     clone.style.width = '680px';
@@ -292,25 +347,134 @@
     holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:680px;pointer-events:none;';
     holder.appendChild(clone);
     document.body.appendChild(holder);
-
     function cleanup() { if (holder.parentNode) holder.parentNode.removeChild(holder); }
 
-    loadH2C().then(function (h2c) {
+    return loadH2C().then(function (h2c) {
       return h2c(clone, { backgroundColor: '#f7f4ea', scale: Math.min(3, (global.devicePixelRatio || 1) * 2), useCORS: true, width: 680, windowWidth: 720 });
     }).then(function (canvas) {
-      var a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = 'paddle-district-recap-' + new Date().toISOString().slice(0, 10) + '.png';
-      a.click();
-      cleanup();
-      if (btn) { btn.disabled = false; btn.textContent = label; }
+      return new Promise(function (resolve, reject) {
+        var done = function (blob) {
+          cleanup();
+          if (!blob) return reject(new Error('toBlob failed'));
+          var name = fileName();
+          var file = (typeof File === 'function') ? new File([blob], name, { type: 'image/png' }) : blob;
+          resolve({ file: file, url: URL.createObjectURL(blob), name: name });
+        };
+        if (canvas.toBlob) canvas.toBlob(done, 'image/png');
+        else { // very old WebKit: data URL → blob
+          var b = atob(canvas.toDataURL('image/png').split(',')[1]), u8 = new Uint8Array(b.length);
+          for (var i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i);
+          done(new Blob([u8], { type: 'image/png' }));
+        }
+      });
+    }).catch(function (e) { cleanup(); throw e; });
+  }
+
+  // One PNG cache per rendered card (a re-render makes a new card → fresh cache).
+  var pngCache = (typeof WeakMap === 'function') ? new WeakMap() : null;
+  function cacheFor(card, opts) {
+    if (opts && opts.cache) return opts.cache;
+    if (!pngCache) return (card._pdrPng = card._pdrPng || {});
+    var c = pngCache.get(card); if (!c) { c = {}; pngCache.set(card, c); }
+    return c;
+  }
+  function ensurePng(card, opts) {
+    var c = cacheFor(card, opts);
+    if (c.png) return Promise.resolve(c.png);
+    if (!c.promise) {
+      var produce = (opts && opts.producePng) || producePng;
+      c.promise = produce(card).then(function (png) { c.png = png; return png; }, function (e) { c.promise = null; throw e; });
+    }
+    return c.promise;
+  }
+  // Called right after render: get the PNG ready before the user ever taps, so the
+  // tap can go straight to the share sheet. Waits for the QR to appear first.
+  function warmUp(card, opts) {
+    var tries = 0;
+    (function tick() {
+      var qr = card.querySelector && card.querySelector('.pdr-qrcode');
+      var qrReady = !qr || (qr.children && qr.children.length > 0);
+      if (!qrReady && tries++ < 15) return setTimeout(tick, 300);
+      ensurePng(card, opts).catch(function () { /* the tap path reports failures */ });
+    })();
+  }
+
+  // Full-screen preview: works on every iOS browser (press-and-hold → Save to Photos).
+  function openPreview(png, opts) {
+    var doc = (opts && opts.document) || document;
+    var ovl = doc.createElement('div');
+    ovl.className = 'pdr-ovl';
+    if (ovl.classList) ovl.classList.add('pdr-ovl');
+    var share = (opts && opts.share) || (global.navigator && global.navigator.share ? function (d) { return global.navigator.share(d); } : null);
+    var env = (opts && opts.env) || detectEnv();
+    ovl.innerHTML =
+      '<div class="pdr-ovl-bar">' +
+        '<div class="pdr-ovl-hint">Press and hold the image, then tap <b>Save to Photos</b></div>' +
+        '<button type="button" class="pdr-ovl-close" aria-label="Close">✕</button>' +
+      '</div>' +
+      '<div class="pdr-ovl-scroll"><img class="pdr-ovl-img" alt="Open Play recap" src="' + esc(png.url) + '"></div>' +
+      '<div class="pdr-ovl-foot">' +
+        (share && env.canShareFiles ? '<button type="button" class="pdr-ovl-share">Share / Save…</button>' : '') +
+        '<button type="button" class="pdr-ovl-done">Done</button>' +
+      '</div>';
+    doc.body.appendChild(ovl);
+    function close() { if (ovl.parentNode) ovl.parentNode.removeChild(ovl); }
+    var x = ovl.querySelector && ovl.querySelector('.pdr-ovl-close'); if (x) x.addEventListener('click', close);
+    var d = ovl.querySelector && ovl.querySelector('.pdr-ovl-done'); if (d) d.addEventListener('click', close);
+    var s = ovl.querySelector && ovl.querySelector('.pdr-ovl-share');
+    if (s) s.addEventListener('click', function () { share({ files: [png.file], title: 'Open Play Recap' }).catch(function () {}); });
+    return ovl;
+  }
+
+  // Deliver a READY png. Must run synchronously inside the tap for the share route.
+  function deliver(png, strategy, opts) {
+    var doc = (opts && opts.document) || document;
+    if (strategy === 'share') {
+      var share = (opts && opts.share) || function (d) { return global.navigator.share(d); };
+      var p;
+      try { p = share({ files: [png.file], title: 'Open Play Recap' }); } catch (e) { p = Promise.reject(e); }
+      return Promise.resolve(p).catch(function (e) {
+        if (e && e.name === 'AbortError') return; // user closed the sheet — not an error
+        openPreview(png, opts);                    // activation lost / share refused → guaranteed route
+      });
+    }
+    if (strategy === 'preview') { openPreview(png, opts); return Promise.resolve(); }
+    var a = doc.createElement('a');
+    a.href = png.url;
+    a.download = png.name || fileName();
+    a.click();
+    return Promise.resolve();
+  }
+
+  // opts (all optional, used by tests): env, document, share, producePng, cache.
+  function saveImage(card, btn, opts) {
+    if (!card) return;
+    opts = opts || {};
+    var env = opts.env || detectEnv();
+    var strategy = pickSaveStrategy(env);
+    var label = btn ? (btn._pdrLabel || btn.textContent) : '';
+    if (btn) btn._pdrLabel = label;
+    var c = cacheFor(card, opts);
+
+    function restore() { if (btn) { btn.disabled = false; btn.textContent = label; if (btn.classList) btn.classList.remove('ready'); } }
+
+    if (c.png) { // ready → hand it over inside this very tap
+      restore();
+      deliver(c.png, strategy, opts);
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Preparing image…'; }
+    ensurePng(card, opts).then(function (png) {
+      if (strategy === 'download') { restore(); deliver(png, strategy, opts); return; } // desktop: async is fine
+      // Phone: NEVER fire the share sheet after an await — iOS drops it. Arm a second tap.
+      if (btn) { btn.disabled = false; btn.textContent = '✓ Ready — tap to save to Photos'; if (btn.classList) btn.classList.add('ready'); }
     }).catch(function () {
-      cleanup();
-      if (btn) { btn.disabled = false; btn.textContent = 'Save unavailable — use the QR'; setTimeout(function(){ btn.textContent = label; }, 2600); }
+      if (btn) { btn.disabled = false; btn.textContent = 'Save unavailable — use the QR'; setTimeout(function () { restore(); }, 2600); }
     });
   }
 
-  var api = { buildRecapData: buildRecapData, render: render, saveImage: saveImage };
+  var api = { buildRecapData: buildRecapData, render: render, saveImage: saveImage, pickSaveStrategy: pickSaveStrategy, detectEnv: detectEnv };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof window !== 'undefined') window.PDRecap = api;
   else if (typeof globalThis !== 'undefined') globalThis.PDRecap = api; // Node ESM test hook
