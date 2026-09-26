@@ -219,7 +219,7 @@
       container.innerHTML = '<div class="pdr"><div class="pdr-empty">🏆<br>The recap appears once games have been played.</div></div>';
       return r;
     }
-    var meta = [r.dateLabel, r.timeLabel, r.courtLabel].filter(Boolean).join('  ·  ');
+    var meta = [r.timeLabel, r.dateLabel, r.courtLabel].filter(Boolean).join('  ·  ');
     var hoursLabel = r.stats.hours === 1 ? 'HOUR' : 'HOURS';
     var showAll = r.totalPlayers > 10 ? ('scan for all ' + r.totalPlayers + ' players') : 'ranked by wins';
 
