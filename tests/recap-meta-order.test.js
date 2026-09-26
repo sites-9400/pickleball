@@ -16,6 +16,6 @@ test('recap meta line reads time · date · courts', () => {
   globalThis.document ??= { getElementById: () => null, head: { appendChild() {} }, createElement: () => ({}) };
   const container = { innerHTML: '', querySelector: () => null };
   render(container, state, {});
-  const meta = container.innerHTML.match(/<div class="pdr-meta">([^<]*)<\/div>/)[1];
+  const meta = container.innerHTML.match(/<div class="pdr-meta">(.*?)<\/div>/)[1].replace(/<[^>]+>/g, '');
   assert.equal(meta, [r.timeLabel, r.dateLabel, r.courtLabel].join('  ·  '));
 });

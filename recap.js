@@ -81,16 +81,36 @@
     var end = state.sessionEndTime || null;
     var now = opts.now || null;
     var durationMs = start ? Math.max(0, (end || now || start) - start - (state.sessionPausedMs || 0)) : 0;
+    // Prefer actual play: first game start to last game end, minus idle gaps over an
+    // hour. A session left open for weeks (or reopened next day) otherwise showed the
+    // whole span ("1171 HOURS"). Falls back to session start/end without timestamps.
+    var iv = (state.gameHistory || []).filter(function (g) {
+      return g && typeof g.startedAt === 'number' && typeof g.endedAt === 'number' && g.endedAt >= g.startedAt;
+    }).map(function (g) { return [g.startedAt, g.endedAt]; }).sort(function (a, b) { return a[0] - b[0]; });
+    var playStart = start, playEnd = end;
+    if (iv.length) {
+      var active = 0, s0 = iv[0][0], e0 = iv[0][1];
+      playStart = iv[0][0]; playEnd = iv[0][1];
+      for (var k = 1; k < iv.length; k++) {
+        if (iv[k][0] - e0 > 3600000) { active += e0 - s0; s0 = iv[k][0]; e0 = iv[k][1]; }
+        else e0 = Math.max(e0, iv[k][1]);
+        playEnd = Math.max(playEnd, iv[k][1]);
+      }
+      durationMs = active + (e0 - s0);
+    }
     var hours = Math.max(0, Math.round(durationMs / 3600000));
+    var underHour = durationMs > 0 && durationMs < 3600000;
+    var duration = underHour ? Math.max(1, Math.round(durationMs / 60000)) : hours;
+    var durationUnit = underHour ? 'MIN' : (hours === 1 ? 'HOUR' : 'HOURS');
 
     return {
       brand: 'PADDLE DISTRICT',
       title: 'OPEN PLAY RECAP',
       sessionName: state.sessionName || 'Open Play',
-      dateLabel: fmtDate(start),
-      timeLabel: fmtTimeRange(start, end),
+      dateLabel: fmtDate(playStart),
+      timeLabel: fmtTimeRange(playStart, playEnd),
       courtLabel: fmtCourts(state.courtDefs),
-      stats: { games: (state.gameHistory || []).length, players: roster.length, hours: hours },
+      stats: { games: (state.gameHistory || []).length, players: roster.length, hours: hours, duration: duration, durationUnit: durationUnit },
       // Event photo: only a JPEG data URL (it goes straight into a CSS url()).
       photo: /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(state.recapPhoto || '') ? state.recapPhoto : null,
       podium: roster.slice(0, 3),
@@ -115,6 +135,7 @@
     '.pdr-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(143,179,57,.18),transparent 55%);pointer-events:none;}',
     '.pdr-eyebrow{font-size:.8rem;font-weight:800;letter-spacing:.22em;opacity:.9;text-transform:uppercase;}',
     '.pdr-meta{font-size:.8rem;font-weight:700;letter-spacing:.13em;color:var(--pdr-gold);margin-top:14px;text-transform:uppercase;}',
+    '.pdr-mp{white-space:nowrap;}',
     '.pdr-title{font-size:2.5rem;line-height:.95;font-weight:900;letter-spacing:-.01em;margin-top:6px;text-transform:uppercase;}',
     '.pdr-title span{color:#a9cf5a;}',
     '.pdr-statrow{display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;}',
@@ -222,8 +243,9 @@
       container.innerHTML = '<div class="pdr"><div class="pdr-empty">🏆<br>The recap appears once games have been played.</div></div>';
       return r;
     }
-    var meta = [r.timeLabel, r.dateLabel, r.courtLabel].filter(Boolean).join('  ·  ');
-    var hoursLabel = r.stats.hours === 1 ? 'HOUR' : 'HOURS';
+    // Each part stays on one line; the line can only wrap at the separators.
+    var meta = [r.timeLabel, r.dateLabel, r.courtLabel].filter(Boolean)
+      .map(function (m) { return '<span class="pdr-mp">' + esc(m) + '</span>'; }).join('  ·  ');
     var showAll = r.totalPlayers > 10 ? ('scan for all ' + r.totalPlayers + ' players') : 'ranked by wins';
 
     var html = '' +
@@ -232,12 +254,12 @@
           (r.viewUrl ? '<div class="pdr-qr"><div class="pdr-qrcode"></div><small>Scan for full results</small></div>' : '') +
           '<div class="pdr-hmain">' +
             '<div class="pdr-eyebrow">' + esc(r.brand) + '</div>' +
-            (meta ? '<div class="pdr-meta">' + esc(meta) + '</div>' : '') +
+            (meta ? '<div class="pdr-meta">' + meta + '</div>' : '') +
             '<div class="pdr-title">OPEN PLAY <span>RECAP</span></div>' +
             '<div class="pdr-statrow">' +
-              '<div class="pdr-stat"><b>' + r.stats.games + '</b><i>GAMES</i></div>' +
-              '<div class="pdr-stat"><b>' + r.stats.players + '</b><i>PLAYERS</i></div>' +
-              '<div class="pdr-stat"><b>' + r.stats.hours + '</b><i>' + hoursLabel + '</i></div>' +
+              '<div class="pdr-stat"><b>' + r.stats.games + '</b><i>' + (r.stats.games === 1 ? 'GAME' : 'GAMES') + '</i></div>' +
+              '<div class="pdr-stat"><b>' + r.stats.players + '</b><i>' + (r.stats.players === 1 ? 'PLAYER' : 'PLAYERS') + '</i></div>' +
+              '<div class="pdr-stat"><b>' + r.stats.duration + '</b><i>' + r.stats.durationUnit + '</i></div>' +
             '</div>' +
           '</div>' +
         '</div>' +
