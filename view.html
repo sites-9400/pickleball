@@ -329,7 +329,10 @@ function showEndedState(s) {
   const d = s.sessionStartTime ? new Date(s.sessionStartTime) : null;
   const dateStr = d ? d.toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'}) : '';
   document.getElementById('viewSessionDate').textContent = dateStr + ' · Ended';
-  const finalTime = (s.sessionStartTime && s.sessionEndTime) ? fmt(s.sessionEndTime - s.sessionStartTime - (s.sessionPausedMs || 0)) : '--:--:--';
+  // Actual play time, the same figure as the recap and the organizer's header.
+  const play = window.PDRecap ? window.PDRecap.playTime(s.gameHistory) : null;
+  const finalTime = play ? fmt(play.ms)
+    : (s.sessionStartTime && s.sessionEndTime) ? fmt(s.sessionEndTime - s.sessionStartTime - (s.sessionPausedMs || 0)) : '--:--:--';
   document.getElementById('viewClock').textContent = finalTime;
   document.getElementById('mainContent').innerHTML = `
     <div id="viewRecap" style="margin-bottom:20px;"></div>

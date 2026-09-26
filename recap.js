@@ -95,6 +95,24 @@
   }
 
   // ---- data builder (pure) ---------------------------------------------
+  // Actual play: first game start to last game end, minus idle gaps over an hour.
+  // Shared by the recap and the ended-session clocks (app header, view.html) so they
+  // always agree. null when no game carries start/end timestamps.
+  function playTime(gameHistory) {
+    var h = Array.isArray(gameHistory) ? gameHistory : (gameHistory && typeof gameHistory === 'object' ? Object.keys(gameHistory).map(function (k) { return gameHistory[k]; }) : []);
+    var iv = h.filter(function (g) {
+      return g && typeof g.startedAt === 'number' && typeof g.endedAt === 'number' && g.endedAt >= g.startedAt;
+    }).map(function (g) { return [g.startedAt, g.endedAt]; }).sort(function (a, b) { return a[0] - b[0]; });
+    if (!iv.length) return null;
+    var active = 0, s0 = iv[0][0], e0 = iv[0][1], end = iv[0][1];
+    for (var k = 1; k < iv.length; k++) {
+      if (iv[k][0] - e0 > 3600000) { active += e0 - s0; s0 = iv[k][0]; e0 = iv[k][1]; }
+      else e0 = Math.max(e0, iv[k][1]);
+      end = Math.max(end, iv[k][1]);
+    }
+    return { start: iv[0][0], end: end, ms: active + (e0 - s0) };
+  }
+
   function buildRecapData(state, opts) {
     state = state || {}; opts = opts || {};
     var roster = (state.players || [])
@@ -123,20 +141,9 @@
     // Prefer actual play: first game start to last game end, minus idle gaps over an
     // hour. A session left open for weeks (or reopened next day) otherwise showed the
     // whole span ("1171 HOURS"). Falls back to session start/end without timestamps.
-    var iv = (state.gameHistory || []).filter(function (g) {
-      return g && typeof g.startedAt === 'number' && typeof g.endedAt === 'number' && g.endedAt >= g.startedAt;
-    }).map(function (g) { return [g.startedAt, g.endedAt]; }).sort(function (a, b) { return a[0] - b[0]; });
+    var play = playTime(state.gameHistory);
     var playStart = start, playEnd = end;
-    if (iv.length) {
-      var active = 0, s0 = iv[0][0], e0 = iv[0][1];
-      playStart = iv[0][0]; playEnd = iv[0][1];
-      for (var k = 1; k < iv.length; k++) {
-        if (iv[k][0] - e0 > 3600000) { active += e0 - s0; s0 = iv[k][0]; e0 = iv[k][1]; }
-        else e0 = Math.max(e0, iv[k][1]);
-        playEnd = Math.max(playEnd, iv[k][1]);
-      }
-      durationMs = active + (e0 - s0);
-    }
+    if (play) { playStart = play.start; playEnd = play.end; durationMs = play.ms; }
     var hours = Math.max(0, Math.round(durationMs / 3600000));
     var underHour = durationMs > 0 && durationMs < 3600000;
     var duration = underHour ? Math.max(1, Math.round(durationMs / 60000)) : hours;
@@ -552,7 +559,7 @@
     });
   }
 
-  var api = { buildRecapData: buildRecapData, render: render, photoLayout: photoLayout, frameHero: frameHero, saveImage: saveImage, pickSaveStrategy: pickSaveStrategy, detectEnv: detectEnv };
+  var api = { buildRecapData: buildRecapData, playTime: playTime, render: render, photoLayout: photoLayout, frameHero: frameHero, saveImage: saveImage, pickSaveStrategy: pickSaveStrategy, detectEnv: detectEnv };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof window !== 'undefined') window.PDRecap = api;
   else if (typeof globalThis !== 'undefined') globalThis.PDRecap = api; // Node ESM test hook

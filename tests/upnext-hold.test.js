@@ -105,15 +105,18 @@ test('view: no hold line when the free four are not one whole group', () => {
   assert.match(v.captured['vQueue'], /2 of Ana, Ben, Cai &amp; Dee/);
 });
 
-test('view: no hold line for By wait time (the app never holds there)', () => {
+test('view: By wait time holds like Numbering/Balanced (since 2026-09-26), shown when switched on', () => {
   const players = NAMES.slice(0, 8).map((nm, i) => P(i + 1, nm));
-  const v = loadView();
-  v.call('renderQueue', {
+  const s = {
     mode: { matchmaking: 'waittime', format: 'doubles' }, players,
     courtDefs: [{ id: 1, name: 'Court 1' }],
     courts: [{ id: 1, name: 'Court 1', team1: [5, 6], team2: [7, 8], submitted: false, startedAt: 1 }],
     matchQueue: [], queueOrder: [1, 2, 3, 4, 5, 6, 7, 8],
     gameHistory: [{ court: 1, team1Ids: [1, 2], team2Ids: [3, 4] }],
-  });
-  assert.doesNotMatch(v.captured['vQueue'], /2 of /);
+  };
+  const v = loadView();
+  v.call('renderQueue', s);
+  assert.doesNotMatch(v.captured['vQueue'], /upnext-placeholder/, '1 court: Up Next hidden by default');
+  v.call('renderQueue', { ...s, upNextAlways: true });
+  assert.match(v.captured['vQueue'], /2 of Ana, Ben, Cai &amp; Dee/);
 });

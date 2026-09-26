@@ -1995,7 +1995,10 @@ function refreshIdentity() {
 }
 function updateSessionClock() {
   if (!sessionStartTime) return;
-  const elapsed = (sessionEnded ? sessionEndTime : Date.now()) - sessionStartTime - sessionPausedMs;
+  // Ended: show actual play time, the same figure as the recap (a session ended at 2:31 AM
+  // after play stopped at 8:54 PM used to read 10+ hours). Running: the live clock.
+  const play = sessionEnded && window.PDRecap ? window.PDRecap.playTime(gameHistory) : null;
+  const elapsed = play ? play.ms : (sessionEnded ? sessionEndTime : Date.now()) - sessionStartTime - sessionPausedMs;
   document.getElementById('sessionClock').textContent = formatDuration(elapsed);
 }
 function updateTabOffset() {
