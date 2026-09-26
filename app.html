@@ -1211,6 +1211,10 @@ input:focus, textarea:focus { border-color: var(--army); }
 .mm-empty{color:var(--muted);font-size:0.78rem;padding:14px;text-align:center;}
 .upnext-toggle{display:block;width:100%;margin-top:8px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);background:transparent;color:#EEF0E8;font-size:0.75rem;font-weight:800;cursor:pointer;}
 .upnext-note{grid-column:1/-1;font-size:0.78rem;font-weight:600;color:#B7791F;background:rgba(183,121,31,0.1);border-radius:8px;padding:8px 12px;}
+.upnext-placeholder{background:var(--surface);border:1.5px dashed var(--line);border-radius:8px;padding:10px 12px;}
+.uph-label{font-size:0.68rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;margin-bottom:4px;}
+.uph-body{font-weight:700;font-size:0.9rem;}
+.uph-body span{color:var(--muted);font-weight:600;}
 .upnext-hide{margin-left:6px;border:none;background:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;}
 /* Adaptive Live layout: matchmaking beside courts when they leave room, else below */
 .live-flow{gap:14px;align-items:flex-start;}
@@ -2652,6 +2656,19 @@ function showUpNext(){ return courtDefs.length >= 3 || upNextAlways === true; }
 // it's only hidden. The organizer can show it anyway (display only; matchmaking unchanged).
 function upNextSmall(){ return (mm()==='random'||mm()==='balanced') && courtDefs.length < 3; }
 function canToggleUpNext(){ return upNextSmall() && (_access==='owner'||_access==='cohost'); }
+// Not enough free players to reserve a whole match (e.g. 1 court, 6 players): name who
+// is free and say how many come off the court. Display only; who returns is still
+// chosen when the court frees up.
+function upNextPlaceholder(){
+  const live=courts.filter(c=>!c.submitted).length;
+  if(!live) return '';
+  const free=getFreeWaiting(), need=matchSize()-free.length;
+  if(need<=0) return '';
+  const from=live===1?'the current game':'the next game to finish';
+  const names=free.map(p=>esc(p.name)).join(' &amp; ');
+  return `<div class="upnext-placeholder"><div class="uph-label">Up Next</div>`+
+    `<div class="uph-body">${names?names+' <span>+ '+need+' from '+from+'</span>':'<span>Players from '+from+'</span>'}</div></div>`;
+}
 function toggleUpNext(){
   if(!canToggleUpNext()) return;
   upNextAlways = !(upNextAlways === true);
@@ -3886,7 +3903,8 @@ function renderQueue() {
     if(matchQueue.length){
       matchQueue.forEach((m,i)=>{html+=mqMatchCard(m,`Up Next ${i+1}`,i===0);});
     } else {
-      html+='<div class="mm-empty">No upcoming matches yet.</div>';
+      const ph=upNextPlaceholder();
+      html+=ph||'<div class="mm-empty">No upcoming matches yet.</div>';
     }
     html+='</div>';
   }

@@ -101,3 +101,42 @@ test('Up Next shown: reserved players live in the card, not repeated in the Queu
   const queueCol = html().split('class="mm-upnext"')[0];
   for (const id of ids) assert.doesNotMatch(queueCol, new RegExp(`openProfile\\(${id}\\)`));
 });
+
+// 1 court, 6 players: 4 on court, 2 free, so no full match can be reserved. With Up
+// Next shown, name who's free and say how many come from the game on court.
+// Display only: who comes back on is still chosen when the court frees up.
+test('not enough free players: placeholder names the waiting players + N from the game', () => {
+  const a = loadApp();
+  a.run(`window._uid = 'owner1';`);
+  a.run(`window._fbApplyRemote(${JSON.stringify(snap({
+    mode: { matchmaking: 'random', format: 'doubles' },
+    players: Array.from({ length: 6 }, (_, i) => P(i + 1, 'P' + (i + 1))),
+    queueOrder: [1, 2, 3, 4, 5, 6],
+    courtDefs: [{ id: 1, name: 'Court 1' }],
+  }))});`);
+  a.run('generateMatchForCourt(1); toggleUpNext();');
+  assert.equal(a.run('matchQueue.length'), 0, 'nothing reservable');
+  const free = JSON.parse(a.run('JSON.stringify(getFreeWaiting().map(p=>p.name))'));
+  assert.equal(free.length, 2);
+  const html = a.captured['queueList'];
+  assert.match(html, new RegExp(`class="upnext-placeholder"[^>]*>[\\s\\S]*${free[0]} &amp; ${free[1]}[\\s\\S]*\\+ 2 from the current game`));
+  assert.doesNotMatch(html, /No upcoming matches yet/);
+});
+
+test('placeholder only appears when Up Next is shown', () => {
+  const a = loadApp();
+  a.run(`window._uid = 'owner1';`);
+  a.run(`window._fbApplyRemote(${JSON.stringify(snap({
+    mode: { matchmaking: 'random', format: 'doubles' },
+    players: Array.from({ length: 6 }, (_, i) => P(i + 1, 'P' + (i + 1))),
+    queueOrder: [1, 2, 3, 4, 5, 6], courtDefs: [{ id: 1, name: 'Court 1' }],
+  }))});`);
+  a.run('generateMatchForCourt(1); renderQueue();');
+  assert.doesNotMatch(a.captured['queueList'], /upnext-placeholder/);
+});
+
+test('view link shows the same placeholder', () => {
+  const v = readFileSync(new URL('../view.html', import.meta.url), 'utf8');
+  assert.match(v, /upnext-placeholder/);
+  assert.match(v, /'the current game'/);
+});

@@ -522,6 +522,17 @@ function renderQueue(s) {
   let html='';
 
   // Upcoming Matches — only when app.html would show them.
+  // Same placeholder as app.html when no whole match can be reserved yet (display only).
+  const liveCourts=(s.courts||[]).filter(c=>!c.submitted).length;
+  const reservedIds=new Set(); mq.forEach(m=>[...m.team1,...m.team2].forEach(id=>reservedIds.add(id)));
+  const freeNow=present.filter(p=>!playingIds.has(p.id)&&!reservedIds.has(p.id));
+  const need=((s.mode&&s.mode.format)==='singles'?2:4)-freeNow.length;
+  if(showUpNext && !mq.length && liveCourts && need>0){
+    const from=liveCourts===1?'the current game':'the next game to finish';
+    if(small) html+=`<div class="upnext-note" style="font-size:0.78rem;font-weight:600;color:#B7791F;background:rgba(183,121,31,0.1);border-radius:8px;padding:8px 12px;margin-bottom:8px;">With 1-2 courts, the next match can still change if players swap, check in or leave.</div>`;
+    const names=freeNow.map(p=>escapeHtml(p.name)).join(' &amp; ');
+    html+=`<div class="upnext-placeholder" style="background:var(--surface);border:1.5px dashed var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;"><div style="font-size:0.68rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;margin-bottom:4px;">Up Next</div><div style="font-weight:700;font-size:0.9rem;">${names?names+' <span style="color:var(--muted);font-weight:600;">+ '+need+' from '+from+'</span>':'<span style="color:var(--muted);font-weight:600;">Players from '+from+'</span>'}</div></div>`;
+  }
   if(showUpNext && mq.length){
     html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink);margin-bottom:8px;">📋 Upcoming Matches</div>`;
     if(small) html+=`<div class="upnext-note" style="font-size:0.78rem;font-weight:600;color:#B7791F;background:rgba(183,121,31,0.1);border-radius:8px;padding:8px 12px;margin-bottom:8px;">With 1-2 courts, the next match can still change if players swap, check in or leave.</div>`;
