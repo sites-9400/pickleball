@@ -16,7 +16,7 @@ export const SESSION_KEYS = [
   'players', 'courts', 'courtDefs', 'matchQueue', 'gameHistory', 'queueOrder',
   'globalRound', 'playerIdCounter', 'courtIdCounter', 'mqIdCounter',
   'sessionStartTime', 'sessionName', 'name', 'ladder', 'tournament',
-  'sessionEnded', 'sessionEndTime', 'checkinOpen', 'status',
+  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'checkinOpen', 'status',
 ];
 
 export function buildRules() {
@@ -74,7 +74,9 @@ export function buildRules() {
 }
 
 // CLI: regenerate docs/firebase-rules.json
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL, not `file://${argv[1]}`: a path with spaces is %20-encoded in import.meta.url
+const { pathToFileURL } = await import('node:url');
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { writeFileSync } = await import('node:fs');
   const { fileURLToPath } = await import('node:url');
   const { dirname, join } = await import('node:path');

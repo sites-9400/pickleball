@@ -274,9 +274,9 @@ function renderAll(s) {
     clearInterval(clockInterval);
     clockInterval = setInterval(() => {
       const el = document.getElementById('viewClock');
-      if (el) el.textContent = fmt(Date.now() - s.sessionStartTime);
+      if (el) el.textContent = fmt(Date.now() - s.sessionStartTime - (s.sessionPausedMs || 0));
     }, 1000);
-    document.getElementById('viewClock').textContent = fmt(Date.now() - s.sessionStartTime);
+    document.getElementById('viewClock').textContent = fmt(Date.now() - s.sessionStartTime - (s.sessionPausedMs || 0));
   }
   ensureLayout();
   renderCourts(s);
@@ -329,7 +329,7 @@ function showEndedState(s) {
   const d = s.sessionStartTime ? new Date(s.sessionStartTime) : null;
   const dateStr = d ? d.toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'}) : '';
   document.getElementById('viewSessionDate').textContent = dateStr + ' · Ended';
-  const finalTime = (s.sessionStartTime && s.sessionEndTime) ? fmt(s.sessionEndTime - s.sessionStartTime) : '--:--:--';
+  const finalTime = (s.sessionStartTime && s.sessionEndTime) ? fmt(s.sessionEndTime - s.sessionStartTime - (s.sessionPausedMs || 0)) : '--:--:--';
   document.getElementById('viewClock').textContent = finalTime;
   document.getElementById('mainContent').innerHTML = `
     <div id="viewRecap" style="margin-bottom:20px;"></div>

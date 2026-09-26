@@ -1610,6 +1610,7 @@ let sessionCreatedAt = null;
 let sessionDate = '';
 let sessionEnded = false;
 let sessionEndTime = null;
+let sessionPausedMs = 0;   // time spent ended before a Continue; excluded from every duration
 let checkinOpen = true;
 let cohosts = {};          // uid -> {name, addedAt} (raw Firebase map, owner-managed)
 let cohostOpen = false;
@@ -1675,6 +1676,8 @@ function saveState() {
     ladder: ladder ? cleanLadder(ladder) : null,
     tournament: tournament ? cleanTournament(tournament) : null,
     sessionEnded, sessionEndTime,
+    // only once a session has been continued, so ordinary saves never touch the key
+    ...(sessionPausedMs ? { sessionPausedMs } : {}),
     checkinOpen: checkinOpen,
     status: sessionEnded ? 'ended' : 'active'
   };
@@ -1776,6 +1779,7 @@ window._fbApplyRemote = function(s) {
   sessionDate       = s.date        || '';
   sessionEnded      = s.sessionEnded      || false;
   sessionEndTime    = s.sessionEndTime    || null;
+  sessionPausedMs   = +s.sessionPausedMs  || 0;
   const _hadCheckinOpen = (s.checkinOpen !== undefined);
   checkinOpen       = (s.checkinOpen !== false); // default open; only an explicit false closes it
 
@@ -1849,7 +1853,7 @@ window._fbHandleNull = function() {
   }
   players=[]; courts=[]; courtDefs=[]; matchQueue=[]; gameHistory=[];
   globalRound=0; playerIdCounter=0; courtIdCounter=0; mqIdCounter=0; queueOrder=[];
-  sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null;
+  sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null; sessionPausedMs=0;
   clearInterval(sessionTimerInterval); sessionTimerInterval=null;
   clearInterval(courtTimerInterval); courtTimerInterval=null;
   const bar = document.getElementById('sessionBar');
@@ -1943,7 +1947,7 @@ function refreshIdentity() {
 }
 function updateSessionClock() {
   if (!sessionStartTime) return;
-  const elapsed = (sessionEnded ? sessionEndTime : Date.now()) - sessionStartTime;
+  const elapsed = (sessionEnded ? sessionEndTime : Date.now()) - sessionStartTime - sessionPausedMs;
   document.getElementById('sessionClock').textContent = formatDuration(elapsed);
 }
 function updateTabOffset() {
@@ -2004,6 +2008,7 @@ function newSession() {
 }
 function continueSession() {
   if (!confirm('Continue this session? The view link will go live again for players.')) return;
+  if (sessionEndTime) sessionPausedMs += Math.max(0, Date.now() - sessionEndTime); // the break isn't play time
   sessionEnded = false; sessionEndTime = null;
   applySessionUI();
   if (window._fbForceImmediate) window._fbForceImmediate();
@@ -2027,7 +2032,7 @@ function tickCourtTimers() {
 // tournament.js are the single implementation.
 function sessionSnapshot(){
   return { name:sessionName, sessionName, mode:sessionMode, players, gameHistory,
-           sessionStartTime, sessionEndTime, sessionEnded };
+           sessionStartTime, sessionEndTime, sessionPausedMs, sessionEnded };
 }
 function _downloadExport(text, type, ext){
   const stamp=new Date().toISOString().slice(0,10);
@@ -4009,7 +4014,7 @@ function renderRecapTab() {
   const el = document.getElementById('recapContainer');
   if (!el || !window.PDRecap) return;
   PDRecap.render(el,
-    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime },
+    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime, sessionPausedMs },
     { viewUrl: window._getViewLink ? window._getViewLink() : '' });
 }
 

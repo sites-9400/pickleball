@@ -80,7 +80,7 @@
     var start = state.sessionStartTime || null;
     var end = state.sessionEndTime || null;
     var now = opts.now || null;
-    var durationMs = start ? ((end || now || start) - start) : 0;
+    var durationMs = start ? Math.max(0, (end || now || start) - start - (state.sessionPausedMs || 0)) : 0;
     var hours = Math.max(0, Math.round(durationMs / 3600000));
 
     return {

@@ -68,6 +68,9 @@
         "sessionEndTime": {
           ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
         },
+        "sessionPausedMs": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
+        },
         "checkinOpen": {
           ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
         },
