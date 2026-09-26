@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Paddle District &middot; Modes: Workflow Manual</title>
+<style>
+  :root{
+    --dark-green:#3f4f27;
+    --header-bar:#4a5c2f;
+    --heading-green:#526633;
+    --muted:#767f66;
+    --body:#2b2b28;
+    --pill-bg:#4a5c2f;
+    --pill-text:#f2f4ea;
+    --tagline-badge-bg:#c7cdb3;
+    --callout-bg:#eef1e4;
+    --callout-border:#8bab39;
+    --table-header-bg:#eef1e4;
+    --table-border:#dcdfd0;
+    --warn-bg:#fbeae8;
+    --warn-border:#b3392e;
+    --warn-text:#5c2b26;
+    --example-bg:#e7ead9;
+    --example-label:#5a6b3d;
+    --link-color:#3f4f27;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0;
+    font-family:"Helvetica Neue", Helvetica, Arial, sans-serif;
+    color:var(--body);
+    background:#ffffff;
+    font-size:9.5pt;
+    line-height:1.35;
+  }
+  .page{
+    width:210mm;
+    min-height:297mm;
+    padding:15mm 18mm;
+    position:relative;
+    page-break-after:always;
+  }
+  .page:last-child{ page-break-after:auto; }
+
+  /* ---------- Cover page ---------- */
+  .cover-badge{
+    display:inline-block;
+    background:var(--tagline-badge-bg);
+    color:#41502a;
+    font-weight:bold;
+    font-size:9.5pt;
+    letter-spacing:0.03em;
+    padding:4px 10px;
+    border-radius:3px;
+    margin-bottom:14px;
+  }
+  .cover h1{
+    font-size:29pt;
+    margin:0 0 10px 0;
+    color:var(--heading-green);
+    font-weight:bold;
+  }
+  .cover .tagline{
+    font-size:12.5pt;
+    font-weight:bold;
+    color:#6a7458;
+    margin:0 0 26px 0;
+  }
+  .cover .meta{
+    font-size:10pt;
+    color:#6a7458;
+    line-height:1.7;
+  }
+
+  /* ---------- Contents page ---------- */
+  .section-bar{
+    background:var(--header-bar);
+    color:#ffffff;
+    font-size:15pt;
+    font-weight:bold;
+    padding:12px 16px;
+    border-radius:2px;
+    margin:0 0 20px 0;
+  }
+  a.toc-link{
+    text-decoration:none;
+    color:#1f2418;
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+    width:100%;
+    font-weight:bold;
+    margin:8px 0;
+    font-size:10pt;
+  }
+  a.toc-link.sub{
+    font-weight:normal;
+    color:#333;
+    margin-left:22px;
+    font-size:9.5pt;
+  }
+  .toc-link .label{ white-space:nowrap; }
+  .toc-link .leader{
+    flex:1 1 auto;
+    min-width:20px;
+    border-bottom:1px dotted #9aa08a;
+    position:relative;
+    top:-3px;
+  }
+  .toc-link .pageno{ white-space:nowrap; }
+
+  /* ---------- Section headings ---------- */
+  h1.sect{
+    background:var(--header-bar);
+    color:#ffffff;
+    font-size:14pt;
+    font-weight:bold;
+    padding:10px 14px;
+    border-radius:2px;
+    margin:0 0 12px 0;
+  }
+  .lede{
+    color:var(--muted);
+    font-size:9.5pt;
+    margin:0 0 10px 0;
+  }
+  h2.sub{
+    color:var(--heading-green);
+    font-size:11.5pt;
+    font-weight:bold;
+    border-bottom:1px solid #c9cdba;
+    padding-bottom:4px;
+    margin:14px 0 7px 0;
+  }
+  h2.sub:first-of-type{ margin-top:0; }
+  h3.mode{
+    color:var(--heading-green);
+    font-size:11pt;
+    font-weight:bold;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border-bottom:1px solid #c9cdba;
+    padding-bottom:4px;
+    margin:15px 0 7px 0;
+  }
+  h3.mode:first-of-type{ margin-top:0; }
+
+  .pill{
+    display:inline-block;
+    background:var(--pill-bg);
+    color:var(--pill-text);
+    font-size:8pt;
+    font-weight:bold;
+    padding:2px 9px;
+    border-radius:10px;
+  }
+
+  ol, ul{ margin:5px 0; padding-left:20px; }
+  li{ margin:2px 0; }
+  ul.deflist{ list-style:disc; padding-left:18px; }
+  ul.deflist li{ margin:3px 0; }
+
+  .callout{
+    background:var(--callout-bg);
+    border-left:3px solid var(--callout-border);
+    padding:8px 12px;
+    margin:9px 0;
+    font-size:9.5pt;
+  }
+  .warn{
+    background:var(--warn-bg);
+    border-left:3px solid var(--warn-border);
+    color:var(--warn-text);
+    padding:8px 12px;
+    margin:9px 0;
+    font-size:9.5pt;
+  }
+  .example{
+    background:var(--example-bg);
+    padding:8px 12px;
+    margin:9px 0;
+    font-size:9.5pt;
+  }
+  .example .example-label{
+    color:var(--example-label);
+    font-weight:bold;
+    font-size:8pt;
+    letter-spacing:0.04em;
+    display:block;
+    margin-bottom:4px;
+  }
+  .roster-label{
+    background:var(--example-bg);
+    padding:8px 12px;
+    font-weight:bold;
+    font-size:8pt;
+    letter-spacing:0.03em;
+    color:#333;
+  }
+
+  table{ border-collapse:collapse; width:100%; margin:0 0 9px 0; font-size:9.5pt; }
+  table.style-table th, table.style-table td,
+  table.roster th, table.roster td,
+  table.offline th, table.offline td{
+    border:1px solid var(--table-border);
+    padding:5px 9px;
+    text-align:left;
+    vertical-align:top;
+  }
+  table th{ background:var(--table-header-bg); font-weight:bold; }
+  table.roster{ margin-top:0; }
+  table.roster th, table.roster td{ background:var(--example-bg); border-color:#c9cdba; }
+  table.roster th{ font-weight:bold; }
+
+  .matchup{
+    display:inline-block;
+    background:#ffffff;
+    border:1px solid #c9cdba;
+    border-radius:3px;
+    padding:3px 9px;
+    white-space:nowrap;
+  }
+  .lvl{ font-size:8pt; color:#6a7458; }
+  .tag{
+    background:#e2e5d3;
+    color:#333;
+    font-size:8.5pt;
+    font-weight:bold;
+    letter-spacing:0.03em;
+    padding:2px 8px;
+    border-radius:2px;
+  }
+
+  a{ color:var(--link-color); }
+  strong{ font-weight:bold; }
+  em{ font-style:italic; }
+  .indent{ margin-left:0; }
+  hr.rule{ border:none; border-top:1px solid #c9cdba; margin:16px 0; }
+
+  @page{
+    size:A4;
+    margin:0;
+  }
+  @media print{
+    .page{ page-break-inside:avoid-region; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1: COVER ============ -->
+<div class="page cover">
+  <span class="cover-badge">PADDLE DISTRICT &middot; MODES</span>
+  <h1>Workflow Manual</h1>
+  <p class="tagline">Open play, by mode: from login to setup to play, plus check-in and the live view.</p>
+  <p class="meta">
+    Pickleball session manager (v2 / Modes)<br>
+    Modes covered: By wait time &middot; Balanced &middot; Numbering &middot; Manual &middot; Challenge courts &middot; King of the court &middot; Round robin &middot; Bracket
+  </p>
+</div>
+
+<!-- ============ PAGE 2: CONTENTS ============ -->
+<div class="page">
+  <div class="section-bar">Contents</div>
+
+  <a class="toc-link" href="#s1"><span class="label">1. Core concepts &amp; the four tabs</span><span class="leader"></span><span class="pageno">3</span></a>
+  <a class="toc-link" href="#s2"><span class="label">2. Logging in</span><span class="leader"></span><span class="pageno">4</span></a>
+  <a class="toc-link" href="#s3"><span class="label">3. The dashboard: create, resume, delete a session</span><span class="leader"></span><span class="pageno">5</span></a>
+  <a class="toc-link" href="#s4"><span class="label">4. Universal setup: players, check-in, courts</span><span class="leader"></span><span class="pageno">6</span></a>
+  <a class="toc-link" href="#s5"><span class="label">5. Running a match: swap, cancel, close, score, edit history</span><span class="leader"></span><span class="pageno">7</span></a>
+  <a class="toc-link" href="#s6"><span class="label">6. Mode workflows</span><span class="leader"></span><span class="pageno">8</span></a>
+  <a class="toc-link sub" href="#mode-bywaittime"><span class="label">By wait time</span><span class="leader"></span><span class="pageno">8</span></a>
+  <a class="toc-link sub" href="#mode-balanced"><span class="label">Balanced (by skill)</span><span class="leader"></span><span class="pageno">8</span></a>
+  <a class="toc-link sub" href="#mode-numbering"><span class="label">Numbering (random)</span><span class="leader"></span><span class="pageno">8</span></a>
+  <a class="toc-link sub" href="#mode-manual"><span class="label">Manual</span><span class="leader"></span><span class="pageno">8</span></a>
+  <a class="toc-link sub" href="#mode-challenge"><span class="label">Challenge courts</span><span class="leader"></span><span class="pageno">9</span></a>
+  <a class="toc-link sub" href="#mode-king"><span class="label">King of the court (ladder)</span><span class="leader"></span><span class="pageno">9</span></a>
+  <a class="toc-link sub" href="#mode-roundrobin"><span class="label">Round robin</span><span class="leader"></span><span class="pageno">9</span></a>
+  <a class="toc-link sub" href="#mode-bracket"><span class="label">Bracket</span><span class="leader"></span><span class="pageno">10</span></a>
+  <a class="toc-link" href="#s7"><span class="label">7. Players &amp; attendance (present / on hold / delete)</span><span class="leader"></span><span class="pageno">11</span></a>
+  <a class="toc-link" href="#s8"><span class="label">8. Player check-in (QR): admin panel &amp; approvals</span><span class="leader"></span><span class="pageno">12</span></a>
+  <a class="toc-link" href="#s9"><span class="label">9. The player check-in page</span><span class="leader"></span><span class="pageno">13</span></a>
+  <a class="toc-link" href="#s10"><span class="label">10. The live View page</span><span class="leader"></span><span class="pageno">14</span></a>
+  <a class="toc-link" href="#s11"><span class="label">11. Ending a session</span><span class="leader"></span><span class="pageno">15</span></a>
+  <a class="toc-link" href="#s12"><span class="label">12. Install the app on your phone (&ldquo;Pickled&rdquo;)</span><span class="leader"></span><span class="pageno">16</span></a>
+</div>
+
+<!-- ============ PAGE 3: SECTION 1 ============ -->
+<div class="page">
+  <h1 class="sect" id="s1">1. Core concepts &amp; the four tabs</h1>
+  <p class="lede">Every session, whatever the mode, runs on the same building blocks.</p>
+  <ul class="deflist">
+    <li><strong>Players:</strong> everyone in the session. Each is either <strong>Here</strong> (in play) or <strong>On hold</strong> (kept in the session but not matched). Each has a skill level (Beginner / Intermediate / Advanced).</li>
+    <li><strong>Courts:</strong> the physical courts you add. A court hosts one match at a time.</li>
+    <li><strong>Queue:</strong> players waiting for a spot, ordered by who has waited longest. An <strong>On hold</strong> section sits below it.</li>
+    <li><strong>Rankings:</strong> the leaderboard (or tournament standings) plus editable match history.</li>
+    <li><strong>Mode:</strong> chosen once when you create the session: a <strong>Format</strong> (Doubles 2v2 or Singles 1v1) and a <strong>matchmaking style</strong>. The mode is shown beside the session name, e.g. <em>Open Play (Doubles &middot; Round robin)</em>.</li>
+  </ul>
+  <div class="callout">
+    The four tabs along the top are <strong>Players</strong>, <strong>Courts</strong>, <strong>Queue</strong>, and <strong>Rankings</strong>. The <strong>Share</strong> link and a QR are available on each tab to open the read-only live View.
+  </div>
+</div>
+
+<!-- ============ PAGE 4: SECTION 2 ============ -->
+<div class="page">
+  <h1 class="sect" id="s2">2. Logging in</h1>
+  <ol>
+    <li>Open the app. The login screen shows the Paddle District logo and (for Modes) a <strong>Version 2 - Modes</strong> label.</li>
+    <li>Sign in with <strong>Continue with Google</strong>, or use <strong>email + password</strong> (tap <em>Sign up</em> the first time to create an account).</li>
+    <li>You land on the <strong>dashboard</strong>.</li>
+  </ol>
+  <div class="callout">
+    Only the organizer logs in. Players never need an account. They use the check-in link and the View link.
+  </div>
+</div>
+
+<!-- ============ PAGE 5: SECTION 3 ============ -->
+<div class="page">
+  <h1 class="sect" id="s3">3. The dashboard: create, resume, delete</h1>
+  <h2 class="sub">Create a new session</h2>
+  <ol>
+    <li>Give the session a <strong>name</strong> and <strong>date</strong>.</li>
+    <li>Pick a <strong>Format</strong>: <strong>Doubles (2v2)</strong> or <strong>Singles (1v1)</strong>.</li>
+    <li>Pick a <strong>matchmaking style</strong> (the mode). A short description appears under the picker.</li>
+    <li>Create the session. <strong>Check-in is Open by default</strong> on a new session.</li>
+  </ol>
+  <table class="style-table">
+    <tr><th>Style</th><th>What it does</th></tr>
+    <tr><td>Round robin</td><td>Fixed teams play a full schedule against each other. Ranked by wins, then point differential.</td></tr>
+    <tr><td>King of the court</td><td>Winners move up a court, losers move down. Partners stay together.</td></tr>
+    <tr><td>Challenge courts</td><td>Winners stay on their court. Losers go to the back of the queue; the next challengers come on.</td></tr>
+    <tr><td>Numbering</td><td>Players are numbered off and rotate into random matchups.</td></tr>
+    <tr><td>By wait time</td><td>The players who have waited longest are matched up next.</td></tr>
+    <tr><td>Balanced (by skill)</td><td>Teams are balanced by skill level for even games.</td></tr>
+    <tr><td>Manual</td><td>You pick every match yourself, court by court.</td></tr>
+    <tr><td>Bracket (fixed teams)</td><td>Fixed teams play a single/double elimination bracket. (Bracket play arrives in a later phase.)</td></tr>
+  </table>
+  <h2 class="sub">Resume or delete</h2>
+  <p>Existing sessions are listed on the dashboard. Tap one to <strong>resume</strong> exactly where you left off (state is saved live). Use the delete control to remove a session you no longer need.</p>
+</div>
+
+<!-- ============ PAGE 6: SECTION 4 ============ -->
+<div class="page">
+  <h1 class="sect" id="s4">4. Universal setup (any mode)</h1>
+  <p class="lede">After creating a session you land in the app on the <strong>Players</strong> tab. These steps apply to every mode.</p>
+  <h2 class="sub">Add players</h2>
+  <ol>
+    <li>On the <strong>Players</strong> tab, use <strong>Add Players</strong> (one name per line) and tap <strong>Add Players</strong>.</li>
+    <li>Mark who is here: each row has a <strong>Here &#10003; / Add to queue</strong> toggle. New manually-added players start <span style="white-space:nowrap">not-present</span>; tap to set them <strong>Here</strong>.</li>
+    <li>Set each player's <strong>skill</strong> by tapping the skill badge (cycles Beginner &rarr; Intermediate &rarr; Advanced).</li>
+  </ol>
+  <h2 class="sub">Add courts</h2>
+  <ol>
+    <li>Go to the <strong>Courts</strong> tab.</li>
+    <li>Type a court name (e.g. <em>Court 1</em>) and tap <strong>+ Add Court</strong>. Repeat for each court.</li>
+  </ol>
+  <div class="callout">
+    You can also collect players hands-free with the <strong>QR check-in</strong> (section 9) instead of typing names.
+  </div>
+</div>
+
+<!-- ============ PAGE 7: SECTION 5 ============ -->
+<div class="page">
+  <h1 class="sect" id="s5">5. Running a match (common to all modes)</h1>
+  <p class="lede">Once players are on a court, these controls appear on the court card.</p>
+  <ul class="deflist">
+    <li><strong>Score boxes:</strong> type each side's score, then <strong>Submit Score</strong>. The result is credited to whoever is on the court at submit time.</li>
+    <li><strong>Swap (&#8644;):</strong> next to each player; substitutes someone from the bench/queue. Available in <strong>every</strong> mode.</li>
+    <li><strong>Cancel match:</strong> ends the match with <strong>no score</strong>. Choose <em>back to the queue</em> or <em>put on hold</em> (round robin offers <em>replay later / skip</em>; ladder offers <em>sit out / hold</em>).</li>
+    <li><strong>Close court (&times;):</strong> removes the court. With a live match it asks first; if a score is entered it offers <strong>Record &amp; close</strong> or <strong>Close without recording</strong>, and players go back to the queue.</li>
+  </ul>
+  <h2 class="sub">Edit a past score</h2>
+  <p>On the <strong>Rankings</strong> tab, each match-history row has a &#9999; <strong>edit</strong> button. Editing a score reverses the old result and applies the new one to the players' stats automatically. In round robin, the standings table updates too.</p>
+</div>
+
+<!-- ============ PAGE 8: SECTION 6 (part 1) ============ -->
+<div class="page">
+  <h1 class="sect" id="s6">6. Mode workflows</h1>
+  <p class="lede">Each mode shares the universal setup (section 4). Below is the play loop specific to each, illustrated with the example roster.</p>
+
+  <div class="roster-label">EXAMPLE ROSTER (8 PLAYERS, DOUBLES, 2 COURTS)</div>
+  <table class="roster">
+    <tr><th>Player</th><th>Level</th><th>Player</th><th>Level</th></tr>
+    <tr><td>Alex</td><td>Advanced</td><td>Eve</td><td>Advanced</td></tr>
+    <tr><td>Bea</td><td>Intermediate</td><td>Finn</td><td>Beginner</td></tr>
+    <tr><td>Caro</td><td>Beginner</td><td>Gia</td><td>Intermediate</td></tr>
+    <tr><td>Dan</td><td>Intermediate</td><td>Hugo</td><td>Advanced</td></tr>
+  </table>
+  <p>We'll reuse Alex, Bea, Caro, Dan, Eve, Finn, Gia, Hugo (levels above) to show how each mode pairs them.</p>
+
+  <h3 class="mode" id="mode-bywaittime">By wait time <span class="pill">queue</span></h3>
+  <ol>
+    <li>Add present players + courts.</li>
+    <li>On a court, tap <strong>Generate Match</strong>: the longest-waiting players are paired automatically.</li>
+    <li>Enter the score and <strong>Submit</strong>. Players return to the queue; the next match is ready.</li>
+  </ol>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    The 8 join the queue in order. Court 1 auto-fills the longest-waiting four: <span class="matchup">Alex <span class="lvl">ADV</span> &amp; Bea <span class="lvl">INT</span></span> vs <span class="matchup">Caro <span class="lvl">BEG</span> &amp; Dan <span class="lvl">INT</span></span>. Eve, Finn, Gia, Hugo wait. After the result, those four go to the back of the line and the next four come on.
+  </div>
+
+  <h3 class="mode" id="mode-balanced">Balanced (by skill) <span class="pill">queue</span></h3>
+  <ol>
+    <li>Add present players (set skills) + courts.</li>
+    <li><strong>Generate Match</strong> forms teams balanced by declared skill so games stay even.</li>
+    <li>Score &amp; Submit; repeat.</li>
+  </ol>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    Strong and developing players are split across sides: <span class="matchup">Alex <span class="lvl">ADV</span> &amp; Finn <span class="lvl">BEG</span></span> vs <span class="matchup">Eve <span class="lvl">ADV</span> &amp; Caro <span class="lvl">BEG</span></span>, each team gets one Advanced + one Beginner instead of stacking the Advanced players together.
+  </div>
+
+  <h3 class="mode" id="mode-numbering">Numbering (random) <span class="pill">queue</span></h3>
+  <ol>
+    <li>Add present players + courts.</li>
+    <li><strong>Generate Match</strong> draws random matchups from those waiting.</li>
+    <li>Score &amp; Submit; repeat.</li>
+  </ol>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    Matchups are drawn at random regardless of level, e.g. <span class="matchup">Gia <span class="lvl">INT</span> &amp; Hugo <span class="lvl">ADV</span></span> vs <span class="matchup">Bea <span class="lvl">INT</span> &amp; Finn <span class="lvl">BEG</span></span>. The next generate produces a different random draw.
+  </div>
+
+  <h3 class="mode" id="mode-manual">Manual <span class="pill">you pick</span></h3>
+  <ol>
+    <li>Add present players + courts.</li>
+    <li>On a court, tap <strong>Pick Match</strong>. In the picker, tap (or drag) players into <strong>Team A</strong> and <strong>Team B</strong>.</li>
+  </ol>
+</div>
+
+<!-- ============ PAGE 9: SECTION 6 (part 2) ============ -->
+<div class="page">
+  <ol start="3">
+    <li>Tap <strong>Start</strong> when both teams are full. Score &amp; Submit. Pick the next match yourself.</li>
+  </ol>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    You decide every pairing, e.g. drag <span class="matchup">Alex <span class="lvl">ADV</span> &amp; Bea <span class="lvl">INT</span></span> into Team A and <span class="matchup">Hugo <span class="lvl">ADV</span> &amp; Dan <span class="lvl">INT</span></span> into Team B, then Start.
+  </div>
+
+  <h3 class="mode" id="mode-challenge">Challenge courts <span class="pill">winners stay</span></h3>
+  <ol>
+    <li>Add present players + courts.</li>
+    <li><strong>Generate Match</strong> seats the first challengers.</li>
+    <li>Enter a <strong>decisive</strong> score (ties are not allowed) and Submit: <strong>winners stay</strong>, losers go to the back of the queue, and the next challengers come on.</li>
+    <li>If the queue can't field a full opponent set, the court <strong>holds</strong> ("Waiting for challengers...") until enough players are available.</li>
+  </ol>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    Court 1: <span class="matchup">Alex <span class="lvl">ADV</span> &amp; Bea <span class="lvl">INT</span></span> beat <span class="matchup">Caro <span class="lvl">BEG</span> &amp; Dan <span class="lvl">INT</span></span>. Alex &amp; Bea stay; Caro &amp; Dan go to the back of the queue; the next challengers <span class="matchup">Eve <span class="lvl">ADV</span> &amp; Finn <span class="lvl">BEG</span></span> come on to face them.
+  </div>
+
+  <h3 class="mode" id="mode-king">King of the court (ladder) <span class="pill">fixed partners</span></h3>
+  <ol>
+    <li>Add present players + courts (courts are the ladder rungs, top to bottom).</li>
+    <li>On the Courts tab tap <strong>Start Ladder</strong>. Present players are seeded into fixed pairs across the courts; extras wait on the <strong>bench</strong>.</li>
+    <li>Play each court, enter scores, and tap <strong>Save Result</strong> on each (a winner is required, no ties).</li>
+    <li>When every active court has a result, tap <strong>Advance Round</strong>: winners move up, losers move down, and the bench rotates in at the bottom. Partners stay together.</li>
+    <li>Use <strong>Reset</strong> to re-seed (e.g. after players come or go).</li>
+  </ol>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    Start Ladder seeds the courts top &rarr; bottom: <strong>Court 1 (top)</strong> <span class="matchup">Alex &amp; Bea</span> vs <span class="matchup">Caro &amp; Dan</span>; <strong>Court 2</strong> <span class="matchup">Eve &amp; Finn</span> vs <span class="matchup">Gia &amp; Hugo</span>. Winners move up toward Court 1, losers down; partners stay together. With 10 present, the extra pair waits on the bench and rotates onto the bottom court.
+  </div>
+
+  <h3 class="mode" id="mode-roundrobin">Round robin <span class="pill">fixed teams &middot; schedule</span></h3>
+  <ol>
+    <li>Add present players + courts. The Courts tab shows the team builder until you start.</li>
+    <li>Build teams: <strong>Auto-pair</strong> shuffles present players into teams, or tap players into teams manually; use <strong>Add team / remove</strong> as needed.</li>
+    <li>Tap <strong>Lock teams</strong> (needs at least 2 full teams).</li>
+    <li>Choose <strong>single (1x)</strong> or <strong>double (2x)</strong> round and tap <strong>Start round robin</strong>. Courts auto-fill with the next eligible match.</li>
+    <li>Enter scores &amp; Submit; freed courts refill. Use <strong>Swap match</strong> to change which match is on an open court.</li>
+    <li><strong>Rankings</strong> shows the standings table (Wins &rarr; Point diff &rarr; Points for). <strong>Reset tournament</strong> (on the standings panel) re-opens the team builder.</li>
+  </ol>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    Build four teams: <strong>T1</strong> Alex &amp; Bea, <strong>T2</strong> Caro &amp; Dan, <strong>T3</strong> Eve &amp; Finn, <strong>T4</strong> Gia &amp; Hugo. Lock, pick single round, Start. The schedule plays T1&times;T2, T3&times;T4, T1&times;T3, T2&times;T4, T1&times;T4, T2&times;T3 across your courts; standings rank by wins, then point differential.
+  </div>
+  <div class="callout">
+    A cancelled round-robin match can be <strong>replayed later</strong> (back in the schedule) or <strong>skipped</strong> (excluded from standings).
+  </div>
+</div>
+
+<!-- ============ PAGE 10: SECTION 6 (part 3, Bracket) ============ -->
+<div class="page">
+  <h3 class="mode" id="mode-bracket">Bracket <span class="pill">later phase</span></h3>
+  <p>Bracket is selectable and uses the same fixed-team builder as round robin (auto-pair / manual / lock). Single and double elimination <strong>bracket play arrives in a later phase</strong>; for now use round robin for fixed-team competition.</p>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    The same four teams would be seeded into a bracket: <strong>T1</strong> Alex &amp; Bea vs <strong>T4</strong> Gia &amp; Hugo, and <strong>T2</strong> Caro &amp; Dan vs <strong>T3</strong> Eve &amp; Finn, winners advancing to the final. (Bracket play is a later phase.)
+  </div>
+</div>
+
+<!-- ============ PAGE 11: SECTION 7 ============ -->
+<div class="page">
+  <h1 class="sect" id="s7">7. Players &amp; attendance</h1>
+  <ul class="deflist">
+    <li><strong>Here &#10003;:</strong> the player is in play and eligible for matches. Tap to put them <strong>On hold</strong>.</li>
+    <li><strong>Add to queue:</strong> shown when a player is on hold; tap to bring them back into play.</li>
+    <li><strong>On hold:</strong> kept in the session but not matched. Held players appear in the <strong>On hold</strong> section below the waiting queue (Queue tab), each with an <strong>Add to queue</strong> button.</li>
+    <li><strong>Delete (&#128465;):</strong> permanently removes a player and their stats (asks for confirmation). Use <em>hold</em> instead if they might return.</li>
+  </ul>
+  <div class="callout">
+    Putting a player on hold (or cancelling their match "to hold") never loses them. You can add them back any time. Deleting is the only permanent removal.
+  </div>
+</div>
+
+<!-- ============ PAGE 12: SECTION 8 ============ -->
+<div class="page">
+  <h1 class="sect" id="s8">8. Player check-in (QR): admin side</h1>
+  <p class="lede">Let players check themselves in from their phones instead of typing names.</p>
+  <h2 class="sub">Open / share check-in</h2>
+  <ol>
+    <li>On the <strong>Players</strong> tab, find the <strong>Player check-in</strong> panel.</li>
+    <li>Tap <strong>Show QR</strong> to reveal the code, or copy the <strong>check-in link</strong> to share.</li>
+    <li>Toggle <strong>Open / Closed</strong> to control whether players can submit. The Open state is saved. It stays open even if you log out, and check-ins only enter the game while your admin app is running.</li>
+  </ol>
+  <h2 class="sub">Approving people not on the list</h2>
+  <ol>
+    <li>When someone checks in whose name <strong>matches an existing player</strong>, they are marked <strong>Here</strong> automatically.</li>
+    <li>When the name is <strong>not on the roster</strong>, it appears in a <strong>Pending approval</strong> list (tagged <span class="tag">NOT ON THE LIST</span>) with <strong>Approve / Reject</strong>.</li>
+    <li><strong>Approve</strong> adds them as a present player; <strong>Reject</strong> discards the request. Pending requests survive a reload until you act.</li>
+  </ol>
+  <div class="warn">
+    Firebase rules must be configured once in the project console for anonymous check-in writes to be accepted. If check-ins are denied, that ruleset hasn't been applied.
+  </div>
+</div>
+
+<!-- ============ PAGE 13: SECTION 9 ============ -->
+<div class="page">
+  <h1 class="sect" id="s9">9. The player check-in page</h1>
+  <p class="lede">What a player sees when they open the check-in link / scan the QR.</p>
+  <ol>
+    <li>The page shows the session name and the organizer's <strong>roster</strong>.</li>
+    <li>The player <strong>taps their name(s)</strong> from the list (multi-select) and taps <strong>Check in (N)</strong>. Names already marked present show greyed as <strong>Here &#10003;</strong>.</li>
+    <li>If their name isn't listed, they tap <strong>"My name isn't listed - add me"</strong> and enter their name (and skill, in Modes). New names go to the organizer's <strong>Pending approval</strong>.</li>
+    <li>After checking in, a confirmation shows their name(s) plus a <strong>"See live courts &amp; standings"</strong> link to the View page, and a <strong>Check in more</strong> button.</li>
+    <li>If the organizer has check-in <strong>Closed</strong>, the page shows a "check-in is closed" message.</li>
+  </ol>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    Caro opens the link, taps <strong>Caro <span class="lvl">BEG</span></strong> from the roster, and taps Check in. She's marked Here on the organizer's app. A walk-in named <strong>Iris</strong> isn't on the roster, so she taps "add me" and enters her name; the organizer then sees <strong>Iris</strong> under <em>Pending approval</em> tagged "not on the list".
+  </div>
+</div>
+
+<!-- ============ PAGE 14: SECTION 10 ============ -->
+<div class="page">
+  <h1 class="sect" id="s10">10. The live View page</h1>
+  <p class="lede">A read-only, real-time mirror for players and spectators, no login required.</p>
+  <ul class="deflist">
+    <li>Open it from any tab's <strong>Share</strong> link / QR, or from the link players get after checking in.</li>
+    <li><strong>Courts:</strong> live matches with Team A / Team B, each player's name and level, and the running timer.</li>
+    <li><strong>Queue:</strong> who's waiting (and the bench in ladder mode).</li>
+    <li><strong>Rankings:</strong> the live leaderboard, or the round-robin standings table.</li>
+    <li><strong>Match history:</strong> completed games (searchable by player name).</li>
+  </ul>
+  <div class="example">
+    <span class="example-label">EXAMPLE</span>
+    On the Courts view a spectator sees <span class="matchup">Alex <span class="lvl">ADV</span> &amp; Bea <span class="lvl">INT</span></span> vs <span class="matchup">Caro <span class="lvl">BEG</span> &amp; Dan <span class="lvl">INT</span></span> with the live timer, while Eve, Finn, Gia and Hugo appear in the Queue.
+  </div>
+  <div class="callout">
+    The View updates automatically as the organizer runs the session. After a session ends, the View shows the final standings and history.
+  </div>
+</div>
+
+<!-- ============ PAGE 15: SECTION 11 ============ -->
+<div class="page">
+  <h1 class="sect" id="s11">11. Ending a session</h1>
+  <ol>
+    <li>In the session header, tap <strong>End Session</strong>.</li>
+    <li>The session is marked ended; the live View switches to the final standings and history.</li>
+    <li>You can still resume past sessions from the dashboard.</li>
+  </ol>
+  <div class="callout">
+    That's the full loop: <strong>log in</strong> &rarr; <strong>create (format + mode)</strong> &rarr; <strong>add players &amp; courts (or QR check-in)</strong> &rarr; <strong>run matches for your mode</strong> &rarr; <strong>share the View</strong> &rarr; <strong>end the session.</strong>
+  </div>
+</div>
+
+<!-- ============ PAGE 16: SECTION 12 ============ -->
+<div class="page">
+  <h1 class="sect" id="s12">12. Install the app on your phone (&ldquo;Pickled&rdquo;)</h1>
+  <p class="lede">The site is an installable app. Adding it to your home screen gives you a full-screen app called <strong>Pickled</strong>, no browser bar, instant loading, and a friendly offline screen when the venue internet drops. Nothing to download from an app store.</p>
+
+  <h2 class="sub">iPhone / iPad (Safari)</h2>
+  <ol>
+    <li>Open the site in <strong>Safari</strong>.</li>
+    <li>Tap the <strong>Share</strong> button (the square with an arrow).</li>
+    <li>Scroll down and tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+    <li>&ldquo;Pickled&rdquo; appears on your home screen with the Paddle District logo.</li>
+  </ol>
+
+  <h2 class="sub">Android (Chrome)</h2>
+  <ol>
+    <li>Open the site in <strong>Chrome</strong>.</li>
+    <li>Tap <strong>Install app</strong> if a banner appears, or open the &#8942; menu and tap <strong>Add to Home screen / Install</strong>.</li>
+    <li>Confirm, and &ldquo;Pickled&rdquo; appears on your home screen.</li>
+  </ol>
+
+  <h2 class="sub">Computer (Chrome / Edge)</h2>
+  <ol>
+    <li>Open the site and look at the right end of the address bar.</li>
+    <li>Click the <strong>install icon</strong> (a small screen with a down arrow) and confirm.</li>
+    <li>Pickled opens in its own window and shows up like a normal app.</li>
+  </ol>
+  <div class="callout">
+    Everyone can install it: the organizer, players, and anyone watching the live View. Players still never need an account: their check-in and View links work exactly the same inside the app.
+  </div>
+
+  <h2 class="sub">What works offline</h2>
+  <table class="offline">
+    <tr><th>Works offline</th><th>Needs internet</th></tr>
+    <tr><td>Opening the app; its screens load instantly from your device.</td><td>Logging in, running a live session, check-ins, the live View.</td></tr>
+    <tr><td>A clear &ldquo;You&rsquo;re offline&rdquo; screen with a Retry button instead of a browser error.</td><td>Score syncing between the organizer, co-hosts, and viewers.</td></tr>
+  </table>
+  <p>When the connection returns, tap <strong>Retry</strong> (or just keep using the app). Everything picks up where it left off. Updates install themselves: whenever you open the app online, you automatically get the newest version.</p>
+</div>
+
+</body>
+</html>
