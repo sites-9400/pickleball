@@ -330,7 +330,8 @@ function showEndedState(s) {
   const dateStr = d ? d.toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'}) : '';
   document.getElementById('viewSessionDate').textContent = dateStr + ' · Ended';
   // Actual play time, the same figure as the recap and the organizer's header.
-  const play = window.PDRecap ? window.PDRecap.playTime(s.gameHistory) : null;
+  // Guarded: a browser can pair this page with a cached older recap.js during an update.
+  const play = typeof window.PDRecap?.playTime === 'function' ? window.PDRecap.playTime(s.gameHistory) : null;
   const finalTime = play ? fmt(play.ms)
     : (s.sessionStartTime && s.sessionEndTime) ? fmt(s.sessionEndTime - s.sessionStartTime - (s.sessionPausedMs || 0)) : '--:--:--';
   document.getElementById('viewClock').textContent = finalTime;

@@ -58,3 +58,17 @@ test('ended with no timed games: falls back to start to End, as before', () => {
   assert.equal(appClock(appWith({ ...SESSION, sessionEndTime: T0 + 3 * H,
     gameHistory: SESSION.gameHistory.map(({ startedAt, endedAt, ...g }) => g) })), '03:00:00');
 });
+
+test('an older cached recap.js without playTime falls back instead of crashing the page', () => {
+  const old = { ...globalThis.PDRecap }; delete old.playTime;
+  const v = loadView();
+  v.windowMock.PDRecap = old;
+  v.run(`this.PDRecap = window.PDRecap;`);
+  assert.doesNotThrow(() => v.call('showEndedState', SESSION));
+  assert.equal(v.run(`document.getElementById('viewClock').textContent`), '10:21:00', 'old start-to-End figure');
+  const app = loadApp();
+  app.windowMock.PDRecap = old;
+  app.run(`this.PDRecap = window.PDRecap; window._uid = 'owner1';`);
+  app.run(`window._fbApplyRemote(${JSON.stringify(snap(SESSION))});`);
+  assert.doesNotThrow(() => app.run(`updateSessionClock();`));
+});

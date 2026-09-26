@@ -1,10 +1,11 @@
 // Pickled service worker — installable shell + offline fallback.
-// Strategy: navigations are network-first (online users always get the newest
-// deploy; the classic stale-PWA footgun can't happen), static assets are
-// stale-while-revalidate, version-pinned CDN modules are cache-first, and
+// Strategy: navigations AND same-origin scripts are network-first (online users
+// always get the newest deploy, and a fresh page is never paired with a stale
+// script: that pairing crashed view.html's ended screen on 2026-09-26), other
+// static assets (icons, manifest) are stale-while-revalidate, version-pinned CDN modules are cache-first, and
 // Firebase auth/database traffic is never intercepted. Real offline play is
 // the separate local-first milestone — this only keeps the shell usable.
-const CACHE = 'pickled-v26';
+const CACHE = 'pickled-v27';
 const PRECACHE = [
   './index.html',
   './dashboard.html',
@@ -15,6 +16,7 @@ const PRECACHE = [
   './common.js',
   './tournament.js',
   './cohost.js',
+  './recap.js',
   './manifest.webmanifest',
   './favicon.png',
   './icons/icon-192.png',
@@ -65,7 +67,13 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // same-origin asset: serve cache immediately, refresh it in the background
+  // same-origin script: network-first, cached copy only when offline
+  if (url.pathname.endsWith('.js')) {
+    e.respondWith(fetch(req).then(res => putCopy(req, res)).catch(() => caches.match(req, { ignoreSearch: true })));
+    return;
+  }
+
+  // other same-origin asset: serve cache immediately, refresh it in the background
   e.respondWith(
     caches.match(req).then(hit => {
       const net = fetch(req).then(res => putCopy(req, res)).catch(() => hit);
