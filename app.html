@@ -836,6 +836,8 @@ input:focus, textarea:focus { border-color: var(--army); }
 [data-theme="dark"] .swap-option:hover { border-color: var(--accent); }
 /* Caution: this candidate is currently in a live match — taking them disrupts a game. */
 .swap-option.in-match { border-color: rgba(192,57,43,0.45); background: rgba(192,57,43,0.05); }
+.swap-repeat { display:block; font-size:0.7rem; font-weight:700; color:#B7791F; margin-top:2px; }
+.manual-repeat { flex-basis:100%; width:100%; font-size:0.78rem; font-weight:700; color:#B7791F; background:rgba(183,121,31,0.1); border-radius:6px; padding:6px 10px; margin-top:6px; text-align:center; }
 .swap-option.in-match:hover { border-color: #C0392B; background: rgba(192,57,43,0.12); }
 .swap-name { flex: 1; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
 .swap-idle {
@@ -3102,7 +3104,9 @@ function renderManualPick(){
   document.getElementById('manualPreview').innerHTML=
     `<div class="manual-team drop-team" data-team="A"><span class="manual-team-tag">Team A</span><span class="manual-team-names">${aNames.length?aNames.join(' & '):'Drop here'}</span></div>`+
     `<div class="manual-vs">VS</div>`+
-    `<div class="manual-team drop-team" data-team="B"><span class="manual-team-tag">Team B</span><span class="manual-team-names">${bNames.length?bNames.join(' & '):'Drop here'}</span></div>`;
+    `<div class="manual-team drop-team" data-team="B"><span class="manual-team-tag">Team B</span><span class="manual-team-names">${bNames.length?bNames.join(' & '):'Drop here'}</span></div>`+
+    [...repeatPairs(sel.slice(0,ts)),...repeatPairs(sel.slice(ts,need))].map(r=>
+      `<div class="manual-repeat">↺ ${esc(getPlayer(r.a)?.name||'?')} &amp; ${esc(getPlayer(r.b)?.name||'?')} already partnered${r.n>1?` (${r.n}×)`:''} this session</div>`).join('');
   const avail=freeForManual();
   document.getElementById('manualOptions').innerHTML = avail.length
     ? avail.map(p=>{ const idx=sel.indexOf(p.id); const on=idx>=0;
@@ -3268,10 +3272,15 @@ function _openSwapOptions(outgoingId) {
   // flag the option red so an admin only pulls them out when they mean to.
   // Every candidate shows games played this session: picking a sub is a fairness
   // call, and the admin was having to leave the modal to check the queue list.
+  const sctx=swapContext||{};
+  const sm=sctx.type==='queue' ? matchQueue.find(q=>q.id===sctx.matchId) : courts.find(ct=>ct.id===sctx.courtId);
+  const mates=((sm&&sm[sctx.team])||[]).filter(x=>x!=null&&x!==outgoingId);
   const chip=(id,name,tag)=>{
     const caution=tag==='trade'||tag==='playing';
     const gp=getPlayer(id)?.gamesPlayed;
-    return `<div class="swap-option${caution?' in-match':''}" onclick="confirmSwap(${id})"><span class="swap-name">${esc(name)}${tag?` <span style="font-size:0.7rem;color:${caution?'#C0392B':'var(--muted)'};">${tag}</span>`:''}</span>${gp==null?'':`<span class="swap-gp" title="Games played this session">${gp}G</span>`}</div>`;
+    const rep=mates.filter(m=>m!==id&&partnerCount(id,m)>0).map(m=>esc(getPlayer(m)?.name||'?'));
+    const repHtml=rep.length?`<span class="swap-repeat" title="Already partnered this session">↺ partnered with ${rep.join(' & ')}</span>`:'';
+    return `<div class="swap-option${caution?' in-match':''}" onclick="confirmSwap(${id})"><span class="swap-name">${esc(name)}${tag?` <span style="font-size:0.7rem;color:${caution?'#C0392B':'var(--muted)'};">${tag}</span>`:''}${repHtml}</span>${gp==null?'':`<span class="swap-gp" title="Games played this session">${gp}G</span>`}</div>`;
   };
   // Trade section (court swaps, doubles+): switch sides with a player on the OTHER team of this court. Match-scoped, no queue needed.
   let tradeHtml='';
@@ -3912,6 +3921,27 @@ function applyGameStats(t1p,t2p,s1,s2,sign){
 function resolveHistPlayers(ids,names){
   if(ids&&ids.length) return ids.map(id=>getPlayer(id));
   return (names||[]).map(n=>players.find(p=>p.name===n));
+}
+// How many finished games a and b played on the SAME team this session. Feeds the
+// repeat-partner warnings in the swap and manual-pick modals (display only; the
+// matchmaking algorithms keep their own anti-repeat logic).
+function partnerCount(a,b){
+  let n=0;
+  for(const g of gameHistory){
+    for(const [ids,names] of [[g.team1Ids,g.team1],[g.team2Ids,g.team2]]){
+      const team=resolveHistPlayers(ids,names).filter(Boolean).map(p=>p.id);
+      if(team.includes(a)&&team.includes(b)) n++;
+    }
+  }
+  return n;
+}
+// Pairs inside one team that have partnered before: [{a,b,n}]
+function repeatPairs(team){
+  const out=[];
+  for(let i=0;i<team.length;i++) for(let j=i+1;j<team.length;j++){
+    const n=partnerCount(team[i],team[j]); if(n) out.push({a:team[i],b:team[j],n});
+  }
+  return out;
 }
 // Game History numbers games by POSITION, not by the court's round stamp.
 // globalRound is consumed the moment a match is placed on a court, but a
