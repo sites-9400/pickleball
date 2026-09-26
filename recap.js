@@ -55,6 +55,45 @@
     return defs.length + (defs.length === 1 ? ' COURT' : ' COURTS');
   }
 
+  // ---- photo framing ---------------------------------------------------
+  // frame = { z: zoom (1 = just fills the box), x, y: photo point kept at the box centre }.
+  // Returns the drawn size and offset, clamped so the box is always covered.
+  function photoLayout(iw, ih, W, H, frame) {
+    var f = frame || {};
+    var z = Math.min(4, Math.max(1, +f.z || 1));
+    var x = Math.min(1, Math.max(0, f.x == null ? 0.5 : +f.x));
+    var y = Math.min(1, Math.max(0, f.y == null ? 0.5 : +f.y));
+    var s = Math.max(W / iw, H / ih) * z, w = iw * s, h = ih * s;
+    var left = Math.min(0, Math.max(W - w, W / 2 - x * w));
+    var top = Math.min(0, Math.max(H - h, H / 2 - y * h));
+    return { w: w, h: h, left: left, top: top };
+  }
+  function parseFrame(str) {
+    var p = String(str || '').split(',').map(Number);
+    return p.length === 3 && p.every(function (n) { return isFinite(n); }) ? { z: p[0], x: p[1], y: p[2] } : null;
+  }
+  var imgCache = {};
+  function loadImg(url) {
+    if (!imgCache[url]) imgCache[url] = new Promise(function (res, rej) {
+      var im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = url;
+    });
+    return imgCache[url];
+  }
+  // Size the photo layer in px for this header's real size (screen, export clone, view).
+  // CSS 'cover' stays as the fallback until this runs.
+  function frameHero(hero, url, frame) {
+    if (!hero || !url) return Promise.resolve(null);
+    return loadImg(url).then(function (im) {
+      var W = hero.offsetWidth, H = hero.offsetHeight;
+      if (!W || !H) return null;
+      var l = photoLayout(im.naturalWidth, im.naturalHeight, W, H, frame || parseFrame(hero.getAttribute('data-frame')));
+      hero.style.backgroundSize = '100% 100%, ' + l.w + 'px ' + l.h + 'px';
+      hero.style.backgroundPosition = '0 0, ' + l.left + 'px ' + l.top + 'px';
+      hero.style.backgroundRepeat = 'no-repeat';
+      return l;
+    });
+  }
+
   // ---- data builder (pure) ---------------------------------------------
   function buildRecapData(state, opts) {
     state = state || {}; opts = opts || {};
@@ -114,6 +153,7 @@
       stats: { games: (state.gameHistory || []).length, players: roster.length, hours: hours, duration: duration, durationUnit: durationUnit },
       // Event photo: only a JPEG data URL (it goes straight into a CSS url()).
       photo: /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(state.recapPhoto || '') ? state.recapPhoto : null,
+      frame: (function (f) { return f && [f.z, f.x, f.y].every(function (n) { return typeof n === 'number' && isFinite(n); }) ? [f.z, f.x, f.y].join(',') : ''; })(state.recapPhotoFrame),
       podium: roster.slice(0, 3),
       top10: roster.slice(0, 10),
       totalPlayers: roster.length,
@@ -255,7 +295,7 @@
 
     var html = '' +
       '<div class="pdr" id="pdr-card">' +
-        (r.photo ? '<div class="pdr-hero pdr-hero-photo" style="background-image:linear-gradient(180deg,rgba(12,30,18,.18) 0%,rgba(12,30,18,.5) 45%,rgba(12,30,18,.86) 100%),url(\'' + r.photo + '\')">' : '<div class="pdr-hero">') +
+        (r.photo ? '<div class="pdr-hero pdr-hero-photo"' + (r.frame ? ' data-frame="' + r.frame + '"' : '') + ' style="background-image:linear-gradient(180deg,rgba(12,30,18,.18) 0%,rgba(12,30,18,.5) 45%,rgba(12,30,18,.86) 100%),url(\'' + r.photo + '\')">' : '<div class="pdr-hero">') +
           '<div class="pdr-hmain">' +
             (r.groupName ? '<div class="pdr-group">' + esc(r.groupName) + '</div>' : '') +
             '<div class="pdr-title">OPEN PLAY <span>RECAP</span></div>' +
@@ -282,6 +322,10 @@
       '</div>';
 
     container.innerHTML = html;
+
+    // Photo framing for this header's real size (after layout).
+    var heroEl = container.querySelector && container.querySelector('.pdr-hero-photo');
+    if (heroEl && r.photo) { heroEl.__photo = r.photo; setTimeout(function () { frameHero(heroEl, r.photo).catch(function () {}); }, 0); }
 
     // QR — reuse the qrcodejs lib the host pages already load.
     if (r.viewUrl) genQR(container.querySelector('.pdr-qrcode'), r.viewUrl);
@@ -380,7 +424,10 @@
     document.body.appendChild(holder);
     function cleanup() { if (holder.parentNode) holder.parentNode.removeChild(holder); }
 
-    return loadH2C().then(function (h2c) {
+    // Re-frame the photo for the 680px export size (the clone lost the on-screen sizing).
+    var srcHero = card.querySelector('.pdr-hero-photo'), cloneHero = clone.querySelector('.pdr-hero-photo');
+    var framed = (srcHero && srcHero.__photo) ? frameHero(cloneHero, srcHero.__photo).catch(function () {}) : Promise.resolve();
+    return framed.then(loadH2C).then(function (h2c) {
       return h2c(clone, { backgroundColor: '#f7f4ea', scale: Math.min(3, (global.devicePixelRatio || 1) * 2), useCORS: true, width: 680, windowWidth: 720 });
     }).then(function (canvas) {
       return new Promise(function (resolve, reject) {
@@ -505,7 +552,7 @@
     });
   }
 
-  var api = { buildRecapData: buildRecapData, render: render, saveImage: saveImage, pickSaveStrategy: pickSaveStrategy, detectEnv: detectEnv };
+  var api = { buildRecapData: buildRecapData, render: render, photoLayout: photoLayout, frameHero: frameHero, saveImage: saveImage, pickSaveStrategy: pickSaveStrategy, detectEnv: detectEnv };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof window !== 'undefined') window.PDRecap = api;
   else if (typeof globalThis !== 'undefined') globalThis.PDRecap = api; // Node ESM test hook

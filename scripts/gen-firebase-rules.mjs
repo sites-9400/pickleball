@@ -19,7 +19,7 @@ export const SESSION_KEYS = [
   'players', 'courts', 'courtDefs', 'matchQueue', 'gameHistory', 'queueOrder',
   'globalRound', 'playerIdCounter', 'courtIdCounter', 'mqIdCounter',
   'sessionStartTime', 'sessionName', 'name', 'ladder', 'tournament',
-  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'upNextAlways', 'recapGroup', 'checkinOpen', 'status',
+  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'upNextAlways', 'recapGroup', 'recapPhotoFrame', 'checkinOpen', 'status',
 ];
 
 export function buildRules() {
@@ -31,6 +31,9 @@ export function buildRules() {
   // under the cap is accepted, so the slot can't be used as general storage.
   // Group / event name on the recap: a short string.
   perKey.recapGroup['.validate'] = "!newData.exists() || (newData.isString() && newData.val().length <= 60)";
+  // Photo framing: zoom (1 = fills the header) and the photo point kept at the centre.
+  const num = (lo, hi) => ({ '.validate': `newData.isNumber() && newData.val() >= ${lo} && newData.val() <= ${hi}` });
+  perKey.recapPhotoFrame = { ...perKey.recapPhotoFrame, z: num(1, 4), x: num(0, 1), y: num(0, 1), $other: { '.validate': false } };
   perKey.recapPhoto = {
     '.write': `${NOT_ANON} && (${IS_OWNER} || ${IS_COHOST})`,
     '.validate': `!newData.exists() || (newData.isString() && newData.val().beginsWith('data:image/jpeg;base64,') && newData.val().length <= ${RECAP_PHOTO_MAX})`,
