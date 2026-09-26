@@ -116,3 +116,13 @@ test('Show Up Next button sits above the queue list', () => {
   const head = html.indexOf('mm-qhead'), btn = html.indexOf('Show Up Next'), row = html.indexOf('queue-item');
   assert.ok(head >= 0 && btn > head && row > btn, 'order: Queue header, Show Up Next, then the players');
 });
+
+test('a By wait time session saved with 3 reserved matches drops to 1', () => {
+  const app = appWith({ n: 24, courts: 3 });
+  app.run(`generateMatchForCourt(1); generateMatchForCourt(2); generateMatchForCourt(3);`);
+  const free = JSON.parse(app.run(`JSON.stringify(getFreeWaiting().map(p=>p.id))`));
+  app.run(`matchQueue=[0,1,2].map(i=>({id:100+i,team1:${JSON.stringify(free)}.slice(i*4,i*4+2),team2:${JSON.stringify(free)}.slice(i*4+2,i*4+4)}));`);
+  app.run(`rebuildMatchQueue();`);
+  assert.equal(app.run(`matchQueue.length`), 1);
+  assert.equal(app.run(`matchQueue[0].id`), 100, 'the first reserved match is kept');
+});
