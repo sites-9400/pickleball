@@ -21,7 +21,7 @@ test('balanced mode builds at most 1 on-deck match', () => {
   assert.equal(app.run(`matchQueue.length`), 1, 'Balanced keeps a single on-deck preview');
 });
 
-test('waittime mode still builds up to 3', () => {
+test('waittime mode also keeps a single Up Next match', () => {
   const app = loadApp();
   app.run(`window._uid = 'owner1';`);
   app.run(`window._fbApplyRemote(${JSON.stringify(snap({
@@ -31,5 +31,5 @@ test('waittime mode still builds up to 3', () => {
     courtDefs: [{ id: 1, name: 'Court 1' }],
   }))});`);
   app.run(`rebuildMatchQueue();`);
-  assert.equal(app.run(`matchQueue.length`), 3, 'other modes unchanged');
+  assert.equal(app.run(`matchQueue.length`), 1, 'By wait time reserves one match, like Numbering/Balanced');
 });

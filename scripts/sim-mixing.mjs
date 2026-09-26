@@ -22,7 +22,8 @@ const CONFIGS = [];
 for (const mode of (process.env.MODES || 'random,balanced,waittime').split(',')) {
   for (const n of [5, 6, 7, 8, 9, 10, 12]) CONFIGS.push({ mode, fmt: 'doubles', c: 1, n });
   for (const n of [10, 12, 16, 20]) CONFIGS.push({ mode, fmt: 'doubles', c: 2, n });
-  for (const n of [16, 24]) CONFIGS.push({ mode, fmt: 'doubles', c: 3, n });
+  for (const n of [16, 20, 24, 28]) CONFIGS.push({ mode, fmt: 'doubles', c: 3, n });
+  for (const n of [24, 32, 40]) CONFIGS.push({ mode, fmt: 'doubles', c: 4, n });
   for (const n of [3, 4, 5]) CONFIGS.push({ mode, fmt: 'singles', c: 1, n });
   for (const n of [6, 7]) CONFIGS.push({ mode, fmt: 'singles', c: 2, n });
 }

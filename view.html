@@ -512,11 +512,11 @@ function renderQueue(s) {
   (s.courts||[]).filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>playingIds.add(id)));
 
   const mq = s.matchQueue||[];
-  // Mirror app.html exactly: it hides the Up Next cards for Random/Balanced below 3
+  // Mirror app.html exactly: it hides the Up Next cards for Random/Balanced/By wait time below 3
   // courts unless the organizer switched them on (upNextAlways). Keep the two views consistent — the
   // matchmaking mode/queue are owned by app.html; here we only read them to display.
   const mode = (s.mode && s.mode.matchmaking) || 'waittime';
-  const small = (mode==='random'||mode==='balanced') && (s.courtDefs||[]).length < 3;
+  const small = (mode==='random'||mode==='balanced'||mode==='waittime') && (s.courtDefs||[]).length < 3;
   const showUpNext = !small || s.upNextAlways === true;   // organizer can show it at 1-2 courts
 
   let html='';
@@ -531,7 +531,7 @@ function renderQueue(s) {
   // the only free players are exactly the group that just played together: some of them
   // play next with some who stay on from the game that ends first.
   const allBusy=(s.courtDefs||[]).every(d=>(s.courts||[]).some(c=>c.id===d.id&&!c.submitted));
-  const held=(mode==='random'||mode==='balanced') && need===0 && allBusy &&
+  const held=(mode==='random'||mode==='balanced'||mode==='waittime') && need===0 && allBusy &&
     isWholeLastGroup(freeNow.map(p=>p.id), s.gameHistory);
   if(showUpNext && !mq.length && liveCourts && (need>0 || held)){
     const from=liveCourts===1?'the current game':'the next game to finish';

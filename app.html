@@ -1209,7 +1209,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .mm-queue .mini-avatar{width:22px;height:22px;font-size:0.58rem;}
 .mm-upnext{flex:1;min-width:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,300px));gap:12px;align-content:start;order:-1;}
 .mm-empty{color:var(--muted);font-size:0.78rem;padding:14px;text-align:center;}
-.upnext-toggle{display:block;width:100%;margin-top:8px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);background:transparent;color:#EEF0E8;font-size:0.75rem;font-weight:800;cursor:pointer;}
+.upnext-toggle{display:block;width:100%;margin:4px 0 8px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);background:transparent;color:#EEF0E8;font-family:var(--font);font-size:0.75rem;font-weight:800;letter-spacing:0.02em;cursor:pointer;}
 .upnext-note{grid-column:1/-1;font-size:0.78rem;font-weight:600;color:#B7791F;background:rgba(183,121,31,0.1);border-radius:8px;padding:8px 12px;}
 .upnext-placeholder{background:var(--surface);border:1.5px dashed var(--line);border-radius:8px;padding:10px 12px;}
 .uph-label{font-size:0.68rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;margin-bottom:4px;}
@@ -1227,7 +1227,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .recap-adjust input[type=range]{flex:1;accent-color:var(--army);}
 #recapContainer .pdr-hero-photo.adjusting{cursor:grab;touch-action:none;outline:3px dashed var(--accent);outline-offset:-3px;}
 .recap-photo-ctl{display:flex;gap:8px;justify-content:center;margin:0 auto 12px;max-width:680px;flex-wrap:wrap;}
-.upnext-hide{margin-left:6px;border:none;background:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;}
+.upnext-hide{margin-left:6px;border:none;background:none;color:inherit;font-family:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;}
 /* Adaptive Live layout: matchmaking beside courts when they leave room, else below */
 .live-flow{gap:14px;align-items:flex-start;}
 .live-flow.flow-side{display:flex;}
@@ -2678,7 +2678,9 @@ function adaptiveConfig(){
 function showUpNext(){ return courtDefs.length >= 3 || upNextAlways === true; }
 // Below 3 courts Numbering/Balanced still build and seat the reserved next match;
 // it's only hidden. The organizer can show it anyway (display only; matchmaking unchanged).
-function upNextSmall(){ return (mm()==='random'||mm()==='balanced') && courtDefs.length < 3; }
+// Modes that reserve exactly one next match (Up Next shown from 3 courts, switch below).
+function oneUpNextMode(){ return mm()==='random'||mm()==='balanced'||mm()==='waittime'; }
+function upNextSmall(){ return oneUpNextMode() && courtDefs.length < 3; }
 function canToggleUpNext(){ return upNextSmall() && (_access==='owner'||_access==='cohost'); }
 // Not enough free players to reserve a whole match (e.g. 1 court, 6 players): name who
 // is free and say how many come off the court. Display only; who returns is still
@@ -2689,7 +2691,7 @@ function upNextPlaceholder(){
   const free=getFreeWaiting(), need=matchSize()-free.length;
   const from=live===1?'the current game':'the next game to finish';
   // Held on purpose to mix the groups (forcedGroupMix): k of the waiting group + k who stay on.
-  if(need===0 && (mm()==='random'||mm()==='balanced') && forcedGroupMix(free, matchSize())===false){
+  if(need===0 && oneUpNextMode() && forcedGroupMix(free, matchSize())===false){
     const k=teamSize(), n=free.map(p=>esc(p.name));
     return `<div class="upnext-placeholder"><div class="uph-label">Up Next</div>`+
       `<div class="uph-body">${k} of ${n.slice(0,-1).join(', ')} &amp; ${n[n.length-1]} <span>+ ${k} from ${from}</span></div></div>`;
@@ -2789,13 +2791,58 @@ function smallPoolRotation(pool, need){
   const stay=cand[Math.floor(Math.random()*cand.length)].stay;
   return pool.filter(p=>!lastIds.includes(p.id) || stay.includes(p)); // keep wait order
 }
+// ===== BY WAIT TIME: GROUP MIXING =====
+// Strict longest-wait order sends a group that finished together straight back out
+// together: they end on the same round and join the back of the line side by side, so
+// at 4 courts x 40 players everyone met just 3 opponents all night. When the longest-
+// waiting N have already shared a court, swap up to a team's worth (k) of them for the
+// next-longest waiters, picking the freshest group. A player is only passed over for
+// someone who waited at most 1 round less, so the one passed over is at the top of the
+// line next time and cannot be passed over again (the gap is then 2+), and never for
+// someone who has played more games.
+function waitMix(pool, need){
+  const top=pool.slice(0,need), groupCost=groupCostFn(), ids=ps=>ps.map(p=>p.id);
+  const base=groupCost(ids(top));
+  if(!base) return top;
+  const next=pool.slice(need, 2*need), k=teamSize();
+  let best={M:top, key:[base,0,0]};
+  for(let d=1; d<=Math.min(k,next.length); d++) for(const out of subsets(top,d)) for(const inn of subsets(next,d)){
+    if(out.some(o=>inn.some(q=>o.lastPlayedRound < q.lastPlayedRound-1 || (o.gamesPlayed||0) < (q.gamesPlayed||0)))) continue;
+    const M=[...top.filter(p=>!out.includes(p)),...inn];
+    const key=[groupCost(ids(M)), d, inn.reduce((a,q)=>a+next.indexOf(q),0)];
+    if(key[0]<best.key[0] || (key[0]===best.key[0] && (key[1]<best.key[1] || (key[1]===best.key[1] && key[2]<best.key[2])))) best={M,key};
+  }
+  return pool.filter(p=>best.M.includes(p)); // keep wait order
+}
+// Split the chosen players into two teams: fewest repeat partners, then fewest repeat
+// opponents; ties at random. Who plays is already decided; this only picks the teams.
+function freshestSplit(ps){
+  const ts=teamSize(), idl=ps.map(p=>p.id);
+  if(ts===1) return {team1:[idl[0]], team2:[idl[1]]};
+  const part={}, opp={}, pk=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+  gameHistory.forEach(g=>{ const t1=g.team1Ids||[], t2=g.team2Ids||[];
+    [t1,t2].forEach(t=>{ for(let i=0;i<t.length;i++) for(let j=i+1;j<t.length;j++) part[pk(t[i],t[j])]=(part[pk(t[i],t[j])]||0)+1; });
+    t1.forEach(a=>t2.forEach(b=>{ opp[pk(a,b)]=(opp[pk(a,b)]||0)+1; })); });
+  const options=subsets(idl.slice(1), ts-1).map(r=>{
+    const t1=[idl[0],...r], t2=idl.filter(id=>!t1.includes(id));
+    let pc=0, oc=0;
+    [t1,t2].forEach(t=>{ for(let i=0;i<t.length;i++) for(let j=i+1;j<t.length;j++) pc+=part[pk(t[i],t[j])]||0; });
+    t1.forEach(a=>t2.forEach(b=>{ oc+=opp[pk(a,b)]||0; }));
+    return {t1,t2,key:[pc,oc]};
+  });
+  const cmp=(a,b)=>a.key[0]-b.key[0]||a.key[1]-b.key[1];
+  options.sort(cmp);
+  const cand=options.filter(o=>cmp(o,options[0])===0);
+  const o=cand[Math.floor(Math.random()*cand.length)];
+  return Math.random()<0.5 ? {team1:o.t1, team2:o.t2} : {team1:o.t2, team2:o.t1};
+}
 // Pick the players + teams for the next match per the session's matchmaking style.
 function chooseMatchPlayers(){
   const need=matchSize();
   let pool=getFreeWaiting(); // sorted by wait (lastPlayedRound asc, then queueOrder)
   if(pool.length<need) return null;
   const style=mm(), ts=teamSize();
-  if(style==='random' || style==='balanced'){
+  if(style==='random' || style==='balanced' || style==='waittime'){
     const mix=forcedGroupMix(pool, need);
     if(mix===false) return null;
     if(mix) pool=mix;
@@ -2810,7 +2857,10 @@ function chooseMatchPlayers(){
   if(style==='random'){
     return window.fairWeightedMatch(pool, gameHistory, globalRound, {teamSize:ts, lockedPairs:lockedPairsList(), ...adaptiveConfig()});
   }
-  // Waittime / balanced-singles: longest-waiting N, random pairing.
+  // Waittime: longest-waiting N (swapping up to a team's worth so finished groups mix),
+  // then the team split with the fewest repeat partners and opponents.
+  if(style==='waittime') return freshestSplit(waitMix(pool, need));
+  // Balanced singles: longest-waiting N, random pairing.
   const chosen = pool.slice(0,need);
   const g=shuffle(chosen.slice());
   return {team1:g.slice(0,ts).map(p=>p.id), team2:g.slice(ts,ts*2).map(p=>p.id)};
@@ -2881,7 +2931,7 @@ function rebuildMatchQueue() {
     fillChallengeCourts();
     return;
   }
-  const MAX_QUEUED = (mm()==='random' || mm()==='balanced') ? 1 : 3;
+  const MAX_QUEUED = oneUpNextMode() ? 1 : 3;
   while(matchQueue.length<MAX_QUEUED){
     const m=chooseMatchPlayers();
     if(!m) break;
@@ -3996,7 +4046,7 @@ function renderQueue() {
   // With Up Next hidden (Numbering/Balanced below 3 courts), the players reserved for
   // the next match have no card to appear in, so list them first here, as view.html
   // does. Otherwise they vanished from the Queue until a court freed up.
-  const upNextShown=!((mm()==='random'||mm()==='balanced') && !showUpNext());
+  const upNextShown=!(oneUpNextMode() && !showUpNext());
   const reservedFirst=[];
   if(!upNextShown){
     const seen=new Set();
@@ -4008,12 +4058,12 @@ function renderQueue() {
   let html='<div class="mm-grid">';
   // left: narrow dark Queue of waiting players
   html+='<div class="mm-queue"><div class="mm-qhead">Queue <span>'+freeWaiting.length+'</span></div>';
+  if(canToggleUpNext() && !showUpNext()) html+='<button class="upnext-toggle" onclick="toggleUpNext()">Show Up Next</button>';
   if(freeWaiting.length){
     html+=freeWaiting.map((p,i)=>`<div class="queue-item tappable" onclick="openProfile(${p.id})" title="View ${esc(p.name)}'s games"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}${lockBadge(p.id)}</span><span class="queue-gp" title="Games played this session">${p.gamesPlayed}G</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}" title="Rounds since last played">${p.lastPlayedRound===-1?'-':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
   } else {
     html+='<div class="mm-empty">No one waiting.</div>';
   }
-  if(canToggleUpNext() && !showUpNext()) html+='<button class="upnext-toggle" onclick="toggleUpNext()">Show Up Next</button>';
   html+='</div>';
   // right: Up Next / On Deck cards — hidden for Numbering/Balanced below 4 courts
   if(upNextShown){
