@@ -91,6 +91,8 @@
       timeLabel: fmtTimeRange(start, end),
       courtLabel: fmtCourts(state.courtDefs),
       stats: { games: (state.gameHistory || []).length, players: roster.length, hours: hours },
+      // Event photo: only a JPEG data URL (it goes straight into a CSS url()).
+      photo: /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(state.recapPhoto || '') ? state.recapPhoto : null,
       podium: roster.slice(0, 3),
       top10: roster.slice(0, 10),
       totalPlayers: roster.length,
@@ -109,6 +111,7 @@
     '.pdr-hmain{padding-right:104px;}', // reserve room for the QR in wide layout
     // hero
     '.pdr-hero{position:relative;background:linear-gradient(150deg,var(--pdr-forest2),var(--pdr-forest) 62%);color:#fff;padding:22px 22px 20px;}',
+    '.pdr-hero-photo{background-size:cover;background-position:center;padding-top:120px;text-shadow:0 1px 3px rgba(0,0,0,.45);}',
     '.pdr-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(143,179,57,.18),transparent 55%);pointer-events:none;}',
     '.pdr-eyebrow{font-size:.8rem;font-weight:800;letter-spacing:.22em;opacity:.9;text-transform:uppercase;}',
     '.pdr-meta{font-size:.8rem;font-weight:700;letter-spacing:.13em;color:var(--pdr-gold);margin-top:14px;text-transform:uppercase;}',
@@ -225,7 +228,7 @@
 
     var html = '' +
       '<div class="pdr" id="pdr-card">' +
-        '<div class="pdr-hero">' +
+        (r.photo ? '<div class="pdr-hero pdr-hero-photo" style="background-image:linear-gradient(180deg,rgba(12,30,18,.18) 0%,rgba(12,30,18,.5) 45%,rgba(12,30,18,.86) 100%),url(\'' + r.photo + '\')">' : '<div class="pdr-hero">') +
           (r.viewUrl ? '<div class="pdr-qr"><div class="pdr-qrcode"></div><small>Scan for full results</small></div>' : '') +
           '<div class="pdr-hmain">' +
             '<div class="pdr-eyebrow">' + esc(r.brand) + '</div>' +

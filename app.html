@@ -1215,6 +1215,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .uph-label{font-size:0.68rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;margin-bottom:4px;}
 .uph-body{font-weight:700;font-size:0.9rem;}
 .uph-body span{color:var(--muted);font-weight:600;}
+.recap-photo-ctl{display:flex;gap:8px;justify-content:center;margin:0 auto 12px;max-width:680px;flex-wrap:wrap;}
 .upnext-hide{margin-left:6px;border:none;background:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;}
 /* Adaptive Live layout: matchmaking beside courts when they leave room, else below */
 .live-flow{gap:14px;align-items:flex-start;}
@@ -1472,6 +1473,8 @@ input:focus, textarea:focus { border-color: var(--army); }
 
   <!-- RECAP TAB (ended-only) -->
   <div class="tab-panel" id="tab-recap">
+    <div id="recapPhotoCtl" class="recap-photo-ctl"></div>
+    <input type="file" id="recapPhotoInput" accept="image/*" style="display:none" onchange="pickRecapPhoto(this.files[0]); this.value='';">
     <div id="recapContainer"></div>
   </div>
 
@@ -1632,7 +1635,8 @@ let sessionDate = '';
 let sessionEnded = false;
 let sessionEndTime = null;
 let sessionPausedMs = 0;
-let upNextAlways = null;   // organizer switch: show Up Next below 3 courts (null = never set)   // time spent ended before a Continue; excluded from every duration
+let upNextAlways = null;
+let recapPhoto = null;     // event photo (JPEG data URL) behind the recap header; written on its own   // organizer switch: show Up Next below 3 courts (null = never set)   // time spent ended before a Continue; excluded from every duration
 let checkinOpen = true;
 let cohosts = {};          // uid -> {name, addedAt} (raw Firebase map, owner-managed)
 let cohostOpen = false;
@@ -1803,6 +1807,7 @@ window._fbApplyRemote = function(s) {
   sessionEnded      = s.sessionEnded      || false;
   sessionEndTime    = s.sessionEndTime    || null;
   sessionPausedMs   = +s.sessionPausedMs  || 0;
+  recapPhoto        = (typeof s.recapPhoto === 'string') ? s.recapPhoto : null;
   upNextAlways      = (s.upNextAlways === undefined || s.upNextAlways === null) ? null : !!s.upNextAlways;
   const _hadCheckinOpen = (s.checkinOpen !== undefined);
   checkinOpen       = (s.checkinOpen !== false); // default open; only an explicit false closes it
@@ -1877,7 +1882,7 @@ window._fbHandleNull = function() {
   }
   players=[]; courts=[]; courtDefs=[]; matchQueue=[]; gameHistory=[];
   globalRound=0; playerIdCounter=0; courtIdCounter=0; mqIdCounter=0; queueOrder=[];
-  sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null; sessionPausedMs=0; upNextAlways=null;
+  sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null; sessionPausedMs=0; upNextAlways=null; recapPhoto=null;
   clearInterval(sessionTimerInterval); sessionTimerInterval=null;
   clearInterval(courtTimerInterval); courtTimerInterval=null;
   const bar = document.getElementById('sessionBar');
@@ -4119,11 +4124,61 @@ function switchTab(name) {
   }
 }
 // End-of-session recap graphic (podium + top 10 + QR + save-as-image), shared with view.html.
+// ---- Recap event photo (owner / co-host) ----
+const RECAP_PHOTO_MAX = 380000;   // rules cap is 400000 chars
+function canEditRecapPhoto(){ return _access==='owner'||_access==='cohost'; }
+function renderRecapPhotoCtl(){
+  const el=document.getElementById('recapPhotoCtl'); if(!el) return;
+  if(!canEditRecapPhoto()){ el.innerHTML=''; return; }
+  el.innerHTML = recapPhoto
+    ? `<button class="btn btn-outline" onclick="document.getElementById('recapPhotoInput').click()">📷 Change photo</button><button class="btn btn-outline" onclick="removeRecapPhoto()">Remove photo</button>`
+    : `<button class="btn btn-outline" onclick="document.getElementById('recapPhotoInput').click()">📷 Add event photo</button>`;
+}
+// Shrink on the phone until it fits the cap: quality first, then size.
+function compressPhoto(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=Math.min(1400,img.naturalWidth), q=0.82, out='';
+      for(let i=0;i<12;i++){
+        const h=Math.round(w*img.naturalHeight/img.naturalWidth);
+        const c=document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        out=c.toDataURL('image/jpeg',q);
+        if(out.length<=RECAP_PHOTO_MAX) return resolve(out);
+        if(q>0.55) q-=0.09; else w=Math.round(w*0.8);
+      }
+      reject(new Error('too big'));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('unreadable')); };
+    img.src=url;
+  });
+}
+async function pickRecapPhoto(file){
+  if(!file||!canEditRecapPhoto()) return;
+  showToast('Preparing photo…');
+  try{
+    const data=await compressPhoto(file);
+    await window._setRecapPhoto(data);
+    recapPhoto=data; renderRecapTab();
+    showToast('Photo added to the recap.');
+  }catch(e){ showToast('Couldn’t add that photo. Try another one.'); }
+}
+function removeRecapPhoto(){
+  if(!canEditRecapPhoto()) return;
+  const done=window._setRecapPhoto ? window._setRecapPhoto(null) : null;
+  recapPhoto=null; renderRecapTab();
+  if(done&&done.catch) done.catch(()=>showToast('Couldn’t remove the photo. Check your connection.'));
+}
+window.pickRecapPhoto=pickRecapPhoto; window.removeRecapPhoto=removeRecapPhoto;
+
 function renderRecapTab() {
+  renderRecapPhotoCtl();
   const el = document.getElementById('recapContainer');
   if (!el || !window.PDRecap) return;
   PDRecap.render(el,
-    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime, sessionPausedMs },
+    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime, sessionPausedMs, recapPhoto },
     { viewUrl: window._getViewLink ? window._getViewLink() : '' });
 }
 
@@ -4249,6 +4304,7 @@ const _SESSION_REF = ref(_db, `sessions/${_SESSION_ID}`);
 window._removeCheckin = (key) => remove(ref(_db, `sessions/${_SESSION_ID}/checkins/${key}`));
 window._sessionId = () => _SESSION_ID;
 window._setCohostOpen = (open) => set(ref(_db, `sessions/${_SESSION_ID}/cohostOpen`), open);
+window._setRecapPhoto = (data) => set(ref(_db, `sessions/${_SESSION_ID}/recapPhoto`), data);   // on its own, never via saveState
 window._writeCohostToken = (tok) => set(ref(_db, `cohostTokens/${_SESSION_ID}`), tok);
 window._readCohostToken = () => get(ref(_db, `cohostTokens/${_SESSION_ID}`)).then(s => s.val()).catch(() => null);
 window._removeCohost = (uid) => remove(ref(_db, `sessions/${_SESSION_ID}/cohosts/${uid}`));

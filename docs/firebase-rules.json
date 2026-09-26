@@ -80,6 +80,10 @@
         "status": {
           ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())"
         },
+        "recapPhoto": {
+          ".write": "auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists())",
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().beginsWith('data:image/jpeg;base64,') && newData.val().length <= 400000)"
+        },
         "checkins": {
           "$cid": {
             ".write": "auth != null && (root.child('sessions').child($sid).child('ownerId').val() === auth.uid || root.child('sessions').child($sid).child('cohosts').child(auth.uid).exists() || (!data.exists() && newData.exists() && root.child('sessions').child($sid).child('checkinOpen').val() === true))",

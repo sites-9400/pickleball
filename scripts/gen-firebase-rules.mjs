@@ -12,6 +12,9 @@ const NOT_ANON = "auth.token.firebase.sign_in_provider != 'anonymous'";
 // Keys saveState() writes — every one is writable by the owner or a co-host
 // with a non-anonymous account. ownerId is deliberately NOT here: nothing may
 // rewrite it after creation (see the $sid .write create rule).
+// Max length of the recap photo data URL (~290 KB of JPEG). app.html compresses below it.
+export const RECAP_PHOTO_MAX = 400000;
+
 export const SESSION_KEYS = [
   'players', 'courts', 'courtDefs', 'matchQueue', 'gameHistory', 'queueOrder',
   'globalRound', 'playerIdCounter', 'courtIdCounter', 'mqIdCounter',
@@ -24,6 +27,12 @@ export function buildRules() {
   for (const key of SESSION_KEYS) {
     perKey[key] = { '.write': `${NOT_ANON} && (${IS_OWNER} || ${IS_COHOST})` };
   }
+  // Recap event photo: written on its own (not by saveState). Only a JPEG data URL
+  // under the cap is accepted, so the slot can't be used as general storage.
+  perKey.recapPhoto = {
+    '.write': `${NOT_ANON} && (${IS_OWNER} || ${IS_COHOST})`,
+    '.validate': `!newData.exists() || (newData.isString() && newData.val().beginsWith('data:image/jpeg;base64,') && newData.val().length <= ${RECAP_PHOTO_MAX})`,
+  };
   return {
     rules: {
       sessions: {
