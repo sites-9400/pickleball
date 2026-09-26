@@ -893,6 +893,8 @@ input:focus, textarea:focus { border-color: var(--army); }
   letter-spacing: 0.02em;
 }
 .queue-name { flex: 1; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
+.queue-item.tappable { cursor: pointer; }
+.queue-item.tappable:active { opacity: 0.7; }
 .queue-idle {
   font-size: 0.72rem;
   font-weight: 600;
@@ -1277,7 +1279,7 @@ input:focus, textarea:focus { border-color: var(--army); }
         <!-- ADD PLAYERS + ROSTER (left, one flowing card) -->
         <div class="card">
           <div class="card-title">Add Players</div>
-          <textarea id="playerNameInput" placeholder="Add one name per line, or paste a list from Reclub:&#10;Eve&#10;Jude&#10;Alysson" rows="3" style="resize:vertical;margin-bottom:8px;"></textarea>
+          <textarea id="playerNameInput" placeholder="Add one name per line, or paste a list from Reclub:&#10;Eve&#10;Jude&#10;Alysson" rows="7" style="resize:vertical;margin-bottom:8px;"></textarea>
           <button class="btn btn-primary btn-full" onclick="addPlayer()">Add Players</button>
           <button class="btn btn-outline btn-full" id="importPrevBtn" style="margin-top:8px;" onclick="openImportSessions()">⤵ Import from a previous session</button>
 
@@ -1492,6 +1494,15 @@ input:focus, textarea:focus { border-color: var(--army); }
     <div id="lockOptions"></div>
     <div id="lockNoMatch" class="hidden" style="text-align:center;color:var(--muted);font-size:0.82rem;padding:10px 0;">No players match your search.</div>
     <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeLockModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="profileOverlay" onclick="closeProfile(event)">
+  <div class="modal">
+    <div class="modal-title" id="profileName"></div>
+    <div class="modal-sub" id="profileSkill"></div>
+    <div class="stat-row" id="profileStats" style="margin:12px 0 4px;"></div>
+    <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeProfile()">Close</button>
   </div>
 </div>
 
@@ -2345,6 +2356,23 @@ function closeLockModal(e){
 }
 window.openLockModal=openLockModal; window.closeLockModal=closeLockModal;
 window.filterLockOptions=filterLockOptions; window.confirmLock=confirmLock; window.unlockPartner=unlockPartner;
+
+// Player profile: tap a name in the Queue to see games played, skill and W/L.
+function openProfile(id){
+  const p=getPlayer(id); if(!p) return;
+  const skill=p.skill||'intermediate';
+  document.getElementById('profileName').textContent=p.name;
+  document.getElementById('profileSkill').textContent=skill.charAt(0).toUpperCase()+skill.slice(1);
+  const chip=(v,l)=>`<div class="stat-chip"><div class="stat-val">${v}</div><div class="stat-label">${l}</div></div>`;
+  document.getElementById('profileStats').innerHTML=
+    chip(p.gamesPlayed||0,'Games')+chip(p.wins||0,'Wins')+chip(p.losses||0,'Losses');
+  document.getElementById('profileOverlay').classList.remove('hidden');
+}
+function closeProfile(e){
+  if(e&&e.target!==document.getElementById('profileOverlay')) return;
+  document.getElementById('profileOverlay').classList.add('hidden');
+}
+window.openProfile=openProfile; window.closeProfile=closeProfile;
 
 function renderPlayers() {
   const list=document.getElementById('playerList');
@@ -3805,7 +3833,7 @@ function renderQueue() {
   // left: narrow dark Queue of waiting players
   html+='<div class="mm-queue"><div class="mm-qhead">Queue <span>'+freeWaiting.length+'</span></div>';
   if(freeWaiting.length){
-    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}${lockBadge(p.id)}</span><span class="queue-gp" title="Games played this session">${p.gamesPlayed}G</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}" title="Rounds since last played">${p.lastPlayedRound===-1?'-':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
+    html+=freeWaiting.map((p,i)=>`<div class="queue-item tappable" onclick="openProfile(${p.id})" title="View ${esc(p.name)}'s games"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}${lockBadge(p.id)}</span><span class="queue-gp" title="Games played this session">${p.gamesPlayed}G</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}" title="Rounds since last played">${p.lastPlayedRound===-1?'-':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
   } else {
     html+='<div class="mm-empty">No one waiting.</div>';
   }
