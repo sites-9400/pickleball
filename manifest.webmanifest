@@ -1,7 +1,7 @@
 {
   "name": "Pickled",
   "short_name": "Pickled",
-  "description": "Pickleball open-play organizer — courts, queues, and scores.",
+  "description": "Pickleball open-play organizer: courts, queues, and scores.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

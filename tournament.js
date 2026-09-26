@@ -394,7 +394,7 @@ function _span(p, sessionEndTime, now) {
   return { inTs: firstIn.ts, outTs: lastOut ? lastOut.ts : null,
            mins: Math.max(0, Math.round((end - firstIn.ts) / 60000)) };
 }
-const _DASH = '—';
+const _DASH = '-';
 // Round robin / bracket / ladder have a real round number worth showing; the queue modes
 // number games by position instead (newest game first, as gameHistory is stored).
 function _roundIsReal(mode) { return mode === 'roundrobin' || mode === 'bracket' || mode === 'ladder'; }

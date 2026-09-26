@@ -37,11 +37,11 @@ test('player rows carry stats plus attendance', () => {
   const csv = buildSessionCSV(SESSION);
   assert.ok(lines(csv)[0].includes('Checked in'), 'attendance columns present');
   const amy = row(csv, 'Amy,').split(',');
-  assert.deepEqual(amy.slice(-3), ['4:08 PM', '—', '240'], 'still here -> counted to session end');
+  assert.deepEqual(amy.slice(-3), ['4:08 PM', '-', '240'], 'still here -> counted to session end');
   const che = row(csv, 'Che,').split(',');
   assert.deepEqual(che.slice(-3), ['4:18 PM', '6:18 PM', '120'], 'left -> counted to checkout');
   const jab = row(csv, 'Jab,').split(',');
-  assert.deepEqual(jab.slice(-3), ['—', '—', '—'], 'never checked in');
+  assert.deepEqual(jab.slice(-3), ['-', '-', '-'], 'never checked in');
 });
 
 test('game rows are numbered Game N in queue modes, newest first', () => {
@@ -49,7 +49,7 @@ test('game rows are numbered Game N in queue modes, newest first', () => {
   const head = lines(csv).find(l => l.startsWith('Game,'));
   assert.ok(head.endsWith('Started,Ended,Length (min)'), head);
   assert.ok(row(csv, '2,Court 1,').endsWith('4:38 PM,4:56 PM,18'), 'timed game');
-  assert.ok(row(csv, '1,Court 1,').endsWith('—,—,—'), 'untimed game exports as dashes');
+  assert.ok(row(csv, '1,Court 1,').endsWith('-,-,-'), 'untimed game exports as dashes');
 });
 
 test('round-based modes keep the real round number', () => {

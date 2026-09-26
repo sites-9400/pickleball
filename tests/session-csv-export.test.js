@@ -44,7 +44,7 @@ test('player rows carry check-in, checkout and time on site', () => {
   const p1 = rowFor(csv, 'P1').split(',');
   const p2 = rowFor(csv, 'P2').split(',');
   assert.equal(p1[p1.length - 3], '4:08 PM', 'p1 check-in time');
-  assert.equal(p1[p1.length - 2], '—', 'p1 has not left');
+  assert.equal(p1[p1.length - 2], '-', 'p1 has not left');
   assert.equal(p1[p1.length - 1], '240', 'p1 on site until session end');
   assert.equal(p2[p2.length - 3], '4:18 PM', 'p2 check-in time');
   assert.equal(p2[p2.length - 2], '6:18 PM', 'p2 checkout time');
@@ -64,7 +64,7 @@ test('a check-in from another day is date-qualified, not a bare time', () => {
 test('a player who never checked in reads as a dash, not a bogus duration', () => {
   const app = loadSession({ players: [P('p1', { gamesPlayed: 0, events: [] })] });
   const cells = rowFor(csvOf(app), 'P1').split(',');
-  assert.deepEqual(cells.slice(-3), ['—', '—', '—']);
+  assert.deepEqual(cells.slice(-3), ['-', '-', '-']);
 });
 
 test('game rows carry start, end and length in minutes', () => {
@@ -90,7 +90,7 @@ test('games recorded before timing existed export as dashes', () => {
                     team1Ids: ['p1', 'p2'], team2Ids: ['p3', 'p4'], score1: 11, score2: 7 }],
   });
   const row = csvOf(app).split('\n').find(l => l.startsWith('1,Court 1,'));
-  assert.ok(row.endsWith('—,—,—'), `untimed game row, got "${row}"`);
+  assert.ok(row.endsWith('-,-,-'), `untimed game row, got "${row}"`);
 });
 
 test('submitting a score records how long the game took', () => {

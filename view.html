@@ -4,18 +4,18 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pickleball — Live View</title>
+<title>Pickleball · Live View</title>
 <meta name="description" content="Live scores, courts, and rankings for today's Paddle District open play.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Paddle District">
 <meta property="og:url" content="https://padq.app/view.html">
-<meta property="og:title" content="Paddle District — Live Open Play">
+<meta property="og:title" content="Paddle District · Live Open Play">
 <meta property="og:description" content="Live scores, courts, and rankings for today's Paddle District open play.">
 <meta property="og:image" content="https://padq.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Paddle District — Live Open Play">
+<meta name="twitter:title" content="Paddle District · Live Open Play">
 <meta name="twitter:description" content="Live scores, courts, and rankings for today's Paddle District open play.">
 <meta name="twitter:image" content="https://padq.app/og-image.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -157,7 +157,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
   <div class="logo" style="padding:0;overflow:visible;background:transparent;width:auto;height:auto;border-radius:0;"><img src="logo.png" alt="Paddle District" style="height:30px;width:auto;display:block;object-fit:contain;" onerror="this.style.display='none'"></div>
   <div class="header-text">
     <h1 id="viewSessionName">Pickleball Open Play</h1>
-    <p id="viewSessionDate">Live View — Read Only</p>
+    <p id="viewSessionDate">Live View · Read Only</p>
   </div>
   <div class="live-dot" id="liveDot" title="Connection status"></div>
   <div class="session-clock-view" id="viewClock">--:--:--</div>
@@ -249,7 +249,7 @@ onValue(ref(db, '.info/connected'), snap => {
   if (state?.sessionEnded) return; // preserve ended-state dot
   const dot = document.getElementById('liveDot');
   dot.className = snap.val() ? 'live-dot' : 'live-dot offline';
-  dot.title = snap.val() ? 'Connected — Live' : 'Disconnected';
+  dot.title = snap.val() ? 'Connected · Live' : 'Disconnected';
 });
 
 function renderAll(s) {
@@ -379,7 +379,7 @@ function handleNull() {
   layoutBuilt = false;
   state = null;
   document.getElementById('viewSessionName').textContent = 'Pickleball Open Play';
-  document.getElementById('viewSessionDate').textContent = 'Live View — Read Only';
+  document.getElementById('viewSessionDate').textContent = 'Live View · Read Only';
   document.getElementById('viewClock').textContent = '--:--:--';
   // FIX J: show a friendly "waiting for session" screen
   document.getElementById('mainContent').innerHTML = `

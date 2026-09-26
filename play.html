@@ -4,19 +4,19 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live (Preview) — Paddle District</title>
-<meta name="description" content="Paddle District — pickleball open play: courts, queues, and rankings.">
+<title>Live (Preview) · Paddle District</title>
+<meta name="description" content="Paddle District pickleball open play: courts, queues, and rankings.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Paddle District">
 <meta property="og:url" content="https://padq.app/play.html">
-<meta property="og:title" content="Paddle District — Open Play">
-<meta property="og:description" content="Paddle District — pickleball open play: courts, queues, and rankings.">
+<meta property="og:title" content="Paddle District · Open Play">
+<meta property="og:description" content="Paddle District pickleball open play: courts, queues, and rankings.">
 <meta property="og:image" content="https://padq.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Paddle District — Open Play">
-<meta name="twitter:description" content="Paddle District — pickleball open play: courts, queues, and rankings.">
+<meta name="twitter:title" content="Paddle District · Open Play">
+<meta name="twitter:description" content="Paddle District pickleball open play: courts, queues, and rankings.">
 <meta name="twitter:image" content="https://padq.app/og-image.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#4A5C2F">
@@ -1178,7 +1178,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
 </header>
 
-<div class="offline-banner" id="offlineBanner">⚠️ No connection — changes won't sync until reconnected</div>
+<div class="offline-banner" id="offlineBanner">⚠️ No connection. Changes won't sync until reconnected</div>
 <div class="session-bar hidden" id="sessionBar">
   <div>
     <div class="session-clock" id="sessionClock">00:00:00</div>
@@ -1823,9 +1823,9 @@ function renderAccessBanner() {
   const b = document.getElementById('accessBanner');
   if (!b) return;
   const msg = _accessNotice
-            || (_access === 'revoked' ? "You're no longer a co-host — this session is now view-only."
-            : _access === 'viewer'  ? "View only — you don't have admin access to this session."
-            : _access === 'cohost'  ? "Co-hosting this session — only the owner can end or delete it."
+            || (_access === 'revoked' ? "You're no longer a co-host. This session is now view-only."
+            : _access === 'viewer'  ? "View only. You don't have admin access to this session."
+            : _access === 'cohost'  ? "Co-hosting this session. Only the owner can end or delete it."
             : '');
   b.textContent = msg;
   b.style.display = msg ? '' : 'none';
@@ -1886,7 +1886,7 @@ function confirmEndSession() {
   if (window._fbForceImmediate) window._fbForceImmediate(); // bypass 80ms debounce — can't let navigation cancel this write
   saveState();
   document.getElementById('endOverlay').classList.add('hidden');
-  showToast('Session ended — tap "New Session" to start another.', 3500);
+  showToast('Session ended. Tap "New Session" to start another.', 3500);
 }
 function newSession() {
   if (!confirm('Go back to Dashboard to start a new session?')) return;
@@ -1898,7 +1898,7 @@ function continueSession() {
   applySessionUI();
   if (window._fbForceImmediate) window._fbForceImmediate();
   saveState();
-  showToast('Session continued — view link is live again.');
+  showToast('Session continued. View link is live again.');
 }
 
 // ===== COURT TIMERS — derived from startedAt in Firebase =====
@@ -1958,7 +1958,7 @@ function parseNames(raw) {
 function addPlayer() {
   const input=document.getElementById('playerNameInput');
   const names=parseNames(input.value);
-  if(!names.length){showToast('No names found — try again.');return;}
+  if(!names.length){showToast('No names found. Try again.');return;}
   let added=0, skipped=0;
   names.forEach(name=>{
     if(players.find(p=>p.name.toLowerCase()===name.toLowerCase())){skipped++;return;}
@@ -2155,7 +2155,7 @@ function _refreshCohostLink() {
 }
 function toggleCohostOpen() {
   if (_access !== 'owner') return;
-  if (!window._setCohostOpen) { showToast('Still connecting — try again.'); return; }
+  if (!window._setCohostOpen) { showToast('Still connecting. Try again.'); return; }
   const turningOn = !cohostOpen;
   // Opening invites guarantees a token exists BEFORE cohostOpen flips true —
   // the join rule denies when cohostTokens/$sid is absent.
@@ -2171,7 +2171,7 @@ function toggleCohostOpen() {
     .then(() => {
       cohostOpen = turningOn;
       renderCohostPanel();
-      showToast(turningOn ? 'Accepting co-hosts — share the invite link.' : 'Co-host invites closed.');
+      showToast(turningOn ? 'Accepting co-hosts. Share the invite link.' : 'Co-host invites closed.');
     })
     .catch(() => showToast('Could not update co-host settings.'));
 }
@@ -2181,7 +2181,7 @@ function regenCohostLink() {
   window._writeCohostToken(t).then(() => {
     _cohostLink = '';
     _refreshCohostLink();
-    showToast('New invite link generated — old links are dead.');
+    showToast('New invite link generated. Old links are dead.');
   }).catch(() => showToast('Could not generate a new link.'));
 }
 function copyCohostLink() {
@@ -2220,7 +2220,7 @@ function confirmCohostJoin() {
     _accessNotice = '';
     showToast("You're a co-host now!");
   }).catch(() => {
-    _accessNotice = 'This invite link is no longer active — ask the host for a new one.';
+    _accessNotice = 'This invite link is no longer active. Ask the host for a new one.';
     renderAccessBanner();
   });
 }
@@ -2438,7 +2438,7 @@ function renameCourtDef(courtId,newName) {
   saveState();
 }
 function generateMatchForCourt(courtId) {
-  if(mm()==='ladder'){ showToast('Ladder mode — use Save Result and Advance Round.'); return; }
+  if(mm()==='ladder'){ showToast('Ladder mode: use Save Result and Advance Round.'); return; }
   rebuildMatchQueue();
   if(!matchQueue.length){showToast(`Need at least ${matchSize()} waiting players.`);return;}
   const def=courtDefs.find(d=>d.id===courtId);
@@ -2453,7 +2453,7 @@ function generateMatchForCourt(courtId) {
   rebuildMatchQueue();
   if(!courtTimerInterval) courtTimerInterval=setInterval(tickCourtTimers,1000);
   renderCourts(); renderQueue(); saveState();
-  showToast(`${def?.name||'Court'} — match started!`);
+  showToast(`${def?.name||'Court'}: match started!`);
 }
 
 // ===== SCORE =====
@@ -2566,7 +2566,7 @@ function startLadder(){
   matchQueue=[]; globalRound=1;
   if(!courtTimerInterval) courtTimerInterval=setInterval(tickCourtTimers,1000);
   renderCourts(); renderQueue(); renderRankings(); saveState();
-  showToast('Ladder started — King of the Court!');
+  showToast('Ladder started: King of the Court!');
 }
 function resetLadder(){
   if(!confirm('Reset the ladder? This re-seeds teams and starts at Round 1. Game history is kept.')) return;
@@ -2578,7 +2578,7 @@ function saveLadderResult(courtId){
   const s1=parseInt(document.getElementById(`score1_${courtId}`)?.value);
   const s2=parseInt(document.getElementById(`score2_${courtId}`)?.value);
   if(isNaN(s1)||isNaN(s2)){ showToast('Enter both scores first.'); return; }
-  if(s1===s2){ showToast('King of the Court needs a winner — no ties.'); return; }
+  if(s1===s2){ showToast('King of the Court needs a winner. No ties.'); return; }
   const already=c.submitted;
   c.score1=s1; c.score2=s2; c.submitted=true;
   if(!already){
@@ -2615,7 +2615,7 @@ function advanceLadderRound(){
   active.forEach((c,i)=>{ c.team1=a[i]; c.team2=b[i]; c.score1=''; c.score2=''; c.submitted=false; c.round=ladder.round+1; c.startedAt=now; });
   ladder.round++; ladder.bench=newBench; globalRound=ladder.round;
   renderCourts(); renderQueue(); renderRankings(); saveState();
-  showToast(`Round ${ladder.round} — winners moved up!`);
+  showToast(`Round ${ladder.round}: winners moved up!`);
 }
 function renderLadder(){
   const el=document.getElementById('courtList');
@@ -2665,7 +2665,7 @@ function renderLadder(){
   html+='</div>';
   const bench=ladder.bench||[];
   html+=`<div class="card ladder-bench"><div class="card-title">Bench <span style="font-weight:600;text-transform:none;letter-spacing:0;">(rotates in at the bottom court)</span></div>`;
-  html += bench.length ? bench.map((t,i)=>`<div class="ladder-bench-item"><span class="ladder-bench-rank">${i+1}</span><span>${teamLabel(t)}</span></div>`).join('') : `<div class="ladder-bench-empty">No teams waiting — everyone's on a court.</div>`;
+  html += bench.length ? bench.map((t,i)=>`<div class="ladder-bench-item"><span class="ladder-bench-rank">${i+1}</span><span>${teamLabel(t)}</span></div>`).join('') : `<div class="ladder-bench-empty">No teams waiting. Everyone's on a court.</div>`;
   html+=`</div>`;
   const placed=new Set();
   active.forEach(c=>[...c.team1,...c.team2].forEach(id=>placed.add(id)));
@@ -2685,7 +2685,7 @@ function freeForManual(){
 function openManualPick(courtId){
   manualPick={courtId, selected:[]};
   const def=courtDefs.find(d=>d.id===courtId);
-  document.getElementById('manualTitle').textContent=`Pick match — ${def?.name||'Court'}`;
+  document.getElementById('manualTitle').textContent=`Pick match: ${def?.name||'Court'}`;
   document.getElementById('manualSub').textContent=`Tap to fill Team A (${teamSize()}), then Team B (${teamSize()})`;
   renderManualPick();
   document.getElementById('manualOverlay').classList.remove('hidden');
@@ -2731,7 +2731,7 @@ function confirmManualPick(){
   if(!courtTimerInterval) courtTimerInterval=setInterval(tickCourtTimers,1000);
   closeManualModal();
   renderCourts(); renderQueue(); saveState();
-  showToast(`${def?.name||'Court'} — match started!`);
+  showToast(`${def?.name||'Court'}: match started!`);
 }
 
 // ===== MANUAL DRAG-AND-DROP =====
@@ -2887,7 +2887,7 @@ function _openSwapOptions(outgoingId) {
     : '';
   const queueHtml = queueCands.length
     ? `<div class="swap-section-label">Pick from waiting queue</div>${queueCands.map(c=>chip(c.id,c.name,c.tag)).join('')}`
-    : '<div class="swap-section-label">Pick from waiting queue</div><div style="color:var(--muted);font-size:0.8rem;padding:8px;">Nobody is waiting — everyone is on a court.</div>';
+    : '<div class="swap-section-label">Pick from waiting queue</div><div style="color:var(--muted);font-size:0.8rem;padding:8px;">Nobody is waiting. Everyone is on a court.</div>';
   const overrideHtml = overrideCands.length
     ? `<div class="swap-section-label">Swap with a player on another court</div>${overrideCands.map(c=>chip(c.id,c.name,c.playing?'playing':'')).join('')}`
     : '';
@@ -3120,7 +3120,7 @@ function renderCourts() {
     </div>`;
     if(!c){
       const idleMsg = (mm()==='roundrobin'||mm()==='bracket')
-        ? `<div class="court-hint">${tournament&&tournament.matches&&tournament.matches.some(m=>!m.submitted)?'Waiting for the next scheduled match — a team is still finishing.':'All scheduled matches are done.'}</div>`
+        ? `<div class="court-hint">${tournament&&tournament.matches&&tournament.matches.some(m=>!m.submitted)?'Waiting for the next scheduled match. A team is still finishing.':'All scheduled matches are done.'}</div>`
         : mm()==='manual'
           ? (freeForManual().length>=matchSize()?`<button class="btn btn-accent" onclick="openManualPick(${def.id})">⚡ Pick Match</button>`:`<div class="court-hint">Need at least ${matchSize()} free players</div>`)
           : (matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div class="court-hint">Need at least ${matchSize()} waiting players</div>`);
@@ -3415,7 +3415,7 @@ function renderQueue() {
     const bench=ladder.bench||[];
     el.innerHTML = bench.length
       ? `<p style="font-size:0.82rem;font-weight:500;color:var(--muted);margin-bottom:14px;">Teams on the bench rotate onto the bottom court each round.</p>`+bench.map((t,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><span class="queue-name">${teamLabel(t)}</span></div>`).join('')
-      : '<div class="empty-state"><div class="icon">🏆</div>No teams on the bench — everyone is on a court.</div>';
+      : '<div class="empty-state"><div class="icon">🏆</div>No teams on the bench. Everyone is on a court.</div>';
     return;
   }
   const freeWaiting=getFreeWaiting();
@@ -3423,7 +3423,7 @@ function renderQueue() {
   // left: narrow dark Queue of waiting players
   html+='<div class="mm-queue"><div class="mm-qhead">Queue <span>'+freeWaiting.length+'</span></div>';
   if(freeWaiting.length){
-    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}">${p.lastPlayedRound===-1?'—':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
+    html+=freeWaiting.map((p,i)=>`<div class="queue-item"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}">${p.lastPlayedRound===-1?'-':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
   } else {
     html+='<div class="mm-empty">No one waiting.</div>';
   }
@@ -3569,7 +3569,7 @@ function renderGameHistory() {
       const onT1=(g.team1Ids||[]).map(String).includes(String(historyFilter));
       if(g.score1>g.score2){ onT1?w++:l++; } else if(g.score2>g.score1){ onT1?l++:w++; }
     });
-    summary=`<div style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:10px;">${nm} — ${items.length} game${items.length!==1?'s':''} · ${w} W / ${l} L</div>`;
+    summary=`<div style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:10px;">${nm}: ${items.length} game${items.length!==1?'s':''} · ${w} W / ${l} L</div>`;
   }
   const list = items.length ? items.map(({g,idx})=>{
     const winner=g.score1>g.score2?g.team1:g.score2>g.score1?g.team2:null;
@@ -3862,7 +3862,7 @@ onValue(_SESSION_REF, (snapshot) => {
   console.error('Firebase connection error:', error.code, error.message);
   const ls = document.getElementById('loadingScreen');
   const lbl = document.getElementById('loadingLabel');
-  if (lbl) lbl.textContent = 'Firebase error: ' + error.message + ' — Check console.';
+  if (lbl) lbl.textContent = 'Firebase error: ' + error.message + '. Check console.';
   if (ls) ls.style.cursor = 'pointer', ls.onclick = () => location.reload();
 });
 

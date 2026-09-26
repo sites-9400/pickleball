@@ -468,9 +468,9 @@
     ensurePng(card, opts).then(function (png) {
       if (strategy === 'download') { restore(); deliver(png, strategy, opts); return; } // desktop: async is fine
       // Phone: NEVER fire the share sheet after an await — iOS drops it. Arm a second tap.
-      if (btn) { btn.disabled = false; btn.textContent = '✓ Ready — tap to save to Photos'; if (btn.classList) btn.classList.add('ready'); }
+      if (btn) { btn.disabled = false; btn.textContent = '✓ Ready: tap to save to Photos'; if (btn.classList) btn.classList.add('ready'); }
     }).catch(function () {
-      if (btn) { btn.disabled = false; btn.textContent = 'Save unavailable — use the QR'; setTimeout(function () { restore(); }, 2600); }
+      if (btn) { btn.disabled = false; btn.textContent = 'Save unavailable: use the QR'; setTimeout(function () { restore(); }, 2600); }
     });
   }
 

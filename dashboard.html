@@ -4,19 +4,19 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — Paddle District</title>
-<meta name="description" content="Paddle District — pickleball open play: courts, queues, and rankings.">
+<title>Dashboard · Paddle District</title>
+<meta name="description" content="Paddle District pickleball open play: courts, queues, and rankings.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Paddle District">
 <meta property="og:url" content="https://padq.app/dashboard.html">
-<meta property="og:title" content="Paddle District — Open Play">
-<meta property="og:description" content="Paddle District — pickleball open play: courts, queues, and rankings.">
+<meta property="og:title" content="Paddle District · Open Play">
+<meta property="og:description" content="Paddle District pickleball open play: courts, queues, and rankings.">
 <meta property="og:image" content="https://padq.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Paddle District — Open Play">
-<meta name="twitter:description" content="Paddle District — pickleball open play: courts, queues, and rankings.">
+<meta name="twitter:title" content="Paddle District · Open Play">
+<meta name="twitter:description" content="Paddle District pickleball open play: courts, queues, and rankings.">
 <meta name="twitter:image" content="https://padq.app/og-image.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#4A5C2F">
@@ -326,7 +326,7 @@ window.doLogout = async () => {
 
 // ── SESSIONS ──────────────────────────────────────────────────────────────
 window.createSession = async () => {
-  if (!currentUser) { showToast('Not logged in — please refresh.'); return; }
+  if (!currentUser) { showToast('Not logged in. Please refresh.'); return; }
   const name = document.getElementById('newSessionName').value.trim() || 'Open Play';
   const date = document.getElementById('newSessionDate').value || new Date().toISOString().slice(0,10);
   const format = document.getElementById('newSessionFormat')?.value || 'doubles';
@@ -523,7 +523,7 @@ document.addEventListener('click', (e) => {
 window.exportSession = (id, kind) => {
   const s = sessionSnapshots[id];
   document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
-  if (!s) { showToast('Session data not loaded yet — try again.'); return; }
+  if (!s) { showToast('Session data not loaded yet. Try again.'); return; }
   // Same builders app.html uses, so this file matches an in-session export exactly.
   const text = kind === 'json' ? buildSessionJSON(s) : buildSessionCSV(s);
   const name = (s.name || s.sessionName || 'session').replace(/\s+/g, '-');
@@ -588,9 +588,9 @@ const MODE_DESC = {
   roundrobin: 'Fixed teams play a full schedule against each other. Ranked by wins, then point differential.',
   ladder: 'King of the court. Winners move up a court, losers move down. Partners stay together.',
   challenge: 'Winners stay on their court. Losers go to the back of the waiting queue and the next challengers come on.',
-  random: 'Numbering — random teams, everyone mixes. Players are drawn into fresh matchups, avoiding repeat partners and opponents.',
+  random: 'Numbering: random teams, everyone mixes. Players are drawn into fresh matchups, avoiding repeat partners and opponents.',
   waittime: 'The players who have waited longest are matched up next.',
-  balanced: 'Balanced — even teams by skill level, with fresh matchups. Skill-matched teams while avoiding repeat partners and opponents.',
+  balanced: 'Balanced: even teams by skill level, with fresh matchups. Skill-matched teams while avoiding repeat partners and opponents.',
   manual: 'You pick every match yourself, court by court.',
   bracket: 'Fixed teams play a single or double elimination bracket. (Bracket play arrives in a later phase.)'
 };
@@ -620,12 +620,12 @@ updateModeDesc();
   const CHEV='<svg class="asst-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
   const MODES={
     waittime:{name:'By wait time',why:'The players who’ve waited longest play next, so everyone gets near-equal court time. The fairest rotation for casual open play.'},
-    balanced:{name:'Balanced',why:'Builds even teams by skill level from the longest-waiting players, while avoiding repeat partners and opponents — so games stay close and you still meet new people. Best with a mix of skill levels.'},
+    balanced:{name:'Balanced',why:'Builds even teams by skill level from the longest-waiting players, while avoiding repeat partners and opponents. So games stay close and you still meet new people. Best with a mix of skill levels.'},
     random:{name:'Numbering',why:'Players are numbered off into random teams and drawn into fresh matchups, avoiding repeat partners and opponents. Great for a social night where people mix.'},
     challenge:{name:'Challenge courts',why:'Winners stay on their court; losers rotate to the back of the queue and the next challengers come on. Competitive, with quick turnover.'},
     ladder:{name:'King of the court',why:'Partners stay together all night. Winners move up a court, losers move down, and the bottom loser rotates to the bench. The one fixed-partner mode that needs no set list.'},
     roundrobin:{name:'Round robin',why:'Fixed teams play a full schedule against each other, ranked by wins then point differential. Needs everyone’s list up front.'},
-    manual:{name:'Manual',why:'You build every match by hand, court by court — full control, no auto-queue.'}
+    manual:{name:'Manual',why:'You build every match by hand, court by court. Full control, no auto-queue.'}
   };
   const ALTS={waittime:['random','balanced'],balanced:['waittime','random'],random:['waittime','balanced'],
     challenge:['ladder','waittime'],ladder:['roundrobin','challenge'],roundrobin:['ladder','manual']};
@@ -676,18 +676,18 @@ updateModeDesc();
     const s=stack[stack.length-1];
     if(s==='format'){
       ask(1,'How are you playing tonight?','',[
-        {title:'Doubles — 2 per team',desc:'Four players per court',act:()=>{format='doubles';go('partners');}},
-        {title:'Singles — 1 v 1',desc:'Two players per court',act:()=>{format='singles';go('partners');}}]);
+        {title:'Doubles: 2 per team',desc:'Four players per court',act:()=>{format='doubles';go('partners');}},
+        {title:'Singles: 1 v 1',desc:'Two players per court',act:()=>{format='singles';go('partners');}}]);
     } else if(s==='partners'){
-      ask(2,'How should partners work?','This is the big one — it decides half the modes.',[
+      ask(2,'How should partners work?','This is the big one. It decides half the modes.',[
         {title:'Shuffle partners each game',desc:'People play with different partners through the night',act:()=>go('vibe')},
         {title:'Stick with their partner',desc:'Fixed teams that stay together all session',act:()=>go('roster')}]);
     } else if(s==='vibe'){
       ask(3,'What’s the feel you’re going for?','',[
-        {title:'Mix it up — fresh matchups',desc:'Numbered draw, meet new people, avoid repeats',act:()=>toSize('random')},
+        {title:'Mix it up: fresh matchups',desc:'Numbered draw, meet new people, avoid repeats',act:()=>toSize('random')},
         {title:'Fair & equal for everyone',desc:'Whoever’s waited longest plays next',act:()=>toSize('waittime')},
         {title:'Even games by skill level',desc:'Balance mixed levels so games stay close',act:()=>toSize(format==='singles'?'waittime':'balanced',{singlesBalanced:format==='singles'})},
-        {title:'Competitive — win to stay on',desc:'Winners hold the court',act:()=>toSize('challenge')}]);
+        {title:'Competitive: win to stay on',desc:'Winners hold the court',act:()=>toSize('challenge')}]);
     } else if(s==='roster'){
       ask(3,'Is everyone here and locked in?','Fixed-team modes rank the whole field, so this matters.',[
         {title:'Everyone’s here, set list',desc:'You can enter all the teams up front',act:()=>go('structure')},
@@ -706,10 +706,10 @@ updateModeDesc();
   function renderSize(){
     setDots(3);backBtn.classList.add('show');
     const fld=(k,label)=>'<div class="asst-sizefield"><label>'+label+'</label><input class="asst-num" type="number" inputmode="numeric" data-k="'+k+'" value="'+sz[k]+'" min="'+(k==='players'?2:1)+'" max="'+(k==='players'?60:12)+'"></div>';
-    body.innerHTML='<div class="asst-q">How big is tonight?</div><div class="asst-sub">Rough numbers are fine — this tunes the time estimate and flags a poor fit. Skip if you’re not sure.</div>'+
+    body.innerHTML='<div class="asst-q">How big is tonight?</div><div class="asst-sub">Rough numbers are fine. This tunes the time estimate and flags a poor fit. Skip if you’re not sure.</div>'+
       '<div class="asst-sizegrid">'+fld('players','Expected players')+fld('courts','Courts')+'</div>'+
       '<button class="btn btn-accent btn-full" id="asstContinue" type="button">Continue</button>'+
-      '<button class="asst-link" id="asstSkip" type="button">Skip — just show the pick</button>';
+      '<button class="asst-link" id="asstSkip" type="button">Skip: just show the pick</button>';
     const read=()=>{body.querySelectorAll('.asst-num').forEach(i=>{const k=i.dataset.k,lim=k==='players'?[2,60]:[1,12];let v=parseInt(i.value,10);if(isNaN(v))v=sz[k];sz[k]=Math.max(lim[0],Math.min(lim[1],v));});return {players:sz.players,courts:sz.courts};};
     body.querySelector('#asstContinue').onclick=()=>result(pending.mode,pending.flags,read());
     body.querySelector('#asstSkip').onclick=()=>result(pending.mode,pending.flags,null);
@@ -723,20 +723,20 @@ updateModeDesc();
     if(size && !flags.singlesBalanced){
       const ts=format==='singles'?1:2, ms=ts*2, P=size.players, C=size.courts;
       if(P<ms){
-        guide='<div class="asst-note"><span class="asst-ntag">Heads up — </span>you’ll need at least '+ms+' players to fill a '+fmtLabel.toLowerCase()+' court. Add more before you start.</div>';
+        guide='<div class="asst-note"><span class="asst-ntag">Heads up: </span>you’ll need at least '+ms+' players to fill a '+fmtLabel.toLowerCase()+' court. Add more before you start.</div>';
       } else if(mode==='roundrobin'){
         const teams=Math.floor(P/ts), games=teams*(teams-1)/2, rounds=Math.ceil(games/C), mins=Math.round(rounds*12/5)*5;
         guide='<div class="asst-guide">'+teams+' teams · '+games+' games · about '+mins+' min on '+C+' court'+(C>1?'s':'')+'</div>';
-        if(teams>8) guide+='<div class="asst-note"><span class="asst-ntag">Big group — </span>that’s a long fixed schedule ('+games+' games). <b>By wait time</b> keeps a crowd this size moving with far less waiting.<button class="asst-swap" type="button" data-swap="waittime">Switch to By wait time</button></div>';
+        if(teams>8) guide+='<div class="asst-note"><span class="asst-ntag">Big group: </span>that’s a long fixed schedule ('+games+' games). <b>By wait time</b> keeps a crowd this size moving with far less waiting.<button class="asst-swap" type="button" data-swap="waittime">Switch to By wait time</button></div>';
       } else {
         const onCourt=Math.min(P,C*ms), waiting=Math.max(0,P-onCourt);
         guide='<div class="asst-guide">'+onCourt+' on court · about '+waiting+' waiting each round on '+C+' court'+(C>1?'s':'')+'</div>';
       }
     }
     let notes='';
-    if(flags.singlesBalanced) notes+='<div class="asst-note"><span class="asst-ntag">Note — </span>Singles has no teams to balance, so this runs as <b>By wait time</b>, the same fair rotation.</div>';
-    if(flags.bracket) notes+='<div class="asst-note"><span class="asst-ntag">Coming soon — </span>knockout brackets aren’t built yet. <b>Round robin</b> is the closest way to run fixed teams for now.</div>';
-    if(flags.gap) notes+='<div class="asst-note teal"><span class="asst-ntag">Good to know — </span>there’s no casual drop-in mode that keeps partners together <i>yet</i>. <b>Round robin</b> is the closest; it just needs everyone’s list up front. A dedicated <b>“Pair Play”</b> mode for this is on our list.</div>';
+    if(flags.singlesBalanced) notes+='<div class="asst-note"><span class="asst-ntag">Note: </span>Singles has no teams to balance, so this runs as <b>By wait time</b>, the same fair rotation.</div>';
+    if(flags.bracket) notes+='<div class="asst-note"><span class="asst-ntag">Coming soon: </span>knockout brackets aren’t built yet. <b>Round robin</b> is the closest way to run fixed teams for now.</div>';
+    if(flags.gap) notes+='<div class="asst-note teal"><span class="asst-ntag">Good to know: </span>there’s no casual drop-in mode that keeps partners together <i>yet</i>. <b>Round robin</b> is the closest; it just needs everyone’s list up front. A dedicated <b>“Pair Play”</b> mode for this is on our list.</div>';
     const alts=(ALTS[mode]||[]).map(k=>'<button class="asst-alt" type="button" data-mode="'+k+'"><span class="asst-at"><span class="asst-atitle">'+MODES[k].name+'</span><span class="asst-adesc">'+SHORT[k]+'</span></span><span class="asst-pick">USE →</span></button>').join('');
     body.innerHTML='<div class="asst-badge">'+CHECK+' We recommend</div>'+
       '<div class="asst-title">'+m.name+' '+fmtLabel+'</div>'+
@@ -745,7 +745,7 @@ updateModeDesc();
         '<button class="btn btn-accent btn-full" id="asstUse" type="button">Use this setup</button>'+
         '<button class="asst-link" id="asstOthers" type="button">Show other options ▾</button>'+
         '<div class="asst-others" id="asstOthersBox"><div class="asst-others-h">Other good fits</div>'+alts+
-          '<button class="asst-alt" type="button" data-mode="manual"><span class="asst-at"><span class="asst-atitle">I’ll set matches myself</span><span class="asst-adesc">Manual — pick every match by hand</span></span><span class="asst-pick">USE →</span></button>'+
+          '<button class="asst-alt" type="button" data-mode="manual"><span class="asst-at"><span class="asst-atitle">I’ll set matches myself</span><span class="asst-adesc">Manual. Pick every match by hand</span></span><span class="asst-pick">USE →</span></button>'+
         '</div></div>';
     body.querySelector('#asstUse').onclick=()=>apply(mode);
     const ot=body.querySelector('#asstOthers'), box=body.querySelector('#asstOthersBox');
