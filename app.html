@@ -1209,6 +1209,9 @@ input:focus, textarea:focus { border-color: var(--army); }
 .mm-queue .mini-avatar{width:22px;height:22px;font-size:0.58rem;}
 .mm-upnext{flex:1;min-width:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,300px));gap:12px;align-content:start;order:-1;}
 .mm-empty{color:var(--muted);font-size:0.78rem;padding:14px;text-align:center;}
+.upnext-toggle{display:block;width:100%;margin-top:8px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);background:transparent;color:#EEF0E8;font-size:0.75rem;font-weight:800;cursor:pointer;}
+.upnext-note{grid-column:1/-1;font-size:0.78rem;font-weight:600;color:#B7791F;background:rgba(183,121,31,0.1);border-radius:8px;padding:8px 12px;}
+.upnext-hide{margin-left:6px;border:none;background:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;}
 /* Adaptive Live layout: matchmaking beside courts when they leave room, else below */
 .live-flow{gap:14px;align-items:flex-start;}
 .live-flow.flow-side{display:flex;}
@@ -1624,7 +1627,8 @@ let sessionCreatedAt = null;
 let sessionDate = '';
 let sessionEnded = false;
 let sessionEndTime = null;
-let sessionPausedMs = 0;   // time spent ended before a Continue; excluded from every duration
+let sessionPausedMs = 0;
+let upNextAlways = null;   // organizer switch: show Up Next below 3 courts (null = never set)   // time spent ended before a Continue; excluded from every duration
 let checkinOpen = true;
 let cohosts = {};          // uid -> {name, addedAt} (raw Firebase map, owner-managed)
 let cohostOpen = false;
@@ -1692,6 +1696,7 @@ function saveState() {
     sessionEnded, sessionEndTime,
     // only once a session has been continued, so ordinary saves never touch the key
     ...(sessionPausedMs ? { sessionPausedMs } : {}),
+    ...(upNextAlways !== null ? { upNextAlways } : {}),
     checkinOpen: checkinOpen,
     status: sessionEnded ? 'ended' : 'active'
   };
@@ -1794,6 +1799,7 @@ window._fbApplyRemote = function(s) {
   sessionEnded      = s.sessionEnded      || false;
   sessionEndTime    = s.sessionEndTime    || null;
   sessionPausedMs   = +s.sessionPausedMs  || 0;
+  upNextAlways      = (s.upNextAlways === undefined || s.upNextAlways === null) ? null : !!s.upNextAlways;
   const _hadCheckinOpen = (s.checkinOpen !== undefined);
   checkinOpen       = (s.checkinOpen !== false); // default open; only an explicit false closes it
 
@@ -1867,7 +1873,7 @@ window._fbHandleNull = function() {
   }
   players=[]; courts=[]; courtDefs=[]; matchQueue=[]; gameHistory=[];
   globalRound=0; playerIdCounter=0; courtIdCounter=0; mqIdCounter=0; queueOrder=[];
-  sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null; sessionPausedMs=0;
+  sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null; sessionPausedMs=0; upNextAlways=null;
   clearInterval(sessionTimerInterval); sessionTimerInterval=null;
   clearInterval(courtTimerInterval); courtTimerInterval=null;
   const bar = document.getElementById('sessionBar');
@@ -2641,7 +2647,17 @@ function adaptiveConfig(){
 // 5-hour nights: reserving the next foursome is free at 24+ players (opponent pairs
 // meeting 3+ went 2.17 -> 2.08), costs a little at 18-20, and is degenerate at 16, where
 // 3 courts plus a reserved match consume all 16 so the "choice" is forced.
-function showUpNext(){ return courtDefs.length >= 3; }
+function showUpNext(){ return courtDefs.length >= 3 || upNextAlways === true; }
+// Below 3 courts Numbering/Balanced still build and seat the reserved next match;
+// it's only hidden. The organizer can show it anyway (display only; matchmaking unchanged).
+function upNextSmall(){ return (mm()==='random'||mm()==='balanced') && courtDefs.length < 3; }
+function canToggleUpNext(){ return upNextSmall() && (_access==='owner'||_access==='cohost'); }
+function toggleUpNext(){
+  if(!canToggleUpNext()) return;
+  upNextAlways = !(upNextAlways === true);
+  renderQueue(); saveState();
+}
+window.toggleUpNext=toggleUpNext;
 // Pick the players + teams for the next match per the session's matchmaking style.
 function chooseMatchPlayers(){
   const need=matchSize();
@@ -3840,7 +3856,18 @@ function renderQueue() {
       : '<div class="empty-state"><div class="icon">🏆</div>No teams on the bench. Everyone is on a court.</div>';
     return;
   }
-  const freeWaiting=getFreeWaiting();
+  // With Up Next hidden (Numbering/Balanced below 3 courts), the players reserved for
+  // the next match have no card to appear in, so list them first here, as view.html
+  // does. Otherwise they vanished from the Queue until a court freed up.
+  const upNextShown=!((mm()==='random'||mm()==='balanced') && !showUpNext());
+  const reservedFirst=[];
+  if(!upNextShown){
+    const seen=new Set();
+    matchQueue.forEach(m=>[...m.team1,...m.team2].forEach(id=>{
+      const p=getPlayer(id); if(p&&p.present&&!seen.has(id)){ seen.add(id); reservedFirst.push(p); }
+    }));
+  }
+  const freeWaiting=[...reservedFirst, ...getFreeWaiting()];
   let html='<div class="mm-grid">';
   // left: narrow dark Queue of waiting players
   html+='<div class="mm-queue"><div class="mm-qhead">Queue <span>'+freeWaiting.length+'</span></div>';
@@ -3849,10 +3876,13 @@ function renderQueue() {
   } else {
     html+='<div class="mm-empty">No one waiting.</div>';
   }
+  if(canToggleUpNext() && !showUpNext()) html+='<button class="upnext-toggle" onclick="toggleUpNext()">Show Up Next</button>';
   html+='</div>';
   // right: Up Next / On Deck cards — hidden for Numbering/Balanced below 4 courts
-  if(!((mm()==='random'||mm()==='balanced') && !showUpNext())){
+  if(upNextShown){
     html+='<div class="mm-upnext">';
+    if(upNextSmall()) html+='<div class="upnext-note">With 1-2 courts, Up Next can still change if players swap, check in or leave.'+
+      (canToggleUpNext()?' <button class="upnext-hide" onclick="toggleUpNext()">Hide</button>':'')+'</div>';
     if(matchQueue.length){
       matchQueue.forEach((m,i)=>{html+=mqMatchCard(m,`Up Next ${i+1}`,i===0);});
     } else {

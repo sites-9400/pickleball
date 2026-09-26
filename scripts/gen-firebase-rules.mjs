@@ -16,7 +16,7 @@ export const SESSION_KEYS = [
   'players', 'courts', 'courtDefs', 'matchQueue', 'gameHistory', 'queueOrder',
   'globalRound', 'playerIdCounter', 'courtIdCounter', 'mqIdCounter',
   'sessionStartTime', 'sessionName', 'name', 'ladder', 'tournament',
-  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'checkinOpen', 'status',
+  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'upNextAlways', 'checkinOpen', 'status',
 ];
 
 export function buildRules() {

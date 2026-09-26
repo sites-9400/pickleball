@@ -513,16 +513,18 @@ function renderQueue(s) {
 
   const mq = s.matchQueue||[];
   // Mirror app.html exactly: it hides the Up Next cards for Random/Balanced below 3
-  // courts (showUpNext = courtDefs.length >= 3). Keep the two views consistent — the
+  // courts unless the organizer switched them on (upNextAlways). Keep the two views consistent — the
   // matchmaking mode/queue are owned by app.html; here we only read them to display.
   const mode = (s.mode && s.mode.matchmaking) || 'waittime';
-  const showUpNext = !((mode==='random'||mode==='balanced') && (s.courtDefs||[]).length < 3);
+  const small = (mode==='random'||mode==='balanced') && (s.courtDefs||[]).length < 3;
+  const showUpNext = !small || s.upNextAlways === true;   // organizer can show it at 1-2 courts
 
   let html='';
 
   // Upcoming Matches — only when app.html would show them.
   if(showUpNext && mq.length){
     html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink);margin-bottom:8px;">📋 Upcoming Matches</div>`;
+    if(small) html+=`<div class="upnext-note" style="font-size:0.78rem;font-weight:600;color:#B7791F;background:rgba(183,121,31,0.1);border-radius:8px;padding:8px 12px;margin-bottom:8px;">With 1-2 courts, the next match can still change if players swap, check in or leave.</div>`;
     mq.forEach((m,i)=>{ html+=mqCardView(m, `Match ${i+1}`, i===0, s.players||[]); });
     html+=`<div style="height:1px;background:var(--line);margin:10px 0;"></div>`;
   }
