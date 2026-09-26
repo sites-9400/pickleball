@@ -134,14 +134,14 @@
     '.pdr-hero-photo{background-size:cover;background-position:center;padding-top:120px;text-shadow:0 1px 3px rgba(0,0,0,.45);}',
     '.pdr-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(143,179,57,.18),transparent 55%);pointer-events:none;}',
     '.pdr-eyebrow{font-size:.8rem;font-weight:800;letter-spacing:.22em;opacity:.9;text-transform:uppercase;}',
-    '.pdr-meta{font-size:.8rem;font-weight:700;letter-spacing:.13em;color:var(--pdr-gold);margin-top:14px;text-transform:uppercase;}',
+    '.pdr-meta{font-size:.8rem;font-weight:700;letter-spacing:.13em;color:var(--pdr-gold);margin-top:0;text-transform:uppercase;}',
     '.pdr-mp{white-space:nowrap;}',
     '.pdr-title{font-size:2.5rem;line-height:.95;font-weight:900;letter-spacing:-.01em;margin-top:6px;text-transform:uppercase;}',
     '.pdr-title span{color:#a9cf5a;}',
     '.pdr-statrow{display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;}',
     '.pdr-stat b{font-size:1.8rem;font-weight:900;}',
     '.pdr-stat i{font-style:normal;font-size:.78rem;font-weight:700;letter-spacing:.1em;opacity:.82;text-transform:uppercase;margin-left:5px;}',
-    '.pdr-qr{position:absolute;top:20px;right:20px;background:#fff;border-radius:10px;padding:7px 7px 4px;text-align:center;width:96px;}',
+    '.pdr-qr{text-shadow:none;position:absolute;bottom:20px;right:20px;background:#fff;border-radius:10px;padding:7px 7px 4px;text-align:center;width:96px;}',
     '.pdr-qr canvas,.pdr-qr img{width:80px!important;height:80px!important;display:block;}',
     '.pdr-qr small{display:block;font-size:.52rem;font-weight:800;letter-spacing:.06em;color:var(--pdr-army);margin-top:3px;line-height:1.15;text-transform:uppercase;}',
     '@container (max-width:520px){.pdr-hmain{padding-right:0;}.pdr-qr{position:static;width:auto;display:inline-flex;gap:9px;align-items:center;text-align:left;margin-top:16px;padding:6px 10px 6px 6px;}.pdr-qr small{margin-top:0;max-width:80px;}.pdr-title{font-size:2rem;}}',
@@ -174,9 +174,12 @@
     '.pdr-rw{font-weight:900;color:var(--pdr-army);font-size:1.15rem;}',
     '.pdr-rm{font-size:.72rem;font-weight:700;color:var(--pdr-muted);letter-spacing:.03em;white-space:nowrap;}',
     // footer + actions
-    '.pdr-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px 18px;color:var(--pdr-muted);}',
+    '.pdr-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px;padding:14px 20px 18px;color:var(--pdr-muted);}',
     '.pdr-foot b{color:var(--pdr-ink);font-weight:900;letter-spacing:.02em;}',
-    '.pdr-foot .r{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-align:right;}',
+    '.pdr-foot>div{white-space:nowrap;}',
+    '.pdr-foot .r{text-align:right;line-height:1.2;margin-left:auto;}',
+    '.pdr-foot .r b{display:block;font-size:1rem;letter-spacing:.01em;}',
+    '.pdr-foot .r span{display:block;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}',
     '.pdr-actions{padding:0 20px 18px;}',
     '.pdr-save{width:100%;border:none;border-radius:9px;background:var(--pdr-army);color:#fff;font-family:inherit;font-weight:800;font-size:.82rem;letter-spacing:.03em;padding:12px;cursor:pointer;transition:filter .15s;}',
     '.pdr-save:hover{filter:brightness(1.08);}',
@@ -251,9 +254,7 @@
     var html = '' +
       '<div class="pdr" id="pdr-card">' +
         (r.photo ? '<div class="pdr-hero pdr-hero-photo" style="background-image:linear-gradient(180deg,rgba(12,30,18,.18) 0%,rgba(12,30,18,.5) 45%,rgba(12,30,18,.86) 100%),url(\'' + r.photo + '\')">' : '<div class="pdr-hero">') +
-          (r.viewUrl ? '<div class="pdr-qr"><div class="pdr-qrcode"></div><small>Scan for full results</small></div>' : '') +
           '<div class="pdr-hmain">' +
-            '<div class="pdr-eyebrow">' + esc(r.brand) + '</div>' +
             (meta ? '<div class="pdr-meta">' + meta + '</div>' : '') +
             '<div class="pdr-title">OPEN PLAY <span>RECAP</span></div>' +
             '<div class="pdr-statrow">' +
@@ -262,6 +263,8 @@
               '<div class="pdr-stat"><b>' + r.stats.duration + '</b><i>' + r.stats.durationUnit + '</i></div>' +
             '</div>' +
           '</div>' +
+          // QR at the bottom of the header, off the faces in an event photo
+          (r.viewUrl ? '<div class="pdr-qr"><div class="pdr-qrcode"></div><small>Scan for full results</small></div>' : '') +
         '</div>' +
         '<div class="pdr-body">' +
           '<div class="pdr-sec"><h3>Podium</h3><span>ranked by wins</span></div>' +
@@ -271,7 +274,7 @@
           '<div class="pdr-sec" style="margin-top:22px"><h3>Top ' + Math.min(10, r.top10.length) + '</h3><span>' + esc(showAll) + '</span></div>' +
           '<div class="pdr-top">' + r.top10.map(topRow).join('') + '</div>' +
         '</div>' +
-        '<div class="pdr-foot"><div>See you next <b>OPEN PLAY</b></div><div class="r">Paddle District</div></div>' +
+        '<div class="pdr-foot"><div>See you next <b>OPEN PLAY</b></div><div class="r"><b>padq.app</b><span>powered by Paddle District</span></div></div>' +
         '<div class="pdr-actions"><button class="pdr-save" type="button">⬇ Save image</button></div>' +
       '</div>';
 
