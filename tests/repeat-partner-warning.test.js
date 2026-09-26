@@ -55,12 +55,12 @@ test('manual pick warns when a picked team repeats a partnership', () => {
   const a = app();
   a.run('openManualPick(2)');
   ['toggleManualPlayer(2)', 'toggleManualPlayer(1)'].forEach(c => a.run(c)); // Team A: Ben & Ana
-  assert.match(a.captured['manualPreview'], /manual-repeat[^>]*>[^<]*Ben &amp; Ana already partnered/);
+  assert.match(a.captured['manualRepeat'], /manual-repeat[^>]*>[^<]*Ben &amp; Ana already partnered/);
 });
 
 test('manual pick shows no warning for fresh pairs', () => {
   const a = app();
   a.run('openManualPick(2)');
   ['toggleManualPlayer(2)', 'toggleManualPlayer(6)'].forEach(c => a.run(c)); // Ben & Finn
-  assert.doesNotMatch(a.captured['manualPreview'], /manual-repeat/);
+  assert.doesNotMatch(a.captured['manualRepeat'] || '', /manual-repeat/);
 });

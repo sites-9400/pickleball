@@ -837,7 +837,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 /* Caution: this candidate is currently in a live match — taking them disrupts a game. */
 .swap-option.in-match { border-color: rgba(192,57,43,0.45); background: rgba(192,57,43,0.05); }
 .swap-repeat { display:block; font-size:0.7rem; font-weight:700; color:#B7791F; margin-top:2px; }
-.manual-repeat { flex-basis:100%; width:100%; font-size:0.78rem; font-weight:700; color:#B7791F; background:rgba(183,121,31,0.1); border-radius:6px; padding:6px 10px; margin-top:6px; text-align:center; }
+.manual-repeat { font-size:0.78rem; font-weight:700; color:#B7791F; background:rgba(183,121,31,0.1); border-radius:6px; padding:6px 10px; margin:-4px 0 10px; text-align:center; }
 .swap-option.in-match:hover { border-color: #C0392B; background: rgba(192,57,43,0.12); }
 .swap-name { flex: 1; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.01em; }
 .swap-idle {
@@ -1555,6 +1555,7 @@ input:focus, textarea:focus { border-color: var(--army); }
     <div class="modal-title" id="manualTitle">Pick Match</div>
     <div class="modal-sub" id="manualSub">Tap to fill Team A, then Team B</div>
     <div id="manualPreview" class="manual-preview"></div>
+    <div id="manualRepeat"></div>
     <div id="manualOptions" class="manual-options"></div>
     <button class="btn btn-accent btn-full" id="manualStartBtn" style="margin-top:12px" onclick="confirmManualPick()" disabled>Start Match</button>
     <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="closeManualModal()">Cancel</button>
@@ -3104,7 +3105,9 @@ function renderManualPick(){
   document.getElementById('manualPreview').innerHTML=
     `<div class="manual-team drop-team" data-team="A"><span class="manual-team-tag">Team A</span><span class="manual-team-names">${aNames.length?aNames.join(' & '):'Drop here'}</span></div>`+
     `<div class="manual-vs">VS</div>`+
-    `<div class="manual-team drop-team" data-team="B"><span class="manual-team-tag">Team B</span><span class="manual-team-names">${bNames.length?bNames.join(' & '):'Drop here'}</span></div>`+
+    `<div class="manual-team drop-team" data-team="B"><span class="manual-team-tag">Team B</span><span class="manual-team-names">${bNames.length?bNames.join(' & '):'Drop here'}</span></div>`;
+  // Outside the preview: it's a flex row, and a full-width line inside it squeezed the teams.
+  document.getElementById('manualRepeat').innerHTML=
     [...repeatPairs(sel.slice(0,ts)),...repeatPairs(sel.slice(ts,need))].map(r=>
       `<div class="manual-repeat">↺ ${esc(getPlayer(r.a)?.name||'?')} &amp; ${esc(getPlayer(r.b)?.name||'?')} already partnered${r.n>1?` (${r.n}×)`:''} this session</div>`).join('');
   const avail=freeForManual();
