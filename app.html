@@ -2663,8 +2663,14 @@ function upNextPlaceholder(){
   const live=courts.filter(c=>!c.submitted).length;
   if(!live) return '';
   const free=getFreeWaiting(), need=matchSize()-free.length;
-  if(need<=0) return '';
   const from=live===1?'the current game':'the next game to finish';
+  // Held on purpose to mix the groups (forcedGroupMix): k of the waiting group + k who stay on.
+  if(need===0 && (mm()==='random'||mm()==='balanced') && forcedGroupMix(free, matchSize())===false){
+    const k=teamSize(), n=free.map(p=>esc(p.name));
+    return `<div class="upnext-placeholder"><div class="uph-label">Up Next</div>`+
+      `<div class="uph-body">${k} of ${n.slice(0,-1).join(', ')} &amp; ${n[n.length-1]} <span>+ ${k} from ${from}</span></div></div>`;
+  }
+  if(need<=0) return '';
   const names=free.map(p=>esc(p.name)).join(' &amp; ');
   return `<div class="upnext-placeholder"><div class="uph-label">Up Next</div>`+
     `<div class="uph-body">${names?names+' <span>+ '+need+' from '+from+'</span>':'<span>Players from '+from+'</span>'}</div></div>`;
@@ -2685,22 +2691,16 @@ window.toggleUpNext=toggleUpNext;
 // false = hold (don't reserve yet), [players] = the mixed group to draw from,
 // null = not the forced case (normal matchmaking, untouched).
 function lastGameIdx(id){ return gameHistory.findIndex(g=>(g.team1Ids||[]).includes(id)||(g.team2Ids||[]).includes(id)); }
-function isWholeLastGroup(group){ // everyone's last game was the same one, and nobody else played in it
-  if(!group.length) return false;
-  const i=lastGameIdx(group[0].id);
-  if(i<0 || group.some(p=>lastGameIdx(p.id)!==i)) return false;
-  const g=gameHistory[i];
-  return (g.team1Ids||[]).length+(g.team2Ids||[]).length===group.length;
-}
+const wholeGroup=ps=>isWholeLastGroup(ps.map(p=>p.id), gameHistory); // see common.js
 function forcedGroupMix(pool, need){
   const open=courtDefs.some(d=>!courts.some(c=>c.id===d.id && !c.submitted));
-  if(pool.length===need) return (!open && isWholeLastGroup(pool)) ? false : null;
+  if(pool.length===need) return (!open && wholeGroup(pool)) ? false : null;
   if(pool.length!==2*need || !open) return null;
   // W = group whose game ended first (waited), J = group that just came off. History is
   // newest-first by end time; lastPlayedRound is start order, which can differ at 2+ courts.
   const byEnd=pool.slice().sort((a,b)=>lastGameIdx(b.id)-lastGameIdx(a.id));
   const W=byEnd.slice(0,need), J=byEnd.slice(need);
-  if(!isWholeLastGroup(W) || !isWholeLastGroup(J)) return null;
+  if(!wholeGroup(W) || !wholeGroup(J)) return null;
   const met={}, pk=(a,b)=>a<b?a+'|'+b:b+'|'+a;
   gameHistory.forEach(g=>{ const ids=[...(g.team1Ids||[]),...(g.team2Ids||[])];
     for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++) met[pk(ids[i],ids[j])]=(met[pk(ids[i],ids[j])]||0)+1; });

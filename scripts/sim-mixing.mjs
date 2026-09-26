@@ -19,7 +19,7 @@ if (!roots.length) { console.error('usage: sim-mixing.mjs <rootA> [<rootB>]'); p
 const SEEDS = 12, MINUTES = 300;
 const SKILLS = ['beginner', 'intermediate', 'advanced'];
 const CONFIGS = [];
-for (const mode of ['random', 'balanced']) {
+for (const mode of (process.env.MODES || 'random,balanced,waittime').split(',')) {
   for (const n of [5, 6, 7, 8, 9, 10, 12]) CONFIGS.push({ mode, fmt: 'doubles', c: 1, n });
   for (const n of [10, 12, 16, 20]) CONFIGS.push({ mode, fmt: 'doubles', c: 2, n });
   for (const n of [16, 24]) CONFIGS.push({ mode, fmt: 'doubles', c: 3, n });
@@ -127,7 +127,7 @@ for (const root of roots) {
 }
 
 const f = (v, d = 1) => (Number.isInteger(v) ? String(v) : v.toFixed(d));
-const label = c => `${c.mode === 'random' ? 'Numb' : 'Bal '} ${c.fmt === 'singles' ? 'S' : 'D'} ${c.c}c×${String(c.n).padStart(2)}`;
+const label = c => `${({ random: 'Numb', balanced: 'Bal ', waittime: 'Wait' })[c.mode]} ${c.fmt === 'singles' ? 'S' : 'D'} ${c.c}c×${String(c.n).padStart(2)}`;
 const cols = [
   ['games', 'games'], ['distPart', 'dPart'], ['distOpp', 'dOpp'], ['maxPart', 'mxP'], ['maxOpp', 'mxO'],
   ['part2', 'P2+'], ['opp3', 'O3+'], ['groups', 'grps'], ['stuck2', 'stk'], ['spreadW', 'gpSpr'],
