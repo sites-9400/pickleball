@@ -132,7 +132,8 @@ function readPlayers(val){
   if(!val) return [];
   const arr = Array.isArray(val) ? val : Object.values(val);
   return arr.filter(p => p && typeof p.name === 'string' && p.name.length)
-            .map(p => ({ name: p.name, skill: p.skill, present: !!p.present }));
+            .map(p => ({ name: p.name, skill: p.skill, present: !!p.present }))
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
 function updateCheckinBtn(){
