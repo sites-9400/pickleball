@@ -1216,7 +1216,9 @@ input:focus, textarea:focus { border-color: var(--army); }
 .uph-body{font-weight:700;font-size:0.9rem;}
 .uph-body span{color:var(--muted);font-weight:600;}
 .recap-group-ctl{flex-basis:100%;display:flex;flex-direction:column;gap:4px;font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
-.recap-group-ctl input{font-size:0.95rem;text-transform:none;letter-spacing:0;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;background:var(--input-bg);color:var(--ink);}
+.recap-group-row{display:flex;gap:8px;}
+.recap-group-row .btn{flex-shrink:0;padding:9px 16px;}
+.recap-group-ctl input{flex:1;min-width:0;font-size:0.95rem;text-transform:none;letter-spacing:0;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;background:var(--input-bg);color:var(--ink);}
 .recap-photo-ctl{display:flex;gap:8px;justify-content:center;margin:0 auto 12px;max-width:680px;flex-wrap:wrap;}
 .upnext-hide{margin-left:6px;border:none;background:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;}
 /* Adaptive Live layout: matchmaking beside courts when they leave room, else below */
@@ -4234,17 +4236,30 @@ function renderRecapPhotoCtl(){
   // Group / event name: prefilled with this device's last one, else the session name.
   let last=''; try{ last=localStorage.getItem('pd_recapGroup')||''; }catch(e){}
   const val=recapGroup!==null?recapGroup:(last||sessionName||'');
-  const nameRow=`<label class="recap-group-ctl">Group / event name<input id="recapGroupInput" maxlength="60" value="${esc(val)}" onchange="setRecapGroup(this.value)"></label>`;
+  const nameRow=`<div class="recap-group-ctl"><span>Group / event name</span><div class="recap-group-row">`+
+    `<input id="recapGroupInput" maxlength="60" value="${esc(val)}" enterkeyhint="done" oninput="previewRecapGroup(this.value)" onkeydown="if(event.key==='Enter'){setRecapGroup(this.value);this.blur()}">`+
+    `<button class="btn btn-primary" onclick="setRecapGroup(document.getElementById('recapGroupInput').value)">Save</button></div></div>`;
   el.innerHTML = nameRow + (recapPhoto
     ? `<button class="btn btn-outline" onclick="document.getElementById('recapPhotoInput').click()">📷 Change photo</button><button class="btn btn-outline" onclick="removeRecapPhoto()">Remove photo</button>`
     : `<button class="btn btn-outline" onclick="document.getElementById('recapPhotoInput').click()">📷 Add event photo</button>`);
 }
-function setRecapGroup(v){
+let _recapGroupTimer=null;
+// While typing: show the name on the card right away, save ~1s after typing stops.
+function previewRecapGroup(v){
+  const g=document.querySelector('#recapContainer .pdr-group');
+  if(g) g.textContent=String(v||'').trim()||sessionName||'';
+  clearTimeout(_recapGroupTimer);
+  _recapGroupTimer=setTimeout(()=>setRecapGroup(v,true),1000);
+}
+function setRecapGroup(v, quiet){
   if(!canEditRecapPhoto()) return;
+  clearTimeout(_recapGroupTimer);
   recapGroup=String(v||'').trim().slice(0,60);
   try{ if(recapGroup) localStorage.setItem('pd_recapGroup',recapGroup); }catch(e){}
-  saveState(); renderRecapTab();
+  saveState(); renderRecapCard();
+  if(!quiet) showToast('Event name saved.');
 }
+window.previewRecapGroup=previewRecapGroup;
 window.setRecapGroup=setRecapGroup;
 // Shrink on the phone until it fits the cap: quality first, then size.
 function compressPhoto(file){
@@ -4287,6 +4302,11 @@ window.pickRecapPhoto=pickRecapPhoto; window.removeRecapPhoto=removeRecapPhoto;
 
 function renderRecapTab() {
   renderRecapPhotoCtl();
+  renderRecapCard();
+}
+// The card alone: saving the name redraws this (fresh saved-image warm-up) without
+// rebuilding the name box, so typing focus isn't lost.
+function renderRecapCard() {
   const el = document.getElementById('recapContainer');
   if (!el || !window.PDRecap) return;
   PDRecap.render(el,

@@ -59,3 +59,21 @@ test('never-edited sessions do not write the key; viewers cannot edit', () => {
   a.run(`_access = 'viewer'; setRecapGroup('Nope')`);
   assert.equal(a.run('recapGroup'), null);
 });
+
+// Real use: "there was no button to save the event name". The box saved only on blur.
+test('name box has an explicit Save button and saves on Enter', () => {
+  const { a } = app();
+  a.run(`_access = 'owner'; sessionEnded = true; renderRecapTab();`);
+  const ctl = a.captured['recapPhotoCtl'];
+  assert.match(ctl, /id="recapGroupInput"[^>]*oninput="previewRecapGroup\(this\.value\)"/);
+  assert.match(ctl, /onkeydown="if\(event\.key==='Enter'\)\{setRecapGroup\(this\.value\);this\.blur\(\)\}"/);
+  assert.match(ctl, /<button[^>]*onclick="setRecapGroup\(document\.getElementById\('recapGroupInput'\)\.value\)"[^>]*>Save<\/button>/);
+});
+
+test('saving redraws only the recap card, not the name box (keeps typing focus)', () => {
+  const { a } = app();
+  a.run(`_access = 'owner'; sessionEnded = true; renderRecapTab();`);
+  const ctlBefore = a.captured['recapPhotoCtl'];
+  a.run(`setRecapGroup('Dink Society')`);
+  assert.equal(a.captured['recapPhotoCtl'], ctlBefore, 'control not rebuilt');
+});
