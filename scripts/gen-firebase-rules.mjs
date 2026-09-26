@@ -19,7 +19,7 @@ export const SESSION_KEYS = [
   'players', 'courts', 'courtDefs', 'matchQueue', 'gameHistory', 'queueOrder',
   'globalRound', 'playerIdCounter', 'courtIdCounter', 'mqIdCounter',
   'sessionStartTime', 'sessionName', 'name', 'ladder', 'tournament',
-  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'upNextAlways', 'checkinOpen', 'status',
+  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'upNextAlways', 'recapGroup', 'checkinOpen', 'status',
 ];
 
 export function buildRules() {
@@ -29,6 +29,8 @@ export function buildRules() {
   }
   // Recap event photo: written on its own (not by saveState). Only a JPEG data URL
   // under the cap is accepted, so the slot can't be used as general storage.
+  // Group / event name on the recap: a short string.
+  perKey.recapGroup['.validate'] = "!newData.exists() || (newData.isString() && newData.val().length <= 60)";
   perKey.recapPhoto = {
     '.write': `${NOT_ANON} && (${IS_OWNER} || ${IS_COHOST})`,
     '.validate': `!newData.exists() || (newData.isString() && newData.val().beginsWith('data:image/jpeg;base64,') && newData.val().length <= ${RECAP_PHOTO_MAX})`,

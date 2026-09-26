@@ -107,6 +107,7 @@
       brand: 'PADDLE DISTRICT',
       title: 'OPEN PLAY RECAP',
       sessionName: state.sessionName || 'Open Play',
+      groupName: String(state.recapGroup || state.sessionName || '').trim(),
       dateLabel: fmtDate(playStart),
       timeLabel: fmtTimeRange(playStart, playEnd),
       courtLabel: fmtCourts(state.courtDefs),
@@ -134,8 +135,9 @@
     '.pdr-hero-photo{background-size:cover;background-position:center;padding-top:120px;text-shadow:0 1px 3px rgba(0,0,0,.45);}',
     '.pdr-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(143,179,57,.18),transparent 55%);pointer-events:none;}',
     '.pdr-eyebrow{font-size:.8rem;font-weight:800;letter-spacing:.22em;opacity:.9;text-transform:uppercase;}',
-    '.pdr-meta{font-size:.8rem;font-weight:700;letter-spacing:.13em;color:var(--pdr-gold);margin-top:0;text-transform:uppercase;}',
+    '.pdr-meta{font-size:.8rem;font-weight:700;letter-spacing:.13em;color:var(--pdr-gold);margin-top:10px;text-transform:uppercase;}',
     '.pdr-mp{white-space:nowrap;}',
+    '.pdr-group{font-size:1.15rem;font-weight:800;letter-spacing:.02em;margin-bottom:6px;overflow-wrap:anywhere;}',
     '.pdr-title{font-size:2.5rem;line-height:.95;font-weight:900;letter-spacing:-.01em;margin-top:6px;text-transform:uppercase;}',
     '.pdr-title span{color:#a9cf5a;}',
     '.pdr-statrow{display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;}',
@@ -255,8 +257,9 @@
       '<div class="pdr" id="pdr-card">' +
         (r.photo ? '<div class="pdr-hero pdr-hero-photo" style="background-image:linear-gradient(180deg,rgba(12,30,18,.18) 0%,rgba(12,30,18,.5) 45%,rgba(12,30,18,.86) 100%),url(\'' + r.photo + '\')">' : '<div class="pdr-hero">') +
           '<div class="pdr-hmain">' +
-            (meta ? '<div class="pdr-meta">' + meta + '</div>' : '') +
+            (r.groupName ? '<div class="pdr-group">' + esc(r.groupName) + '</div>' : '') +
             '<div class="pdr-title">OPEN PLAY <span>RECAP</span></div>' +
+            (meta ? '<div class="pdr-meta">' + meta + '</div>' : '') +
             '<div class="pdr-statrow">' +
               '<div class="pdr-stat"><b>' + r.stats.games + '</b><i>' + (r.stats.games === 1 ? 'GAME' : 'GAMES') + '</i></div>' +
               '<div class="pdr-stat"><b>' + r.stats.players + '</b><i>' + (r.stats.players === 1 ? 'PLAYER' : 'PLAYERS') + '</i></div>' +

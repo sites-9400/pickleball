@@ -1215,6 +1215,8 @@ input:focus, textarea:focus { border-color: var(--army); }
 .uph-label{font-size:0.68rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;margin-bottom:4px;}
 .uph-body{font-weight:700;font-size:0.9rem;}
 .uph-body span{color:var(--muted);font-weight:600;}
+.recap-group-ctl{flex-basis:100%;display:flex;flex-direction:column;gap:4px;font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
+.recap-group-ctl input{font-size:0.95rem;text-transform:none;letter-spacing:0;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;background:var(--input-bg);color:var(--ink);}
 .recap-photo-ctl{display:flex;gap:8px;justify-content:center;margin:0 auto 12px;max-width:680px;flex-wrap:wrap;}
 .upnext-hide{margin-left:6px;border:none;background:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;}
 /* Adaptive Live layout: matchmaking beside courts when they leave room, else below */
@@ -1636,7 +1638,8 @@ let sessionEnded = false;
 let sessionEndTime = null;
 let sessionPausedMs = 0;
 let upNextAlways = null;
-let recapPhoto = null;     // event photo (JPEG data URL) behind the recap header; written on its own   // organizer switch: show Up Next below 3 courts (null = never set)   // time spent ended before a Continue; excluded from every duration
+let recapPhoto = null;
+let recapGroup = null;     // group / event name on the recap (null = use the session name)     // event photo (JPEG data URL) behind the recap header; written on its own   // organizer switch: show Up Next below 3 courts (null = never set)   // time spent ended before a Continue; excluded from every duration
 let checkinOpen = true;
 let cohosts = {};          // uid -> {name, addedAt} (raw Firebase map, owner-managed)
 let cohostOpen = false;
@@ -1705,6 +1708,7 @@ function saveState() {
     // only once a session has been continued, so ordinary saves never touch the key
     ...(sessionPausedMs ? { sessionPausedMs } : {}),
     ...(upNextAlways !== null ? { upNextAlways } : {}),
+    ...(recapGroup !== null ? { recapGroup } : {}),
     checkinOpen: checkinOpen,
     status: sessionEnded ? 'ended' : 'active'
   };
@@ -1808,6 +1812,7 @@ window._fbApplyRemote = function(s) {
   sessionEndTime    = s.sessionEndTime    || null;
   sessionPausedMs   = +s.sessionPausedMs  || 0;
   recapPhoto        = (typeof s.recapPhoto === 'string') ? s.recapPhoto : null;
+  recapGroup        = (typeof s.recapGroup === 'string') ? s.recapGroup : null;
   upNextAlways      = (s.upNextAlways === undefined || s.upNextAlways === null) ? null : !!s.upNextAlways;
   const _hadCheckinOpen = (s.checkinOpen !== undefined);
   checkinOpen       = (s.checkinOpen !== false); // default open; only an explicit false closes it
@@ -1882,7 +1887,7 @@ window._fbHandleNull = function() {
   }
   players=[]; courts=[]; courtDefs=[]; matchQueue=[]; gameHistory=[];
   globalRound=0; playerIdCounter=0; courtIdCounter=0; mqIdCounter=0; queueOrder=[];
-  sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null; sessionPausedMs=0; upNextAlways=null; recapPhoto=null;
+  sessionStartTime=null; sessionName=''; sessionEnded=false; sessionEndTime=null; sessionPausedMs=0; upNextAlways=null; recapPhoto=null; recapGroup=null;
   clearInterval(sessionTimerInterval); sessionTimerInterval=null;
   clearInterval(courtTimerInterval); courtTimerInterval=null;
   const bar = document.getElementById('sessionBar');
@@ -4130,10 +4135,21 @@ function canEditRecapPhoto(){ return _access==='owner'||_access==='cohost'; }
 function renderRecapPhotoCtl(){
   const el=document.getElementById('recapPhotoCtl'); if(!el) return;
   if(!canEditRecapPhoto()){ el.innerHTML=''; return; }
-  el.innerHTML = recapPhoto
+  // Group / event name: prefilled with this device's last one, else the session name.
+  let last=''; try{ last=localStorage.getItem('pd_recapGroup')||''; }catch(e){}
+  const val=recapGroup!==null?recapGroup:(last||sessionName||'');
+  const nameRow=`<label class="recap-group-ctl">Group / event name<input id="recapGroupInput" maxlength="60" value="${esc(val)}" onchange="setRecapGroup(this.value)"></label>`;
+  el.innerHTML = nameRow + (recapPhoto
     ? `<button class="btn btn-outline" onclick="document.getElementById('recapPhotoInput').click()">📷 Change photo</button><button class="btn btn-outline" onclick="removeRecapPhoto()">Remove photo</button>`
-    : `<button class="btn btn-outline" onclick="document.getElementById('recapPhotoInput').click()">📷 Add event photo</button>`;
+    : `<button class="btn btn-outline" onclick="document.getElementById('recapPhotoInput').click()">📷 Add event photo</button>`);
 }
+function setRecapGroup(v){
+  if(!canEditRecapPhoto()) return;
+  recapGroup=String(v||'').trim().slice(0,60);
+  try{ if(recapGroup) localStorage.setItem('pd_recapGroup',recapGroup); }catch(e){}
+  saveState(); renderRecapTab();
+}
+window.setRecapGroup=setRecapGroup;
 // Shrink on the phone until it fits the cap: quality first, then size.
 function compressPhoto(file){
   return new Promise((resolve,reject)=>{
@@ -4178,7 +4194,7 @@ function renderRecapTab() {
   const el = document.getElementById('recapContainer');
   if (!el || !window.PDRecap) return;
   PDRecap.render(el,
-    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime, sessionPausedMs, recapPhoto },
+    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime, sessionPausedMs, recapPhoto, recapGroup },
     { viewUrl: window._getViewLink ? window._getViewLink() : '' });
 }
 
