@@ -98,7 +98,8 @@ export function checkinToPlayer(entry, existingPlayers) {
   const skill = (entry && skills.includes(entry.skill)) ? entry.skill : 'intermediate';
   const match = (existingPlayers || []).find(p =>
     p && typeof p.name === 'string' && p.name.toLowerCase() === name.toLowerCase());
-  if (match) return { markPresentName: match.name };
+  // A listed player may pick a different level on the check-in page; pass it along.
+  if (match) return (entry && skills.includes(entry.skill)) ? { markPresentName: match.name, skill: entry.skill } : { markPresentName: match.name };
   return { player: {
     name, present: true, gamesPlayed: 0, wins: 0, losses: 0,
     points: 0, pointsAgainst: 0, lastPlayedRound: -1, skill, via: 'qr'

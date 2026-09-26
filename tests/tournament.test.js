@@ -195,7 +195,8 @@ test('checkinToPlayer trims the name', () => {
 test('checkinToPlayer marks an existing name present (case-insensitive)', () => {
   const existing = [{name:'Maria S'}];
   const r = checkinToPlayer({name:'maria s', skill:'beginner', ts:1}, existing);
-  assert.deepEqual(r, {markPresentName:'Maria S'});
+  // the level picked on the check-in page travels with it (organizer request 2026-09-26)
+  assert.deepEqual(r, {markPresentName:'Maria S', skill:'beginner'});
 });
 
 test('checkinToPlayer skips empty/whitespace names', () => {

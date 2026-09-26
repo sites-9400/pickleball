@@ -2445,7 +2445,7 @@ function approveCheckin(key){
   const res=window.checkinToPlayer ? window.checkinToPlayer(entry, players) : null;
   if(res && res.markPresentName){
     const ex=players.find(p=>p&&typeof p.name==='string'&&p.name.toLowerCase()===res.markPresentName.toLowerCase());
-    if(ex){ ex.present=true; logPresence(ex, true, entry.ts||Date.now()); seedWaitClock(ex); if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
+    if(ex){ if(res.skill) ex.skill=res.skill; ex.present=true; logPresence(ex, true, entry.ts||Date.now()); seedWaitClock(ex); if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
   } else if(res && res.player){
     const p=res.player; p.id=++playerIdCounter; players.push(p); logPresence(p, true, entry.ts||Date.now()); seedWaitClock(p); if(!queueOrder.includes(p.id)) queueOrder.push(p.id);
   }
@@ -4176,6 +4176,7 @@ window._importCheckin = function(key, entry) {
   if (res.markPresentName) {
     const ex = players.find(p => p && typeof p.name === 'string' && p.name.toLowerCase() === res.markPresentName.toLowerCase());
     if (ex) {
+      if (res.skill) ex.skill = res.skill;   // level picked on the check-in page
       ex.present = true;
       logPresence(ex, true, entry.ts||Date.now());
       seedWaitClock(ex);

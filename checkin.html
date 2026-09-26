@@ -46,13 +46,16 @@
   .msg .big{font-size:1.15rem;font-weight:800;margin-bottom:8px;}
   .closed{text-align:center;color:var(--muted);padding:30px 10px;font-weight:600;}
   .hidden{display:none;}
-  .roster-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1.5px solid var(--line);border-radius:9px;margin-bottom:8px;cursor:pointer;background:#fff;}
+  .roster-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:11px 12px;border:1.5px solid var(--line);border-radius:9px;margin-bottom:8px;cursor:pointer;background:#fff;}
   .roster-row.sel{border-color:var(--army);background:#eef2e6;}
   .roster-row.here{opacity:0.55;cursor:default;}
   .roster-row .nm{font-weight:700;font-size:0.95rem;flex:1;}
   .roster-row .sk{font-size:0.68rem;font-weight:800;text-transform:uppercase;color:var(--muted);}
   .roster-row .ck{width:20px;height:20px;border:2px solid var(--line);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#fff;font-weight:900;}
   .roster-row.sel .ck{background:var(--army);border-color:var(--army);}
+.lvl-row{flex-basis:100%;display:flex;gap:6px;}
+  .lvl{flex:1;font-family:var(--font);font-size:0.78rem;font-weight:700;padding:8px 4px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;}
+  .lvl.on{background:var(--army);color:#fff;border-color:var(--army);}
   .here-badge{font-size:0.7rem;font-weight:800;color:var(--army);}
   .empty-hint{color:var(--muted);font-size:0.9rem;padding:6px 0 2px;}
 </style>
@@ -116,6 +119,7 @@ let skill = 'intermediate';
 let roster = [];
 let checkinOpen = false;
 const selected = new Set();
+const chosenSkill = new Map();   // name -> level picked on the list (defaults to the saved level)
 
 const rosterArea = document.getElementById('rosterArea');
 const formArea = document.getElementById('formArea');
@@ -149,9 +153,17 @@ function renderRoster(){
     const cls = p.present ? 'roster-row here' : (sel ? 'roster-row sel' : 'roster-row');
     const sk = SKILLS.includes(p.skill) ? p.skill.slice(0,3) : 'int';
     const right = p.present ? '<span class="here-badge">Here ✓</span>' : `<span class="ck">${sel ? '✓' : ''}</span>`;
-    return `<div class="${cls}" data-i="${i}"><span class="nm">${esc(p.name)}</span><span class="sk">${sk}</span>${right}</div>`;
+    const cur = chosenSkill.get(p.name) || (SKILLS.includes(p.skill) ? p.skill : 'intermediate');
+    // Selected rows let the player correct their level before checking in.
+    const lvl = sel ? `<div class="lvl-row">${SKILLS.map(s => `<button type="button" class="lvl${s===cur?' on':''}" data-name="${esc(p.name)}" data-skill="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>` : '';
+    return `<div class="${cls}" data-i="${i}"><span class="nm">${esc(p.name)}</span><span class="sk">${sel ? '' : sk}</span>${right}${lvl}</div>`;
   }).join('');
   document.getElementById('rosterEmpty').classList.toggle('hidden', roster.length > 0);
+  list.querySelectorAll('.lvl').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation();   // don't toggle the row
+    chosenSkill.set(b.getAttribute('data-name'), b.getAttribute('data-skill'));
+    renderRoster();
+  }));
   list.querySelectorAll('.roster-row:not(.here)').forEach(row => {
     row.addEventListener('click', () => {
       const p = roster[+row.getAttribute('data-i')];
@@ -186,7 +198,7 @@ document.getElementById('checkinBtn').addEventListener('click', async () => {
   try {
     await Promise.all(names.map(nm => {
       const p = roster.find(r => r.name === nm);
-      const sk = (p && SKILLS.includes(p.skill)) ? p.skill : 'intermediate';
+      const sk = chosenSkill.get(nm) || ((p && SKILLS.includes(p.skill)) ? p.skill : 'intermediate');
       return push(ref(db, `sessions/${SID}/checkins`), { name: nm, skill: sk, ts: Date.now() });
     }));
     selected.clear();
