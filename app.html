@@ -2673,8 +2673,14 @@ function upNextPlaceholder(){
   const live=courts.filter(c=>!c.submitted).length;
   if(!live) return '';
   const free=getFreeWaiting(), need=matchSize()-free.length;
-  if(need<=0) return '';
   const from=live===1?'the current game':'the next game to finish';
+  // Held on purpose to mix the groups (forcedGroupMix): k of the waiting group + k who stay on.
+  if(need===0 && (mm()==='random'||mm()==='balanced') && forcedGroupMix(free, matchSize())===false){
+    const k=teamSize(), n=free.map(p=>esc(p.name));
+    return `<div class="upnext-placeholder"><div class="uph-label">Up Next</div>`+
+      `<div class="uph-body">${k} of ${n.slice(0,-1).join(', ')} &amp; ${n[n.length-1]} <span>+ ${k} from ${from}</span></div></div>`;
+  }
+  if(need<=0) return '';
   const names=free.map(p=>esc(p.name)).join(' &amp; ');
   return `<div class="upnext-placeholder"><div class="uph-label">Up Next</div>`+
     `<div class="uph-body">${names?names+' <span>+ '+need+' from '+from+'</span>':'<span>Players from '+from+'</span>'}</div></div>`;
@@ -2685,12 +2691,102 @@ function toggleUpNext(){
   renderQueue(); saveState();
 }
 window.toggleUpNext=toggleUpNext;
+// ===== FIXED-GROUP LOCK (Numbering/Balanced) =====
+// When players = (courts + 1) x match size (1 court + 8, 2 courts + 12, 3 courts + 16;
+// singles 1 court + 4), the free pool after a court is seated is exactly the group that
+// just finished, so the reserved next match is forced to be that same group again and
+// the groups never mix all night. Only in that situation: hold the reservation until a
+// court frees, then let k (= team size) of the group that just finished stay on and k of
+// the waiting group sit one more game, choosing the freshest mix. Returns:
+// false = hold (don't reserve yet), [players] = the mixed group to draw from,
+// null = not the forced case (normal matchmaking, untouched).
+function lastGameIdx(id){ return gameHistory.findIndex(g=>(g.team1Ids||[]).includes(id)||(g.team2Ids||[]).includes(id)); }
+const wholeGroup=ps=>isWholeLastGroup(ps.map(p=>p.id), gameHistory); // see common.js
+// groupCost(ids) = how many times each pair in ids has already shared a court, summed.
+function groupCostFn(){
+  const met={}, pk=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+  gameHistory.forEach(g=>{ const ids=[...(g.team1Ids||[]),...(g.team2Ids||[])];
+    for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++) met[pk(ids[i],ids[j])]=(met[pk(ids[i],ids[j])]||0)+1; });
+  return ids=>{ let s=0; for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++) s+=met[pk(ids[i],ids[j])]||0; return s; };
+}
+const subsets=(arr,k)=>k===0?[[]]:arr.flatMap((x,i)=>subsets(arr.slice(i+1),k-1).map(r=>[x,...r]));
+function forcedGroupMix(pool, need){
+  const open=courtDefs.some(d=>!courts.some(c=>c.id===d.id && !c.submitted));
+  if(pool.length===need) return (!open && wholeGroup(pool)) ? false : null;
+  if(pool.length!==2*need || !open) return null;
+  // W = group whose game ended first (waited), J = group that just came off. History is
+  // newest-first by end time; lastPlayedRound is start order, which can differ at 2+ courts.
+  const byEnd=pool.slice().sort((a,b)=>lastGameIdx(b.id)-lastGameIdx(a.id));
+  const W=byEnd.slice(0,need), J=byEnd.slice(need);
+  if(!wholeGroup(W) || !wholeGroup(J)) return null;
+  const groupCost=groupCostFn();
+  // J players who were also in the game before J on the same court already played 2 in a row.
+  const jg=gameHistory[lastGameIdx(J[0].id)], prevOnCourt=gameHistory.slice(lastGameIdx(J[0].id)+1).find(g=>g.court===jg.court);
+  const twoInRow=new Set(prevOnCourt?[...(prevOnCourt.team1Ids||[]),...(prevOnCourt.team2Ids||[])]:[]);
+  const locks=lockedPairsList();
+  const gp=ps=>ps.reduce((a,p)=>a+(p.gamesPlayed||0),0);
+  // Rank each mix by: guards (no 3rd game in a row, locked partners kept together), then
+  // games-played balance (stay = fewest games, sit = most), then freshest two groups.
+  const k=teamSize(), options=[];
+  for(const out of subsets(W,k)) for(const stay of subsets(J,k)){
+    const M=[...W.filter(p=>!out.includes(p)),...stay].map(p=>p.id);
+    const rest=[...out,...J.filter(p=>!stay.includes(p))].map(p=>p.id);
+    let guard=stay.filter(p=>twoInRow.has(p.id)).length;
+    locks.forEach(([a,b])=>{ if(M.includes(a)!==M.includes(b) && [...M,...rest].includes(a) && [...M,...rest].includes(b)) guard++; });
+    options.push({M, key:[guard, gp(stay)-gp(out), groupCost(M)+groupCost(rest)]});
+  }
+  const cmp=(a,b)=>a.key[0]-b.key[0]||a.key[1]-b.key[1]||a.key[2]-b.key[2];
+  options.sort(cmp);
+  const cand=options.filter(o=>cmp(o,options[0])===0);
+  const pick=cand[Math.floor(Math.random()*cand.length)].M;
+  return pool.filter(p=>pick.includes(p.id)); // keep wait order
+}
+// ===== SMALL-POOL ROTATION (Numbering/Balanced) =====
+// With 1 court and too few players to reserve a match (5-7 doubles, 3 singles), the next
+// match is drawn the moment the court frees, from everyone who sat plus the group that
+// just came off. All of that group has wait 0, so the wait weight can't tell them apart
+// and who sits is left to the anti-repeat penalty and chance: one player could stay on
+// 16 games running and games played drifted apart. Only in that situation: everyone who
+// sat plays, and the open slots go to the group that just came off: the longest run on
+// court sits first, then anyone 2+ games ahead, then the freshest foursome wins. The
+// mode's picker still makes the teams.
+// Returns the chosen players, or null when this isn't that situation (normal draw).
+function smallPoolRotation(pool, need){
+  if(courtDefs.length!==1 || pool.length<=need || !gameHistory.length) return null;
+  const open=courtDefs.some(d=>!courts.some(c=>c.id===d.id && !c.submitted));
+  if(!open) return null;
+  const last=gameHistory[0], lastIds=[...(last.team1Ids||[]),...(last.team2Ids||[])];
+  const J=pool.filter(p=>lastIds.includes(p.id)), rested=pool.filter(p=>!lastIds.includes(p.id));
+  if(!J.length || rested.length>=need) return null;
+  const onCourt=gameHistory.filter(g=>g.court===last.court); // newest first
+  const streak=id=>{ let n=0; for(const g of onCourt){ if([...(g.team1Ids||[]),...(g.team2Ids||[])].includes(id)) n++; else break; } return n; };
+  const groupCost=groupCostFn(), minGp=Math.min(...pool.map(p=>p.gamesPlayed||0));
+  const restIds=rested.map(p=>p.id);
+  // Rank each choice of who stays on: nobody past 3 in a row, then nobody pulling more
+  // than 1 game ahead of the least-played, then the freshest foursome; ties at random.
+  const options=subsets(J, need-rested.length).map(stay=>({ stay, key:[
+    // up to 3 in a row is allowed (user's choice 2026-09-26: better mixing at 1c/6 than a strict 2)
+    stay.reduce((a,p)=>a+Math.max(0,streak(p.id)-2),0),
+    stay.reduce((a,p)=>a+Math.max(0,(p.gamesPlayed||0)-minGp-1),0),
+    groupCost([...restIds,...stay.map(p=>p.id)]) ]}));
+  const cmp=(a,b)=>a.key[0]-b.key[0]||a.key[1]-b.key[1]||a.key[2]-b.key[2];
+  options.sort(cmp);
+  const cand=options.filter(o=>cmp(o,options[0])===0);
+  const stay=cand[Math.floor(Math.random()*cand.length)].stay;
+  return pool.filter(p=>!lastIds.includes(p.id) || stay.includes(p)); // keep wait order
+}
 // Pick the players + teams for the next match per the session's matchmaking style.
 function chooseMatchPlayers(){
   const need=matchSize();
-  const pool=getFreeWaiting(); // sorted by wait (lastPlayedRound asc, then queueOrder)
+  let pool=getFreeWaiting(); // sorted by wait (lastPlayedRound asc, then queueOrder)
   if(pool.length<need) return null;
   const style=mm(), ts=teamSize();
+  if(style==='random' || style==='balanced'){
+    const mix=forcedGroupMix(pool, need);
+    if(mix===false) return null;
+    if(mix) pool=mix;
+    else { const rot=smallPoolRotation(pool, need); if(rot) pool=rot; }
+  }
   // Balanced doubles: take the longest-waiting 4, then snake-pair by declared skill level.
   if(style==='balanced' && ts===2){
     // Balanced doubles: longest-waiting window + anti-repeat draw, then most skill-even split.

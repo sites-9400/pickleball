@@ -71,6 +71,18 @@ function normGameHistory(val) {
   }));
 }
 
+// Fixed-group lock (Numbering/Balanced): true when these player ids all played their
+// last game together and nobody else was in it. gameHistory is newest-first. Shared so
+// app.html's matchmaker and view.html's Up Next hold message can never disagree.
+function isWholeLastGroup(ids, gameHistory) {
+  const h = gameHistory || [];
+  const last = id => h.findIndex(g => (g.team1Ids || []).includes(id) || (g.team2Ids || []).includes(id));
+  if (!ids.length) return false;
+  const i = last(ids[0]);
+  if (i < 0 || ids.some(id => last(id) !== i)) return false;
+  return (h[i].team1Ids || []).length + (h[i].team2Ids || []).length === ids.length;
+}
+
 // PWA: register the service worker (guarded no-op in tests / old browsers)
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && typeof window !== 'undefined') {
   window.addEventListener('load', () => {
