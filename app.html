@@ -2752,10 +2752,11 @@ function smallPoolRotation(pool, need){
   const streak=id=>{ let n=0; for(const g of onCourt){ if([...(g.team1Ids||[]),...(g.team2Ids||[])].includes(id)) n++; else break; } return n; };
   const groupCost=groupCostFn(), minGp=Math.min(...pool.map(p=>p.gamesPlayed||0));
   const restIds=rested.map(p=>p.id);
-  // Rank each choice of who stays on: shortest runs on court, then nobody pulling more
+  // Rank each choice of who stays on: nobody past 3 in a row, then nobody pulling more
   // than 1 game ahead of the least-played, then the freshest foursome; ties at random.
   const options=subsets(J, need-rested.length).map(stay=>({ stay, key:[
-    stay.reduce((a,p)=>a+Math.max(0,streak(p.id)-1),0),
+    // up to 3 in a row is allowed (user's choice 2026-09-26: better mixing at 1c/6 than a strict 2)
+    stay.reduce((a,p)=>a+Math.max(0,streak(p.id)-2),0),
     stay.reduce((a,p)=>a+Math.max(0,(p.gamesPlayed||0)-minGp-1),0),
     groupCost([...restIds,...stay.map(p=>p.id)]) ]}));
   const cmp=(a,b)=>a.key[0]-b.key[0]||a.key[1]-b.key[1]||a.key[2]-b.key[2];

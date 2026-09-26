@@ -54,18 +54,19 @@ for (const matchmaking of ['random', 'balanced']) {
       assert.equal(maxRun(seq, 'S'), 1, 'nobody sits twice in a row');
       assert.ok(spread(gp) <= 1, `games played ${gp}`);
     });
-    test(`${matchmaking} 1 court + 6 and + 7 (seed ${seed}): at most 2 in a row, tight spread`, () => {
+    test(`${matchmaking} 1 court + 6 and + 7 (seed ${seed}): at most 3 in a row, tight spread`, () => {
       for (const n of [6, 7]) {
         const { seq, gp } = night({ n, matchmaking, seed });
-        assert.ok(maxRun(seq, 'P') <= 2, `${n} players: max play run ${maxRun(seq, 'P')}`);
+        // user chose up to 3 in a row (2026-09-26): mixes better at 6 than a strict 2
+        assert.ok(maxRun(seq, 'P') <= 3, `${n} players: max play run ${maxRun(seq, 'P')}`);
         assert.ok(maxRun(seq, 'S') <= 2, `${n} players: max sit run ${maxRun(seq, 'S')}`);
         assert.ok(spread(gp) <= 2, `${n} players: games played ${gp}`);
       }
     });
   }
-  test(`${matchmaking} singles 1 court + 3: at most 2 in a row`, () => {
+  test(`${matchmaking} singles 1 court + 3: at most 3 in a row`, () => {
     const { seq, gp } = night({ n: 3, matchmaking, format: 'singles' });
-    assert.ok(maxRun(seq, 'P') <= 2 && spread(gp) <= 1, `run ${maxRun(seq, 'P')} gp ${gp}`);
+    assert.ok(maxRun(seq, 'P') <= 3 && spread(gp) <= 2, `run ${maxRun(seq, 'P')} gp ${gp}`);
   });
 }
 
