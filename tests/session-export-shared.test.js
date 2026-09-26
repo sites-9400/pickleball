@@ -84,7 +84,9 @@ test('an event from another day keeps its date', () => {
 test('JSON carries session meta, players and history', () => {
   const j = JSON.parse(buildSessionJSON(SESSION));
   assert.equal(j.session.name, 'Sunday Open Play');
-  assert.equal(j.players.length, 3);
+  assert.equal(j.players.length, 4, '3 on the roster + Reg, who played but is not on it');
+  assert.equal(j.players[3].name, 'Reg');
+  assert.equal(j.players[3].removed, true);
   assert.equal(j.gameHistory.length, 2);
   assert.equal(j.players[0].checkedIn, '4:08 PM', 'attendance is in the JSON too');
   assert.equal(j.gameHistory[0].lengthMin, 18, 'game length is in the JSON too');

@@ -384,16 +384,57 @@ function _stamp(ts, baseTs) {
     return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${t}`;
   } catch (e) { return ''; }
 }
-// When a player arrived, when they left, and how long they were on site. Someone still
-// here is counted to the session end, or to `now` if it is still running.
-function _span(p, sessionEndTime, now) {
-  const evs = _list(p.events);
-  const firstIn = evs.find(e => e && e.t === 'in');
-  const lastOut = p.present ? null : [...evs].reverse().find(e => e && e.t === 'out');
-  if (!firstIn) return { inTs: null, outTs: lastOut ? lastOut.ts : null, mins: null };
-  const end = lastOut ? lastOut.ts : (sessionEndTime || now);
+// The stretch of the session that counts as play: first game start to last game end
+// once the session has ended (an organizer who ends it at 2:31 AM must not credit
+// everyone still checked in with 6 extra hours), or to `now` while it is running.
+// With no games yet, or games from before timing existed, there is no reliable edge to
+// clip to: the whole session counts, as it always did.
+function _playWindow(history, sessionEndTime, now) {
+  const end = sessionEndTime || now;
+  if (!history.length || !history.every(g => g.startedAt && g.endedAt)) return { from: -Infinity, to: end };
+  return {
+    from: Math.min(...history.map(g => g.startedAt)),
+    to: sessionEndTime ? Math.min(end, Math.max(...history.map(g => g.endedAt))) : end,
+  };
+}
+// When a player arrived, when they left, how often they stepped out and came back, and
+// how long they were on site during play: the sum of their check-in to check-out
+// stretches inside the play window, so breaks are not counted as time on site.
+function _span(p, win) {
+  const evs = _list(p.events).filter(e => e && e.ts).sort((a, b) => a.ts - b.ts);
+  const firstIn = evs.find(e => e.t === 'in');
+  const lastOut = p.present ? null : [...evs].reverse().find(e => e.t === 'out');
+  if (!firstIn) return { inTs: null, outTs: lastOut ? lastOut.ts : null, mins: null, breaks: 0 };
+  let ms = 0, since = null, outs = 0;
+  const add = (a, b) => { ms += Math.max(0, Math.min(b, win.to) - Math.max(a, win.from)); };
+  evs.forEach(e => {
+    if (e.t === 'in' && since == null) since = e.ts;
+    else if (e.t === 'out' && since != null) { add(since, e.ts); since = null; outs++; }
+  });
+  if (since != null) add(since, win.to);
+  // A check-out they came back from is a break; the final one is just leaving.
+  const breaks = outs - (lastOut ? 1 : 0);
   return { inTs: firstIn.ts, outTs: lastOut ? lastOut.ts : null,
-           mins: Math.max(0, Math.round((end - firstIn.ts) / 60000)) };
+           mins: Math.round(ms / 60000), breaks: Math.max(0, breaks) };
+}
+// Players removed from the roster mid-session keep their games in gameHistory but have
+// no player record. Rebuild their line from the games they played (latest name used).
+function _removedPlayers(players, history) {
+  const known = new Set(players.map(p => String(p.id)));
+  const out = new Map();
+  history.forEach(g => {                          // newest first, so the first name seen is the latest
+    const sides = [[_list(g.team1Ids), _list(g.team1), g.score1, g.score2],
+                   [_list(g.team2Ids), _list(g.team2), g.score2, g.score1]];
+    sides.forEach(([ids, names, pf, pa]) => ids.forEach((id, i) => {
+      if (known.has(String(id))) return;
+      const r = out.get(id) || { name: names[i] || String(id), gamesPlayed: 0, wins: 0, losses: 0, points: 0, pointsAgainst: 0 };
+      const f = Number(pf) || 0, a = Number(pa) || 0;
+      r.gamesPlayed++; r.points += f; r.pointsAgainst += a;
+      if (f > a) r.wins++; else if (a > f) r.losses++;
+      out.set(id, r);
+    }));
+  });
+  return [...out.values()];
 }
 const _DASH = '-';
 // Round robin / bracket / ladder have a real round number worth showing; the queue modes
@@ -412,19 +453,26 @@ export function buildSessionCSV(session, opts = {}) {
   const history = _list(s.gameHistory);
   const realRound = _roundIsReal(mode);
 
+  const win = _playWindow(history, s.sessionEndTime, now);
+
   const rows = [['Name','Present','Games','Wins','Losses','Points','Points Against','Win%','Pt%',
-                 'Games/hr','Checked in','Left','On site (min)']];
+                 'Games/hr','Breaks','Checked in','Left','On site during play (min)']];
+  const pct = (n, d) => (d > 0 ? Math.round(n / d * 100) : 0) + '%';
   players.forEach(p => {
     const gp = p.gamesPlayed || 0, tot = (p.points || 0) + (p.pointsAgainst || 0);
-    const a = _span(p, s.sessionEndTime, now);
+    const a = _span(p, win);
     rows.push([p.name, p.present ? 'Yes' : 'No', gp, p.wins || 0, p.losses || 0,
-      p.points || 0, p.pointsAgainst || 0,
-      (gp > 0 ? Math.round((p.wins || 0) / gp * 100) : 0) + '%',
-      (tot > 0 ? Math.round((p.points || 0) / tot * 100) : 0) + '%',
+      p.points || 0, p.pointsAgainst || 0, pct(p.wins || 0, gp), pct(p.points || 0, tot),
       a.mins > 0 ? (gp / (a.mins / 60)).toFixed(2) : _DASH,
+      a.inTs ? a.breaks : _DASH,
       a.inTs ? _stamp(a.inTs, start) : _DASH,
       a.outTs ? _stamp(a.outTs, start) : _DASH,
       a.mins == null ? _DASH : a.mins]);
+  });
+  _removedPlayers(players, history).forEach(r => {
+    rows.push([r.name, 'Removed', r.gamesPlayed, r.wins, r.losses, r.points, r.pointsAgainst,
+      pct(r.wins, r.gamesPlayed), pct(r.points, r.points + r.pointsAgainst),
+      _DASH, _DASH, _DASH, _DASH, _DASH]);
   });
   rows.push([]);
   rows.push([realRound ? 'Round' : 'Game','Court','Team A','Team B','Score A','Score B',
@@ -458,14 +506,17 @@ export function buildSessionJSON(session, opts = {}) {
       ended: !!s.sessionEnded,
     },
     players: _list(s.players).map(p => {
-      const a = _span(p, end, now);
+      const a = _span(p, _playWindow(_list(s.gameHistory), end, now));
       return { name: p.name, present: !!p.present, gamesPlayed: p.gamesPlayed || 0,
         wins: p.wins || 0, losses: p.losses || 0, points: p.points || 0,
         pointsAgainst: p.pointsAgainst || 0, skill: p.skill || 'intermediate',
         checkedIn: a.inTs ? _stamp(a.inTs, start) : null,
         left: a.outTs ? _stamp(a.outTs, start) : null,
-        onSiteMin: a.mins };
-    }),
+        onSiteMin: a.mins, breaks: a.inTs ? a.breaks : null };
+    }).concat(_removedPlayers(_list(s.players), _list(s.gameHistory)).map(r => ({
+      name: r.name, present: false, removed: true, gamesPlayed: r.gamesPlayed, wins: r.wins,
+      losses: r.losses, points: r.points, pointsAgainst: r.pointsAgainst,
+      checkedIn: null, left: null, onSiteMin: null, breaks: null }))),
     gameHistory: _list(s.gameHistory).map(g => ({
       round: g.round, court: g.courtName || g.court,
       team1: _list(g.team1), team2: _list(g.team2),

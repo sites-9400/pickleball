@@ -39,7 +39,8 @@ test('player rows carry check-in, checkout and time on site', () => {
   const head = csv.split('\n')[0];
   assert.ok(head.includes('Checked in'), 'header has a check-in column');
   assert.ok(head.includes('Left'), 'header has a checkout column');
-  assert.ok(head.includes('On site (min)'), 'header has time on site');
+  assert.ok(head.includes('On site during play (min)'), 'header has time on site');
+  assert.ok(head.includes('Breaks'), 'header has a breaks column');
 
   const p1 = rowFor(csv, 'P1').split(',');
   const p2 = rowFor(csv, 'P2').split(',');
@@ -106,4 +107,47 @@ test('submitting a score records how long the game took', () => {
   const g = app.run(`JSON.parse(JSON.stringify(gameHistory[0]))`);
   assert.equal(g.startedAt, mins(0), 'start time carried into history');
   assert.ok(g.endedAt >= g.startedAt, 'end time stamped on submit');
+});
+
+// Sep 13 export: the organizer ended the session at 2:31 AM, so everyone still checked
+// in read 600+ minutes on site; Cris stepped out twice (71 min) and looked short-changed;
+// Dan Z and Sheena L were removed from the roster and vanished despite 7 and 5 games.
+const game = (i, t1, t2, s1, s2, a, b) => ({ round: i, court: 1, courtName: 'Court 1',
+  team1: t1.map(x => x.toUpperCase()), team2: t2.map(x => x.toUpperCase()), team1Ids: t1, team2Ids: t2,
+  score1: s1, score2: s2, startedAt: mins(a), endedAt: mins(b) });
+
+test('time on site stops at the last game once the session is ended, not at End', () => {
+  const app = loadSession({
+    players: [P('p1', { events: [{ t: 'in', ts: mins(0) }] }), P('p2'), P('p3'), P('p4')],
+    gameHistory: [game(2, ['p1', 'p2'], ['p3', 'p4'], 11, 5, 60, 180), game(1, ['p1', 'p3'], ['p2', 'p4'], 11, 9, 10, 40)],
+  });
+  app.run(`sessionEndTime = ${mins(620)};`);
+  const cells = rowFor(csvOf(app), 'P1').split(',');
+  assert.equal(cells[cells.length - 1], '170', 'first game 4:18 to last game end 7:08, not until End at 2:28 AM');
+  assert.equal(cells[9], (2 / (170 / 60)).toFixed(2), 'Games/hr uses the same time');
+});
+
+test('breaks are not counted as time on site, and are counted in Breaks', () => {
+  const app = loadSession({
+    players: [P('p1', { events: [{ t: 'in', ts: mins(0) }, { t: 'out', ts: mins(100) },
+                                 { t: 'in', ts: mins(146) }, { t: 'out', ts: mins(170) },
+                                 { t: 'in', ts: mins(195) }] }), P('p2'), P('p3'), P('p4')],
+    gameHistory: [game(1, ['p1', 'p2'], ['p3', 'p4'], 11, 5, 0, 240)],
+  });
+  app.run(`sessionEndTime = ${mins(300)};`);
+  const cells = rowFor(csvOf(app), 'P1').split(',');
+  assert.equal(cells[cells.length - 1], String(100 + 24 + 45), 'three stretches on site, two breaks skipped');
+  assert.equal(cells[10], '2', 'two breaks');
+  assert.equal(cells[cells.length - 2], '-', 'still here at the end: no Left time');
+});
+
+test('players removed mid-session still get a line, rebuilt from their games', () => {
+  const app = loadSession({
+    players: [P('p1'), P('p2'), P('p3')],
+    gameHistory: [game(2, ['p1', 'dz'], ['p2', 'p3'], 9, 11, 30, 45),
+                  game(1, ['p1', 'dz'], ['p2', 'p3'], 11, 4, 0, 15)],
+  });
+  const row = rowFor(csvOf(app), 'DZ');
+  assert.ok(row, 'removed player is listed');
+  assert.deepEqual(row.split(',').slice(0, 9), ['DZ', 'Removed', '2', '1', '1', '20', '15', '50%', '57%']);
 });
