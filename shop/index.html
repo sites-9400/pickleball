@@ -125,9 +125,17 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 .step-q span{min-width:22px;text-align:center;font-size:0.85rem;font-weight:700;}
 .drawer-foot{padding:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
 .total{display:flex;justify-content:space-between;font-size:1rem;font-weight:900;}
-.ship{display:flex;gap:8px;}
-.ship label{flex:1;display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;cursor:pointer;}
-.ship input{accent-color:var(--army);}
+.drawer-head{gap:4px;}
+.drawer-head h3{flex:1;}
+.back{visibility:hidden;font-size:1.6rem;}
+.drawer:not([data-view="cart"]) .back{visibility:visible;}
+.drawer[data-view="cart"] .v-slip,.drawer[data-view="slip"] .v-cart{display:none;}
+.form-err{font-size:0.78rem;font-weight:600;color:#C0392B;}
+.form-err:empty{display:none;}
+.how{padding:14px 0 10px 18px;font-size:0.82rem;line-height:1.5;display:flex;flex-direction:column;gap:6px;}
+.slip{width:100%;border-radius:10px;border:1px solid var(--line);display:block;background:#fff;-webkit-touch-callout:default;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.linkish{background:none;border:none;font-family:var(--font);font-size:0.75rem;font-weight:600;color:var(--muted);text-decoration:underline;cursor:pointer;padding:2px;}
 .note{font-size:0.72rem;font-weight:500;color:var(--muted);line-height:1.5;}
 .btn.ghost{background:none;color:var(--ink);border:1.5px solid var(--line);}
 .btn.ghost:hover{border-color:var(--army);background:none;}
@@ -199,18 +207,40 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 
 <button class="cart-fab" id="cartFab" onclick="openCart(true)">🛒 Cart <span class="n" id="cartN">0</span></button>
 <div class="scrim" id="scrim" onclick="openCart(false)"></div>
-<aside class="drawer" id="drawer" aria-label="Cart">
-  <div class="drawer-head"><h3>Your cart</h3><button class="x" onclick="openCart(false)" aria-label="Close cart">×</button></div>
-  <div class="items" id="cartItems"></div>
-  <div class="drawer-foot">
+<aside class="drawer" id="drawer" data-view="cart" aria-label="Cart">
+  <div class="drawer-head">
+    <button class="x back" onclick="setView('cart')" aria-label="Back">‹</button>
+    <h3 id="drawerTitle">Your cart</h3>
+    <button class="x" onclick="openCart(false)" aria-label="Close cart">×</button>
+  </div>
+
+  <!-- 1. cart -->
+  <div class="items v-cart" id="cartItems"></div>
+  <div class="drawer-foot v-cart">
     <div class="total"><span>Total</span><span id="cartTotal">₱0</span></div>
-    <div class="ship">
-      <label><input type="radio" name="ship" value="Pick up at open play" checked> Pick up at open play</label>
-      <label><input type="radio" name="ship" value="Ship to me"> Ship to me</label>
+    <button class="btn" id="makeSlip" onclick="makeSlip()">Make order slip</button>
+    <p class="form-err" id="formErr"></p>
+    <p class="note">No payment here. Send the slip to Jude, he confirms, then you pay.</p>
+  </div>
+
+
+  <!-- 2. slip -->
+  <div class="items v-slip">
+    <ol class="how">
+      <li><b>Save or share your order slip.</b></li>
+      <li><b>Send it to Jude on Messenger.</b> He'll confirm, then sort out payment and pick-up or shipping with you.</li>
+    </ol>
+    <img id="slipImg" class="slip" alt="Your order slip">
+    <p class="note" id="holdHint">Tip: you can also press and hold the image to save it.</p>
+  </div>
+  <div class="drawer-foot v-slip">
+    <button class="btn" id="saveSlip" onclick="saveSlip()">Save order slip</button>
+    <a class="btn" href="https://m.me/juudeng" target="_blank" rel="noopener" onclick="copyOrder(true)">Open Jude's chat</a>
+    <div class="row2">
+      <button class="btn ghost" onclick="copyOrder()">Copy as text</button>
+      <a class="btn ghost" id="sendMail" href="mailto:hello@padq.app">Email instead</a>
     </div>
-    <a class="btn" id="sendMsg" href="https://m.me/juudeng" target="_blank" rel="noopener">Send order to Jude</a>
-    <a class="btn ghost" id="sendMail" href="mailto:hello@padq.app">Email order instead</a>
-    <p class="note">Your order gets copied so you can paste it in Messenger. Jude will confirm stock, then you pay via GCash 0908 119 1555, cash, or bank transfer.</p>
+    <button class="linkish" onclick="clearOrder()">Done, clear my cart</button>
   </div>
 </aside>
 
@@ -450,13 +480,143 @@ function toast(text) {
 function cartLines() {
   return Object.entries(cart).map(([id, n]) => ({ p: PRODUCTS.get(id), n })).filter(l => l.p && l.n > 0);
 }
-function orderText() {
-  const lines = cartLines();
+// ---- Checkout: details -> order slip image -> send to Jude ----
+let order = null;   // { no, at, lines, total, png: { file, url } }
+
+function orderText(o = order) {
+  const lines = o ? o.lines : cartLines();
   const total = lines.reduce((t, l) => t + l.p.price * l.n, 0);
-  const ship = document.querySelector('input[name="ship"]:checked').value;
-  return `Hi Jude! Order from padq.app/shop:\n` +
+  return `Hi Jude! Order ${o ? o.no + ' ' : ''}from padq.app/shop\n` +
     lines.map(l => `- ${l.n} x ${l.p.name}: ${peso(l.p.price * l.n)}`).join('\n') +
-    `\nTotal: ${peso(total)}\n${ship}\n\nName:\n` + (ship === 'Ship to me' ? 'Address:\nPhone:\n' : '');
+    `\nTotal: ${peso(total)}`;
+}
+
+function setView(v) {
+  const d = document.getElementById('drawer');
+  d.dataset.view = v;
+  document.getElementById('drawerTitle').textContent = { cart: 'Your cart', slip: 'Send your order' }[v];
+  d.querySelector('.v-' + v + '.items')?.scrollTo(0, 0);
+}
+
+
+
+const loadImg = src => new Promise(res => {
+  if (!src) return res(null);
+  const im = new Image();
+  const t = setTimeout(() => res(null), 4000);
+  im.onload = () => { clearTimeout(t); res(im); };
+  im.onerror = () => { clearTimeout(t); res(null); };
+  im.src = src;
+});
+
+// Draw the slip on a canvas (no html2canvas): 1080px wide, height fits the items.
+async function drawSlip(o) {
+  try { await document.fonts.load('800 40px Montserrat'); await document.fonts.load('600 30px Montserrat'); } catch (e) {}
+  const [logo, ...thumbs] = await Promise.all([loadImg('../logo.png'), ...o.lines.map(l => loadImg(l.p.img))]);
+  const W = 1080, P = 64, ROW = 150, F = 'Montserrat, sans-serif';
+  const c = document.createElement('canvas'), x = c.getContext('2d');
+  // measure wrapped info lines first so the canvas height is right
+  x.font = `600 30px ${F}`;
+  const wrap = (text, w) => {
+    const out = []; let line = '';
+    for (const word of String(text).split(/\s+/)) {
+      const t = line ? line + ' ' + word : word;
+      if (x.measureText(t).width > w && line) { out.push(line); line = word; } else line = t;
+    }
+    out.push(line); return out;
+  };
+  const H = 300 + o.lines.length * ROW + 70 + 260;
+  c.width = W; c.height = H;
+  x.fillStyle = '#F5F6F0'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#4A5C2F'; x.fillRect(0, 0, W, 200);
+  if (logo) { const lh = 110, lw = logo.width * lh / logo.height; x.drawImage(logo, P, 45, lw, lh); }
+  x.fillStyle = '#fff'; x.textAlign = 'right';
+  x.font = `800 44px ${F}`; x.fillText('ORDER SLIP', W - P, 95);
+  x.font = `600 28px ${F}`; x.fillText(o.no, W - P, 140);
+  x.textAlign = 'left';
+  let y = 260;
+  x.fillStyle = '#6B7254'; x.font = `600 26px ${F}`;
+  x.fillText(o.at.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }), P, y);
+  y += 30;
+  o.lines.forEach((l, i) => {
+    const top = y + i * ROW;
+    x.fillStyle = '#fff'; x.fillRect(P, top + 15, 120, 120);
+    if (thumbs[i]) x.drawImage(thumbs[i], P, top + 15, 120, 120);
+    x.fillStyle = '#1C1F14'; x.font = `700 30px ${F}`;
+    const name = wrap(l.p.name, W - P * 2 - 160 - 220);
+    name.slice(0, 2).forEach((t, j) => x.fillText(t, P + 150, top + 62 + j * 36));
+    x.fillStyle = '#6B7254'; x.font = `600 26px ${F}`;
+    x.fillText(`${l.n} × ${peso(l.p.price)}`, P + 150, top + 62 + Math.min(name.length, 2) * 36 + 4);
+    x.fillStyle = '#1C1F14'; x.font = `800 32px ${F}`; x.textAlign = 'right';
+    x.fillText(peso(l.p.price * l.n), W - P, top + 80); x.textAlign = 'left';
+    x.fillStyle = '#D8DDD0'; x.fillRect(P, top + ROW - 1, W - P * 2, 2);
+  });
+  y += o.lines.length * ROW + 70;
+  x.fillStyle = '#1C1F14'; x.font = `900 40px ${F}`; x.fillText('Total', P, y);
+  x.textAlign = 'right'; x.fillText(peso(o.total), W - P, y); x.textAlign = 'left';
+  y += 60;
+  x.fillStyle = '#EEF1E6'; x.fillRect(P, y, W - P * 2, 150);
+  x.fillStyle = '#4A5C2F'; x.font = `800 30px ${F}`; x.fillText('Send this to Jude Navarra on Messenger', P + 30, y + 58);
+  x.fillStyle = '#6B7254'; x.font = `600 26px ${F}`;
+  x.fillText('m.me/juudeng · Pay after Jude confirms · GCash 0908 119 1555', P + 30, y + 105);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const file = new File([blob], `${o.no}.png`, { type: 'image/png' });
+  return { file, url: URL.createObjectURL(blob) };
+}
+
+async function makeSlip() {
+  const lines = cartLines();
+  if (!lines.length) return setView('cart');
+  const btn = document.getElementById('makeSlip');
+  btn.disabled = true; btn.textContent = 'Making your slip…';
+  const at = new Date();
+  const no = 'PD-' + String(at.getMonth() + 1).padStart(2, '0') + String(at.getDate()).padStart(2, '0') + '-' +
+             Math.random().toString(36).slice(2, 6).toUpperCase();
+  order = { no, at, lines, total: lines.reduce((t, l) => t + l.p.price * l.n, 0) };
+  try {
+    if (order.png) URL.revokeObjectURL(order.png.url);
+    order.png = await drawSlip(order);
+    document.getElementById('slipImg').src = order.png.url;
+    document.getElementById('saveSlip').textContent = phoneShare(order.png.file) ? 'Share / save order slip' : 'Save order slip';
+    document.getElementById('sendMail').href = 'mailto:hello@padq.app?subject=' + encodeURIComponent('Order ' + no) +
+      '&body=' + encodeURIComponent(orderText());
+    setView('slip');
+  } catch (e) {
+    document.getElementById('formErr').textContent = 'Couldn\'t make the slip. Try again, or message Jude directly.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Make order slip';
+  }
+}
+
+const phoneShare = file => canShareFile(file) && matchMedia('(pointer: coarse)').matches;
+function canShareFile(file) {
+  try { return !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { return false; }
+}
+// The PNG is already made, so on phones the share sheet opens straight from this tap
+// (iOS drops navigator.share after any await). Share sheet → "Save Image" or Messenger.
+// Desktop downloads the file. If sharing fails, press-and-hold on the image still works.
+function saveSlip() {
+  if (!order || !order.png) return;
+  const { file, url } = order.png;
+  if (phoneShare(file)) {
+    navigator.share({ files: [file], title: 'Order ' + order.no }).catch(err => {
+      if (err && err.name !== 'AbortError') toast('Press and hold the slip to save it.');
+    });
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = url; a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Slip saved. Now send it to Jude.');
+}
+
+function copyOrder(quiet) {
+  try { navigator.clipboard.writeText(orderText()).then(() => toast(quiet ? 'Order text copied too. Paste it under the slip.' : 'Copied! Paste it in your chat with Jude.'), () => {}); } catch (e) {}
+}
+
+function clearOrder() {
+  cart = {}; order = null; saveCart(); setView('cart'); renderCart(); openCart(false);
+  toast('Cart cleared. Thanks!');
 }
 
 function renderCart() {
@@ -486,6 +646,7 @@ function renderCart() {
 }
 
 function openCart(on) {
+  if (on && document.getElementById('drawer').dataset.view === 'slip' && !order) setView('cart');
   document.getElementById('drawer').classList.toggle('open', on);
   document.getElementById('scrim').classList.toggle('open', on);
 }
@@ -495,6 +656,7 @@ document.addEventListener('click', e => {
   if (add && !add.disabled) {
     const p = PRODUCTS.get(add.dataset.add);
     cart[p.id] = Math.min((cart[p.id] || 0) + 1, p.stock);
+    order = null;  // any cart change makes an old slip stale
     renderCart();
     toast(`Added: ${p.name}`);
     return;
@@ -504,19 +666,14 @@ document.addEventListener('click', e => {
     const p = PRODUCTS.get(q.dataset.qty);
     cart[p.id] = Math.max(0, Math.min((cart[p.id] || 0) + Number(q.dataset.d), p.stock));
     if (!cart[p.id]) delete cart[p.id];
+    order = null;
     renderCart();
     return;
   }
   // Messenger links can't carry a pre-typed message, so copy it for the buyer to paste.
-  const send = e.target.closest('#sendMsg, [data-msg]');
-  if (send) {
-    const text = send.id === 'sendMsg' ? orderText() : send.dataset.msg;
-    try { navigator.clipboard.writeText(text).then(() => toast('Copied! Paste it in your chat with Jude.'), () => {}); } catch (err) {}
-    return;
-  }
-  if (e.target.closest('#sendMail')) {
-    e.target.closest('#sendMail').href = 'mailto:hello@padq.app?subject=' + encodeURIComponent('Order from padq.app/shop') +
-      '&body=' + encodeURIComponent(orderText());
+  const msg = e.target.closest('[data-msg]');
+  if (msg) {
+    try { navigator.clipboard.writeText(msg.dataset.msg).then(() => toast('Copied! Paste it in your chat with Jude.'), () => {}); } catch (err) {}
   }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') openCart(false); });
