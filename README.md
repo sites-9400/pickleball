@@ -11,9 +11,25 @@ Pickleball open-play organizer — a static, single-page-per-screen app
 - `view.html` — public read-only live view (projector/phone)
 - `checkin.html` — anonymous player self-check-in
 
+- `shop/index.html` — public shop at padq.app/shop (paddles + grips, cart,
+  order-slip image sent to Jude on Messenger; no online payment)
+
 Shared logic lives in `tournament.js` and `cohost.js` (ES modules) and
 `common.js` (classic script of page helpers — escaping, Firebase array
 normalizers, formatters — loaded before each page's own code).
+
+`view.html` and `checkin.html` sign players in anonymously, so most Firebase
+Auth accounts are anonymous player devices; real (Google) accounts are hosts.
+
+## Shop stock
+
+Stock is read live from the POS Google Sheet's **Shop Feed** tab (formulas
+only: model, color, price, qty of unsold stock; no buyer data), published to
+the web as CSV. Only that tab is published; never publish the whole sheet.
+`shop/inventory.json` is a fallback snapshot:
+`~/.claude/gdocs-env/bin/python scripts/sync-shop.py`. Brand facts, photos
+(`shop/img/<line>-<color>.jpg`) and pre-order cards (`COMING`) live in
+`shop/index.html`.
 
 ## Tests
 
