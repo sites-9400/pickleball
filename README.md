@@ -12,7 +12,12 @@ Pickleball open-play organizer — a static, single-page-per-screen app
 - `checkin.html` — anonymous player self-check-in
 
 - `shop/index.html` — public shop at padq.app/shop (paddles + grips, cart,
-  order-slip image sent to Jude on Messenger; no online payment)
+  order-slip image sent to Jude on Messenger). Checkout: **Pay now** (Jude's
+  GCash/MariBank InstaPay QR, the buyer adds their payment screenshot, which is
+  drawn onto the slip in the browser and never uploaded) or **Chat with Jude
+  first** (unpaid slip; also for installments). Shipping is settled in chat.
+  QRs: `shop/img/pay-gcash.png`, `shop/img/pay-maribank.png` (Jude OK'd posting).
+  Jude confirms payments in her own GCash/bank app. No AI receipt check yet.
 
 Shared logic lives in `tournament.js` and `cohost.js` (ES modules) and
 `common.js` (classic script of page helpers — escaping, Firebase array
