@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="../favicon.png">
 <title>Shop · Paddle District</title>
-<meta name="description" content="Paddles and overgrips in stock at Paddle District: Bread & Butter Loco, Kamito Dominus, and cookiegrips.">
+<meta name="description" content="Paddles and grips from Paddle District. Bread & Butter Loco, Kamito Dominus, cookiegrips.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Paddle District">
 <meta property="og:url" content="https://padq.app/shop/">
 <meta property="og:title" content="Paddle District Shop · Paddles & Grips">
-<meta property="og:description" content="Bread & Butter Loco, Kamito Dominus, and cookiegrips overgrips. Live stock. Pop-up at open play, shipping nationwide.">
+<meta property="og:description" content="Bread & Butter Loco, Kamito Dominus, cookiegrips. Buy at open play or we ship nationwide.">
 <meta property="og:image" content="https://padq.app/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#4A5C2F">
@@ -76,9 +76,9 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 .blurb{font-size:0.8rem;font-weight:500;line-height:1.5;color:var(--ink);opacity:0.85;}
 .specs{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
 .specs li{list-style:none;font-size:0.68rem;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--soft);color:var(--muted);}
-.foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:10px;}
+.foot{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin-top:auto;padding-top:10px;}
 .price{font-size:1.25rem;font-weight:900;}
-.btn{font-family:var(--font);font-size:0.82rem;font-weight:700;padding:9px 14px;border-radius:10px;background:var(--army);color:#fff;text-decoration:none;border:none;cursor:pointer;white-space:nowrap;}
+.btn{font-family:var(--font);font-size:0.82rem;font-weight:700;padding:10px 14px;border-radius:10px;background:var(--army);color:#fff;text-decoration:none;border:none;cursor:pointer;text-align:center;}
 .btn:hover{background:var(--army-light);}
 .src{font-size:0.7rem;font-weight:600;color:var(--muted);}
 
@@ -99,6 +99,14 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 .flavor .meta span{font-size:0.7rem;font-weight:600;color:var(--muted);}
 .flavor.sold{opacity:0.5;pointer-events:none;}
 
+.teaser{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);background:var(--surface);border:2px solid var(--army);border-radius:16px;overflow:hidden;margin-top:28px;}
+[data-theme="dark"] .teaser{border-color:var(--accent);}
+.teaser-pics{background:#fff;display:flex;align-items:center;justify-content:center;}
+.teaser-pics img{width:100%;max-width:340px;aspect-ratio:1/1;object-fit:contain;display:block;}
+.teaser-body{padding:22px;display:flex;flex-direction:column;gap:8px;justify-content:center;}
+.teaser-body .badge{position:static;align-self:flex-start;background:var(--low);}
+.teaser-body .name{font-size:1.6rem;font-weight:900;}
+.teaser-body .btn{align-self:flex-start;margin-top:6px;}
 .empty,.err{padding:24px;text-align:center;font-size:0.88rem;font-weight:600;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px;}
 .page-foot{padding:32px 0 40px;font-size:0.75rem;font-weight:500;color:var(--muted);line-height:1.7;text-align:center;}
 .page-foot a{font-weight:700;color:var(--army);}
@@ -110,12 +118,14 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   .body{padding:10px 12px 12px;}
   .name{font-size:0.92rem;}
   .blurb,.specs{display:none;}
-  .foot{flex-direction:column;align-items:stretch;}
   .price{font-size:1.05rem;}
-  .btn{text-align:center;}
   .flavors{grid-template-columns:repeat(3,1fr);gap:8px;}
   .line{padding:14px;}
   .line-price{text-align:left;}
+  .teaser{grid-template-columns:1fr;}
+  .teaser-pics img{max-width:200px;}
+  .teaser-body{padding:16px;}
+  .teaser-body .btn{align-self:stretch;}
 }
 @media (max-width:380px){ .flavors{grid-template-columns:1fr 1fr;} }
 </style>
@@ -132,14 +142,27 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 
   <div class="hero">
     <div class="eyebrow">Paddle District Shop</div>
-    <h1>Paddles &amp; grips,<br>in hand at open play.</h1>
-    <p>Gear we play with ourselves. Shop our pop-up at open play, or message us and we'll ship it anywhere in the Philippines. Stock below is live.</p>
+    <h1>Paddles &amp; grips</h1>
+    <p>Buy at our open play pop-up, or message us and we'll ship anywhere in the Philippines.</p>
   </div>
 
   <div class="howbuy">
-    <div class="step"><b>1 · Message Jude</b><span>Tap <em>Message to buy</em> on an item to chat with <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude Navarra</a> on Messenger, or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a>.</span></div>
-    <div class="step"><b>2 · Pay</b><span>GCash <strong class="gcash">0908 119 1555</strong>, cash, or bank transfer. Installments available on paddles; just ask.</span></div>
-    <div class="step"><b>3 · Get it</b><span>Pick it up at the open play pop-up, or we ship nationwide.</span></div>
+    <div class="step"><b>Order</b><span>Message <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude Navarra</a> on Messenger, or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a>.</span></div>
+    <div class="step"><b>Pay</b><span>GCash <strong class="gcash">0908 119 1555</strong>, cash, or bank transfer. Installments OK for paddles.</span></div>
+    <div class="step"><b>Get it</b><span>Pick up at open play, or we ship to you.</span></div>
+  </div>
+
+  <div class="teaser">
+    <div class="teaser-pics">
+      <img src="img/loco2-elongated.jpg" alt="Bread &amp; Butter Loco 2 Elongated">
+    </div>
+    <div class="teaser-body">
+      <span class="badge">Coming soon</span>
+      <div class="brand">Bread &amp; Butter</div>
+      <div class="name">Loco 2 Elongated</div>
+      <p class="blurb">The new Loco. Same core as the original, with a new grittier face for more spin. Elongated shape for extra reach and power.</p>
+      <a class="btn" href="https://m.me/juudeng" target="_blank" rel="noopener" data-msg="Hi Jude! I'd like to reserve a Loco 2 Elongated.">Message to reserve</a>
+    </div>
   </div>
 
   <nav class="tabs">
@@ -153,14 +176,14 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   </section>
 
   <section id="grips">
-    <div class="sec-head"><h2>Overgrips</h2><small>by cookiegrips</small></div>
+    <div class="sec-head"><h2>Grips</h2><small>by cookiegrips</small></div>
     <div id="gripLines"><div class="empty">Loading stock…</div></div>
   </section>
 
   <footer class="page-foot">
     <div id="updated"></div>
-    Questions? Message <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude on Messenger</a> or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a><br>
-    Product photos courtesy of Bread &amp; Butter, Kamito, and cookiegrips.
+    Questions? Message <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude</a> or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a><br>
+    Photos from Bread &amp; Butter, Kamito and cookiegrips.
   </footer>
 </div>
 
@@ -187,22 +210,22 @@ const MESSENGER = 'https://m.me/juudeng';
 const PADDLES = {
   'loco': {
     brand: 'Bread & Butter', model: 'The Loco 16mm Hybrid', img: 'loco-hybrid',
-    blurb: 'Elongated reach with standard-shape touch. Plush, controlled feel with just enough pop.',
+    blurb: 'Reach of an elongated, control of a standard. Soft feel, good pop.',
     specs: ['16mm dual-density foam core', 'T700 raw carbon face', '7.9–8.1 oz', '16.2" × 7.6"', '5.3" handle', 'USAP approved'],
   },
   'kamito dominus': {
     brand: 'Kamito', model: 'Dominus', img: 'kamito-dominus',
-    blurb: 'Built with PPA pro Alix Truong. Speed, control and spin in a light frame.',
+    blurb: 'Made with PPA pro Alix Truong. Light, fast, lots of spin.',
     specs: ['3-layer Japanese Toray carbon face', 'Rough textured surface for spin', 'EVA foam core', '~8.4 oz'],
   },
 };
 // LOCO rows read "Hybrid Black" / "Elongated Tan": the shape picks the model.
-const LOCO_ELONGATED = { model: 'The Loco 16mm Elongated', img: 'loco-elongated', blurb: 'Max reach and leverage for power from the baseline.' };
+const LOCO_ELONGATED = { model: 'The Loco 16mm Elongated', img: 'loco-elongated', blurb: 'Longest reach, most power.' };
 const GRIPS = {
   'doughy grips': { line: 'Doughy Grips', feel: 'Soft & tacky', img: 'doughy',
-    blurb: 'Cushioned 0.65mm overgrip. Soft, tacky hold that eases hand fatigue.' },
+    blurb: 'Soft and sticky. 0.65mm.' },
   'tough cookie': { line: 'Tough Cookie', feel: 'Dry · for sweaty hands', img: 'tough-cookie',
-    blurb: 'Textured 0.60mm dry overgrip that stays grippy when your hands sweat.' },
+    blurb: 'Dry grip for sweaty hands. 0.60mm.' },
 };
 const FLAVOR_FIX = { 'frosted cumb monster': 'Frosted Crumb Monster' }; // sheet typo
 
@@ -295,7 +318,7 @@ function renderPaddles(list) {
   const grid = document.getElementById('paddleGrid');
   document.getElementById('paddleCount').textContent = list.length ? `${list.length} in stock` : '';
   if (!list.length) {
-    grid.innerHTML = '<div class="empty">All paddles are sold out right now. Message Jude and we\'ll tell you when the next batch lands.</div>';
+    grid.innerHTML = '<div class="empty">Sold out for now. Message Jude to get on the list for the next batch.</div>';
     return;
   }
   grid.innerHTML = list.map(p => {
@@ -310,7 +333,7 @@ function renderPaddles(list) {
         <ul class="specs">${(p.specs || []).map(s => `<li>${esc(s)}</li>`).join('')}</ul>
         <div class="foot">
           <span class="price">${peso(p.price)}</span>
-          <a class="btn" ${buyAttrs(`Hi Jude! Is the ${label} still available? (${peso(p.price)}, padq.app/shop)`)}>Message to buy</a>
+          <a class="btn" ${buyAttrs(`Hi Jude! Is the ${label} still available? (${peso(p.price)})`)}>Message to buy</a>
         </div>
       </div>
     </article>`;
@@ -319,7 +342,7 @@ function renderPaddles(list) {
 
 function renderGrips(lines) {
   const box = document.getElementById('gripLines');
-  if (!lines.length) { box.innerHTML = '<div class="empty">Grips are restocking. Check back soon.</div>'; return; }
+  if (!lines.length) { box.innerHTML = '<div class="empty">Out of grips for now. Restocking soon.</div>'; return; }
   box.innerHTML = lines.map(l => {
     const left = l.colors.reduce((n, c) => n + c.qty, 0);
     const prices = [...new Set(l.colors.map(c => c.price))];
@@ -339,7 +362,7 @@ function renderGrips(lines) {
       </div>
       <div class="flavors">${colors.map(c => {
         const label = `${l.line} grip, ${c.flavor} (${c.color})`;
-        return `<a class="flavor${c.qty > 0 ? '' : ' sold'}" ${buyAttrs(`Hi Jude! I'd like a ${label}. (${peso(c.price)}, padq.app/shop)`)} title="Message to buy: ${esc(label)}">
+        return `<a class="flavor${c.qty > 0 ? '' : ' sold'}" ${buyAttrs(`Hi Jude! I'd like a ${label}. (${peso(c.price)})`)} title="Message to buy: ${esc(label)}">
           <div class="photo">${pic(c.img, label)}${stockBadge(c.qty, 3)}</div>
           <div class="meta"><b>${esc(c.flavor)}</b><span>${esc(c.color)}</span></div>
         </a>`;
@@ -356,7 +379,7 @@ document.addEventListener('click', e => {
   const t = document.getElementById('toast');
   const show = text => { t.textContent = text; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 4000); };
   try {
-    navigator.clipboard.writeText(a.dataset.msg).then(() => show('Message copied. Paste it in your chat with Jude.'), () => {});
+    navigator.clipboard.writeText(a.dataset.msg).then(() => show('Copied! Paste it in your chat with Jude.'), () => {});
   } catch (err) {}
 });
 
@@ -372,7 +395,7 @@ async function load() {
       const r = await fetch(FEED_URL, { cache: 'no-store' });
       if (!r.ok) throw new Error(r.status);
       const raw = rowsFromCSV(await r.text());
-      if (raw.paddles.length + raw.grips.length) return render(raw, 'Live stock from our inventory sheet.');
+      if (raw.paddles.length + raw.grips.length) return render(raw, 'Stock updates automatically.');
     } catch (e) { /* fall through to the snapshot */ }
   }
   try {
@@ -382,7 +405,7 @@ async function load() {
     const d = new Date(data.updated);
     render(data, 'Stock as of ' + d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) + '.');
   } catch (e) {
-    const msg = '<div class="err">Couldn\'t load stock. Check your connection and refresh.</div>';
+    const msg = '<div class="err">Couldn\'t load stock. Try refreshing.</div>';
     document.getElementById('paddleGrid').innerHTML = msg;
     document.getElementById('gripLines').innerHTML = msg;
   }
