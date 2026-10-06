@@ -266,11 +266,12 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   <div class="drawer-foot v-slip">
     <button class="btn" id="copySlip" onclick="copySlip()">1 · Copy order slip</button>
     <a class="btn" href="https://m.me/juudeng" target="_blank" rel="noopener">2 · Open Jude's chat</a>
+    <button class="btn" id="finishBtn" onclick="clearOrder()">3 · Finish payment</button>
     <div class="row2">
       <button class="btn ghost" id="saveSlip" onclick="saveSlip()">Save image</button>
       <button class="btn ghost" onclick="copyOrder()">Copy as text</button>
     </div>
-    <p class="note" style="text-align:center;"><a id="sendMail" href="mailto:hello@padq.app">Email the order instead</a> · <button class="linkish" onclick="clearOrder()">Done, clear my cart</button></p>
+    <p class="note" style="text-align:center;"><a id="sendMail" href="mailto:hello@padq.app">Email the order instead</a></p>
   </div>
 </aside>
 
@@ -725,8 +726,9 @@ async function buildSlip() {
   document.getElementById('sendMail').href = 'mailto:hello@padq.app?subject=' + encodeURIComponent('Order ' + o.no) +
     '&body=' + encodeURIComponent(orderText());
   document.getElementById('slipHow').innerHTML = o.paid
-    ? '<li><b>Copy your order slip.</b> Your payment screenshot is on it.</li><li><b>Open Jude\'s chat and paste it.</b> She\'ll check the payment and confirm, then sort out pick-up or shipping.</li>'
-    : '<li><b>Copy your order slip.</b></li><li><b>Open Jude\'s chat and paste it.</b> She\'ll confirm, then sort out payment and pick-up or shipping with you.</li>';
+    ? '<li><b>Copy your order slip.</b> Your payment screenshot is on it.</li><li><b>Open Jude\'s chat and paste it.</b> She\'ll check the payment and confirm, then sort out pick-up or shipping.</li><li><b>Tap Finish payment</b> once it\'s sent. This clears your cart.</li>'
+    : '<li><b>Copy your order slip.</b></li><li><b>Open Jude\'s chat and paste it.</b> She\'ll confirm, then sort out payment and pick-up or shipping with you.</li><li><b>Tap Done</b> once it\'s sent. This clears your cart.</li>';
+  document.getElementById('finishBtn').textContent = o.paid ? '3 · Finish payment' : '3 · Done, clear my cart';
   setView('slip');
 }
 
@@ -770,8 +772,9 @@ function copyOrder() {
 }
 
 function clearOrder() {
+  const paid = order && order.paid;
   cart = {}; order = null; saveCart(); setView('cart'); renderCart(); openCart(false);
-  toast('Cart cleared. Thanks!');
+  toast(paid ? 'Thanks! Jude will confirm your payment in chat.' : 'Cart cleared. Thanks!');
 }
 
 function renderCart() {
