@@ -36,6 +36,23 @@ the web as CSV. Only that tab is published; never publish the whole sheet.
 (`shop/img/<line>-<color>.jpg`) and pre-order cards (`COMING`) live in
 `shop/index.html`.
 
+## Grip sale shortcut (POS)
+
+Jude logs grip sales from her iPhone with the Shortcut **"Log grip sale"**:
+pick grip+color (list shows live stock), qty, customer name, payment
+(Cash / GCash / Maribank / Not paid yet). It talks to a **standalone** Apps
+Script web app (`scripts/pos-grip-sale.gs`, opens the sheet by ID) that writes
+the sale into the first empty row of the `POS - Grips` log (rows 23–113).
+The sheet's own bound Apps Script has an unrelated `doPost` and is left alone.
+The real secret key is only in the deployed script and the Shortcut, never in
+this public repo. Spec: `docs/superpowers/specs/2026-10-07-grip-sale-shortcut-design.md`.
+
+- To redeploy changed code, make a **New deployment** (editing the existing one
+  kept serving the old version) and give the new `/exec` URL to the Shortcut.
+- To undo a sale, **clear the cells**, never delete the row: deleting rows
+  shrinks the stock/revenue formula ranges (23–113).
+- Paddles are not covered yet.
+
 ## Tests
 
 ```bash
