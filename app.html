@@ -91,6 +91,10 @@ body {
 }
 
 /* ===== HEADER ===== */
+.shop-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 10px;color:#fff;font-family:var(--font);font-size:0.72rem;font-weight:700;letter-spacing:0.02em;text-decoration:none;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;}
+.shop-btn svg{display:block;}
+.shop-btn:hover{background:rgba(255,255,255,0.22);}
+@media(max-width:600px){.shop-btn{display:none;}}
 header {
   background: var(--header-bg);
   color: #fff;
@@ -1255,6 +1259,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   <span class="session-badge" id="sessionBadge">0 players</span>
   <div class="sync-dot" id="syncDot" title="Sync status"></div>
   <button onclick="copyViewLink()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 10px;color:white;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:var(--font);letter-spacing:0.02em;white-space:nowrap;flex-shrink:0;">Share 🔗</button>
+  <a class="shop-btn" href="shop/" target="_blank" rel="noopener" title="Paddle District Shop" aria-label="Shop"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.5L22 7H6"/></svg><span>Shop</span></a>
   <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
 </header>
 

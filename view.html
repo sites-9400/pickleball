@@ -47,9 +47,16 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 .view-qr-label{color:var(--muted);font-size:0.55rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;text-align:center;max-width:128px;line-height:1.3;}
 @media(max-width:720px){.view-qr{display:none!important;}}
 .container{max-width:1080px;margin:0 auto;padding:0 16px;}
-.shop-foot{text-align:center;padding:18px 16px 28px;}
-.shop-foot a{font-size:0.8rem;font-weight:700;color:var(--muted);text-decoration:none;}
-.shop-foot a:hover{color:var(--ink);text-decoration:underline;}
+.shop-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 10px;color:#fff;font-family:var(--font);font-size:0.72rem;font-weight:700;letter-spacing:0.02em;text-decoration:none;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;}
+.shop-btn svg{display:block;}
+.shop-btn:hover{background:rgba(255,255,255,0.22);}
+@media(max-width:600px){.shop-btn span{display:none;}
+  header{padding:10px 12px;gap:8px;}
+  header .logo img{height:24px!important;}
+  .header-text{min-width:0;}
+  .header-text h1{font-size:0.95rem;}
+  .session-clock-view{font-size:0.82rem;padding:4px 8px;white-space:nowrap;}
+  .shop-btn,.theme-toggle{padding:4px 8px;}}
 .section-header{font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin:20px 0 10px;}
 .court-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,520px));gap:14px;justify-content:center;}
 .court-view{background:var(--surface);border-radius:12px;overflow:hidden;border:1.5px solid var(--line);}
@@ -171,6 +178,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
   </div>
   <div class="live-dot" id="liveDot" title="Connection status"></div>
   <div class="session-clock-view" id="viewClock">--:--:--</div>
+  <a class="shop-btn" href="shop/" target="_blank" rel="noopener" title="Paddle District Shop" aria-label="Shop"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.5L22 7H6"/></svg><span>Shop</span></a>
   <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️</button>
 </header>
 
@@ -188,7 +196,6 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
     <div>Connecting to live session...</div>
   </div>
 </div>
-<div class="shop-foot"><a href="shop/" target="_blank" rel="noopener">🛒 Paddle District Shop · paddles &amp; grips</a></div>
 
 <!-- QR Code library (global, loaded before the module) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>

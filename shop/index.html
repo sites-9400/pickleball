@@ -129,7 +129,15 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 .drawer-head h3{flex:1;}
 .back{visibility:hidden;font-size:1.6rem;}
 .drawer:not([data-view="cart"]) .back{visibility:visible;}
-.drawer[data-view="cart"] .v-slip,.drawer[data-view="slip"] .v-cart{display:none;}
+.drawer:not([data-view="cart"]) .v-cart,.drawer:not([data-view="pay"]) .v-pay,.drawer:not([data-view="slip"]) .v-slip{display:none;}
+.pay-amt{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0 4px;}
+.pay-amt span{font-size:0.9rem;font-weight:700;color:var(--muted);}
+.pay-amt b{font-size:2rem;font-weight:900;}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--soft);margin:12px 0 10px;}
+.seg button{font-family:var(--font);font-size:0.82rem;font-weight:700;padding:8px;border-radius:9px;border:none;background:none;color:var(--muted);cursor:pointer;}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,0.12);}
+.qr{width:100%;max-width:300px;margin:0 auto 10px;display:block;border-radius:12px;background:#fff;border:1px solid var(--line);-webkit-touch-callout:default;}
+.v-pay .note{margin-bottom:8px;}
 .form-err{font-size:0.78rem;font-weight:600;color:#C0392B;}
 .form-err:empty{display:none;}
 .how{padding:14px 0 10px 18px;font-size:0.82rem;line-height:1.5;display:flex;flex-direction:column;gap:6px;}
@@ -177,8 +185,8 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   </div>
 
   <div class="howbuy">
-    <div class="step"><b>Order</b><span>Add to cart, then send the order to <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude</a> on Messenger. Or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a>.</span></div>
-    <div class="step"><b>Pay</b><span>GCash <strong class="gcash">0908 119 1555</strong>, cash, or bank transfer. Installments OK for paddles.</span></div>
+    <div class="step"><b>Order</b><span>Add to cart, then pay in the app or send the order to <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude</a> on Messenger. Or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a>.</span></div>
+    <div class="step"><b>Pay</b><span>GCash or any bank app (InstaPay QR), or cash at open play. Installments OK for paddles, just chat with Jude first.</span></div>
     <div class="step"><b>Get it</b><span>Pick up at open play, or we ship to you.</span></div>
   </div>
 
@@ -210,7 +218,7 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 <div class="scrim" id="scrim" onclick="openCart(false)"></div>
 <aside class="drawer" id="drawer" data-view="cart" aria-label="Cart">
   <div class="drawer-head">
-    <button class="x back" onclick="setView('cart')" aria-label="Back">‹</button>
+    <button class="x back" onclick="goBack()" aria-label="Back">‹</button>
     <h3 id="drawerTitle">Your cart</h3>
     <button class="x" onclick="openCart(false)" aria-label="Close cart">×</button>
   </div>
@@ -219,18 +227,39 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   <div class="items v-cart" id="cartItems"></div>
   <div class="drawer-foot v-cart">
     <div class="total"><span>Total</span><span id="cartTotal">₱0</span></div>
-    <button class="btn" id="makeSlip" onclick="makeSlip()">Make order slip</button>
+    <button class="btn" onclick="startPay()">Pay now</button>
+    <button class="btn ghost" id="makeSlip" onclick="makeSlip()">Chat with Jude first</button>
     <p class="form-err" id="formErr"></p>
-    <p class="note">No payment here. Send the slip to Jude, he confirms, then you pay.</p>
+    <p class="note">Paying in installments or have questions? Chat with Jude first.</p>
   </div>
 
 
-  <!-- 2. slip -->
+  <!-- 2. pay -->
+  <div class="items v-pay">
+    <div class="pay-amt"><span>Pay</span><b id="payAmt">₱0</b></div>
+    <p class="note">Put <b id="payNo"></b> in the message so Jude can match your payment.</p>
+    <div class="seg">
+      <button class="on" data-qr="gcash" onclick="showQr('gcash')">GCash</button>
+      <button data-qr="maribank" onclick="showQr('maribank')">MariBank</button>
+    </div>
+    <img id="qrImg" class="qr" src="img/pay-gcash.png" alt="QR code to pay Jude Navarra">
+    <p class="note">Paying from this phone? Save the QR, then use Upload QR in GCash or your bank app. Works with any bank (InstaPay).</p>
+    <div class="row2">
+      <button class="btn ghost" onclick="saveQr()">Save QR</button>
+      <button class="btn ghost" id="copyNum" onclick="copyNumber()">Copy number</button>
+    </div>
+    <p class="note" style="margin-top:10px;">Shipping, if any, is sorted with Jude after.</p>
+  </div>
+  <div class="drawer-foot v-pay">
+    <label class="btn" for="receipt" id="receiptBtn">I've paid · Add payment screenshot</label>
+    <input type="file" id="receipt" accept="image/*" hidden onchange="addReceipt(this)">
+    <p class="form-err" id="payErr"></p>
+    <p class="note">Your screenshot goes on your order slip. It stays on your phone.</p>
+  </div>
+
+  <!-- 3. slip -->
   <div class="items v-slip">
-    <ol class="how">
-      <li><b>Copy your order slip.</b></li>
-      <li><b>Open Jude's chat and paste it.</b> He'll confirm, then sort out payment and pick-up or shipping with you.</li>
-    </ol>
+    <ol class="how" id="slipHow"></ol>
     <img id="slipImg" class="slip" alt="Your order slip">
     <p class="note" id="holdHint">Tip: you can also press and hold the slip to copy or save it.</p>
   </div>
@@ -262,7 +291,7 @@ document.getElementById('themeBtn').textContent = document.documentElement.datas
 const FEED_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRgiMZTKcxmJeBARs-FgY46j6SINrrOt_SwjexkTGPlpVDX8_Wm0GTL7SklMiAyeS3Gjxfnw05AFBb/pub?gid=548250303&single=true&output=csv';
 const MESSENGER = 'https://m.me/juudeng';
 // On iPhone, m.me serves a web page with an App Store button instead of opening the
-// installed app, so phones use Messenger's own app link to Jude's thread (his
+// installed app, so phones use Messenger's own app link to Jude's thread (her
 // account id, from the m.me redirect) and fall back to m.me if nothing opened.
 const MESSENGER_APP = 'fb-messenger://user-thread/100000464113135';
 
@@ -485,30 +514,113 @@ function toast(text) {
 function cartLines() {
   return Object.entries(cart).map(([id, n]) => ({ p: PRODUCTS.get(id), n })).filter(l => l.p && l.n > 0);
 }
-// ---- Checkout: details -> order slip image -> send to Jude ----
-let order = null;   // { no, at, lines, total, png: { file, url } }
+// ---- Checkout: pay now (QR + screenshot) or chat first -> order slip image -> send to Jude ----
+let order = null;   // { no, at, lines, total, paid, receipt, png: { file, url } }
+
+// One order number per cart: reused between Pay now and Chat first, reset by any cart change.
+function newOrder() {
+  if (order) return order;
+  const lines = cartLines();
+  const at = new Date();
+  const no = 'PD-' + String(at.getMonth() + 1).padStart(2, '0') + String(at.getDate()).padStart(2, '0') + '-' +
+             Math.random().toString(36).slice(2, 6).toUpperCase();
+  return order = { no, at, lines, total: lines.reduce((t, l) => t + l.p.price * l.n, 0), paid: false };
+}
 
 function orderText(o = order) {
   const lines = o ? o.lines : cartLines();
   const total = lines.reduce((t, l) => t + l.p.price * l.n, 0);
   return `Hi Jude! Order ${o ? o.no + ' ' : ''}from padq.app/shop\n` +
     lines.map(l => `- ${l.n} x ${l.p.name}: ${peso(l.p.price * l.n)}`).join('\n') +
-    `\nTotal: ${peso(total)}`;
+    `\nTotal: ${peso(total)}` +
+    (o && o.paid ? '\nPaid. Payment screenshot is on the slip.' : '\nNot paid yet.');
 }
 
 function setView(v) {
   const d = document.getElementById('drawer');
   d.dataset.view = v;
-  document.getElementById('drawerTitle').textContent = { cart: 'Your cart', slip: 'Send your order' }[v];
+  document.getElementById('drawerTitle').textContent = { cart: 'Your cart', pay: 'Pay', slip: 'Send your order' }[v];
   d.querySelector('.v-' + v + '.items')?.scrollTo(0, 0);
 }
 
 
 
-const loadImg = src => new Promise(res => {
+function goBack() {
+  const v = document.getElementById('drawer').dataset.view;
+  setView(v === 'slip' && order && order.paid ? 'pay' : 'cart');
+}
+
+// ---- Pay now ----
+// The QR files are fetched when the pay screen opens, so Save QR can open the share
+// sheet straight from the tap (iOS drops navigator.share after any await).
+const QRS = { gcash: 'img/pay-gcash.png', maribank: 'img/pay-maribank.png' };
+const GCASH_NO = '09081191555';
+const qrFiles = {};
+let qrNow = 'gcash';
+
+function startPay() {
+  if (!cartLines().length) return setView('cart');
+  const o = newOrder();
+  document.getElementById('payAmt').textContent = peso(o.total);
+  document.getElementById('payNo').textContent = o.no;
+  document.getElementById('payErr').textContent = '';
+  for (const [k, src] of Object.entries(QRS)) if (!qrFiles[k])
+    fetch(src).then(r => r.blob()).then(b => { qrFiles[k] = new File([b], `pay-jude-${k}.png`, { type: 'image/png' }); }).catch(() => {});
+  showQr(qrNow);
+  setView('pay');
+}
+
+function showQr(k) {
+  qrNow = k;
+  document.getElementById('qrImg').src = QRS[k];
+  document.querySelectorAll('[data-qr]').forEach(b => b.classList.toggle('on', b.dataset.qr === k));
+  document.getElementById('copyNum').style.visibility = k === 'gcash' ? 'visible' : 'hidden';
+}
+
+function saveQr() {
+  const file = qrFiles[qrNow];
+  if (file && phoneShare(file)) {
+    navigator.share({ files: [file] }).catch(err => {
+      if (err && err.name !== 'AbortError') toast('Press and hold the QR to save it.');
+    });
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = QRS[qrNow]; a.download = `pay-jude-${qrNow}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+  if (matchMedia('(pointer: coarse)').matches) toast('If it didn\'t save, press and hold the QR.');
+}
+
+function copyNumber() {
+  try { navigator.clipboard.writeText(GCASH_NO).then(() => toast('GCash number copied.'), () => toast('GCash 0908 119 1555')); }
+  catch (e) { toast('GCash 0908 119 1555'); }
+}
+
+// The buyer picks their payment screenshot; it is drawn onto the slip in this browser only.
+async function addReceipt(input) {
+  const f = input.files && input.files[0];
+  input.value = '';  // lets them pick the same photo again
+  if (!f || !order) return;
+  const err = document.getElementById('payErr'), btn = document.getElementById('receiptBtn');
+  err.textContent = ''; btn.textContent = 'Adding your screenshot…';
+  const url = URL.createObjectURL(f);
+  try {
+    const im = await loadImg(url, 15000);
+    if (!im) throw new Error('unreadable');
+    order.receipt = im; order.paid = true;
+    await buildSlip();
+  } catch (e) {
+    err.textContent = 'Couldn\'t open that photo. Try another screenshot, or chat with Jude.';
+  } finally {
+    btn.textContent = 'I\'ve paid · Add payment screenshot';
+    URL.revokeObjectURL(url);
+  }
+}
+
+const loadImg = (src, ms = 4000) => new Promise(res => {
   if (!src) return res(null);
   const im = new Image();
-  const t = setTimeout(() => res(null), 4000);
+  const t = setTimeout(() => res(null), ms);
   im.onload = () => { clearTimeout(t); res(im); };
   im.onerror = () => { clearTimeout(t); res(null); };
   im.src = src;
@@ -530,7 +642,13 @@ async function drawSlip(o) {
     }
     out.push(line); return out;
   };
-  const H = 300 + o.lines.length * ROW + 70 + 260;
+  // payment screenshot: fit to 820 wide, at most 1800 tall (big enough to read the ref no.)
+  let rw = 0, rh = 0;
+  if (o.paid && o.receipt) {
+    const s = Math.min(820 / o.receipt.width, 1800 / o.receipt.height);
+    rw = Math.round(o.receipt.width * s); rh = Math.round(o.receipt.height * s);
+  }
+  const H = 300 + o.lines.length * ROW + 70 + 260 + (rh ? rh + 110 : 0);
   c.width = W; c.height = H;
   x.fillStyle = '#F5F6F0'; x.fillRect(0, 0, W, H);
   x.fillStyle = '#4A5C2F'; x.fillRect(0, 0, W, 200);
@@ -560,37 +678,56 @@ async function drawSlip(o) {
   x.fillStyle = '#1C1F14'; x.font = `900 40px ${F}`; x.fillText('Total', P, y);
   x.textAlign = 'right'; x.fillText(peso(o.total), W - P, y); x.textAlign = 'left';
   y += 60;
-  x.fillStyle = '#EEF1E6'; x.fillRect(P, y, W - P * 2, 150);
-  x.fillStyle = '#4A5C2F'; x.font = `800 30px ${F}`; x.fillText('Send this to Jude Navarra on Messenger', P + 30, y + 58);
-  x.fillStyle = '#6B7254'; x.font = `600 26px ${F}`;
-  x.fillText('m.me/juudeng · Pay after Jude confirms · GCash 0908 119 1555', P + 30, y + 105);
+  if (o.paid) {
+    x.fillStyle = '#4A5C2F'; x.fillRect(P, y, W - P * 2, 150);
+    x.fillStyle = '#fff'; x.font = `800 34px ${F}`; x.fillText('PAID · waiting for Jude to confirm', P + 30, y + 62);
+    x.font = `600 26px ${F}`; x.fillText('Payment screenshot below · m.me/juudeng', P + 30, y + 108);
+  } else {
+    x.fillStyle = '#EEF1E6'; x.fillRect(P, y, W - P * 2, 150);
+    x.fillStyle = '#4A5C2F'; x.font = `800 30px ${F}`; x.fillText('NOT PAID YET · Send this to Jude', P + 30, y + 58);
+    x.fillStyle = '#6B7254'; x.font = `600 26px ${F}`;
+    x.fillText('m.me/juudeng · Pay after Jude confirms · GCash 0908 119 1555', P + 30, y + 105);
+  }
+  if (rh) {
+    y += 150 + 70;
+    x.fillStyle = '#6B7254'; x.font = `700 26px ${F}`; x.fillText('PAYMENT SCREENSHOT', P, y);
+    const rx = (W - rw) / 2, ry = y + 24;
+    x.fillStyle = '#D8DDD0'; x.fillRect(rx - 2, ry - 2, rw + 4, rh + 4);
+    x.drawImage(o.receipt, rx, ry, rw, rh);
+  }
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   const file = new File([blob], `${o.no}.png`, { type: 'image/png' });
   return { file, url: URL.createObjectURL(blob) };
 }
 
+// Chat first: an unpaid slip (drops a screenshot added earlier for this cart).
 async function makeSlip() {
-  const lines = cartLines();
-  if (!lines.length) return setView('cart');
+  if (!cartLines().length) return setView('cart');
   const btn = document.getElementById('makeSlip');
   btn.disabled = true; btn.textContent = 'Making your slip…';
-  const at = new Date();
-  const no = 'PD-' + String(at.getMonth() + 1).padStart(2, '0') + String(at.getDate()).padStart(2, '0') + '-' +
-             Math.random().toString(36).slice(2, 6).toUpperCase();
-  order = { no, at, lines, total: lines.reduce((t, l) => t + l.p.price * l.n, 0) };
+  const o = newOrder();
+  o.paid = false; o.receipt = null;
   try {
-    if (order.png) URL.revokeObjectURL(order.png.url);
-    order.png = await drawSlip(order);
-    document.getElementById('slipImg').src = order.png.url;
-    document.getElementById('saveSlip').textContent = phoneShare(order.png.file) ? 'Share / save' : 'Save image';
-    document.getElementById('sendMail').href = 'mailto:hello@padq.app?subject=' + encodeURIComponent('Order ' + no) +
-      '&body=' + encodeURIComponent(orderText());
-    setView('slip');
+    await buildSlip();
   } catch (e) {
     document.getElementById('formErr').textContent = 'Couldn\'t make the slip. Try again, or message Jude directly.';
   } finally {
-    btn.disabled = false; btn.textContent = 'Make order slip';
+    btn.disabled = false; btn.textContent = 'Chat with Jude first';
   }
+}
+
+async function buildSlip() {
+  const o = order;
+  if (o.png) URL.revokeObjectURL(o.png.url);
+  o.png = await drawSlip(o);
+  document.getElementById('slipImg').src = o.png.url;
+  document.getElementById('saveSlip').textContent = phoneShare(o.png.file) ? 'Share / save' : 'Save image';
+  document.getElementById('sendMail').href = 'mailto:hello@padq.app?subject=' + encodeURIComponent('Order ' + o.no) +
+    '&body=' + encodeURIComponent(orderText());
+  document.getElementById('slipHow').innerHTML = o.paid
+    ? '<li><b>Copy your order slip.</b> Your payment screenshot is on it.</li><li><b>Open Jude\'s chat and paste it.</b> She\'ll check the payment and confirm, then sort out pick-up or shipping.</li>'
+    : '<li><b>Copy your order slip.</b></li><li><b>Open Jude\'s chat and paste it.</b> She\'ll confirm, then sort out payment and pick-up or shipping with you.</li>';
+  setView('slip');
 }
 
 const phoneShare = file => canShareFile(file) && matchMedia('(pointer: coarse)').matches;
@@ -664,7 +801,7 @@ function renderCart() {
 }
 
 function openCart(on) {
-  if (on && document.getElementById('drawer').dataset.view === 'slip' && !order) setView('cart');
+  if (on && document.getElementById('drawer').dataset.view !== 'cart' && !order) setView('cart');
   document.getElementById('drawer').classList.toggle('open', on);
   document.getElementById('scrim').classList.toggle('open', on);
 }
