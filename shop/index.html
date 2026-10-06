@@ -180,7 +180,7 @@ document.getElementById('themeBtn').textContent = document.documentElement.datas
 // That tab is formulas only (model, color, price, qty of unsold stock), so no
 // buyer data is public. Google refreshes a published sheet within ~5 minutes.
 // If it can't be reached, inventory.json (scripts/sync-shop.py) is the fallback.
-const FEED_URL = '';
+const FEED_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRgiMZTKcxmJeBARs-FgY46j6SINrrOt_SwjexkTGPlpVDX8_Wm0GTL7SklMiAyeS3Gjxfnw05AFBb/pub?gid=548250303&single=true&output=csv';
 const MESSENGER = 'https://m.me/juudeng';
 
 // Brand facts and photos, keyed by the start of the sheet's model name.
