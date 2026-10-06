@@ -2,6 +2,7 @@
 
 Source: Google Doc "September 29 PD update" + Drive folder "Paddle District" (Jude's).
 Status: PLAN, decisions made 2026-10-06. Nothing implemented yet.
+Progress: Phase 3 DONE (live). Next: Phase 0, then Phase 4, then Phase 1.
 Decisions: (1) app name: KEEP "Pickled" for now, Phase 2 parked. (2) logos: recommended mapping
 (badge = big spots, monogram = small headers, square tile = home-screen icon). (3) team colors: live view only.
 
@@ -67,7 +68,11 @@ Every page loads the same few files, so this is mostly asset work:
   og/twitter titles, offline.html, sw.js comment. "Paddle District" stays as the community name.
 - short_name must fit under a home-screen icon (≈12 chars): "PD Live" / "On Deck" fit, "District Live" is borderline.
 
-## Phase 3: live view team colors
+## Phase 3: live view team colors - DONE 2026-10-06 (live)
+
+Shipped: `--teamA`/`--teamB` tints per theme in view.html (light #E5EFD3 / #DCEBF6, dark #2F4A1C / #1C3549),
+`.team-a`/`.team-b` on court cards and Next Up/On Deck cards; tests/view-team-colors.test.js.
+
 
 - view.html: `.team-view` gets `.team-a` / `.team-b` classes with light tints (light + dark mode),
   label "Team A"/"Team B" tinted to match. Same tint on Up Next / queue team blocks.
