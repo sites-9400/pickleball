@@ -260,6 +260,10 @@ document.getElementById('themeBtn').textContent = document.documentElement.datas
 // If it can't be reached, inventory.json (scripts/sync-shop.py) is the fallback.
 const FEED_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRgiMZTKcxmJeBARs-FgY46j6SINrrOt_SwjexkTGPlpVDX8_Wm0GTL7SklMiAyeS3Gjxfnw05AFBb/pub?gid=548250303&single=true&output=csv';
 const MESSENGER = 'https://m.me/juudeng';
+// On iPhone, m.me serves a web page with an App Store button instead of opening the
+// installed app, so phones use Messenger's own app link to Jude's thread (his
+// account id, from the m.me redirect) and fall back to m.me if nothing opened.
+const MESSENGER_APP = 'fb-messenger://user-thread/100000464113135';
 
 // Brand facts and photos, keyed by the start of the sheet's model name.
 const PADDLES = {
@@ -677,6 +681,23 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') openCart(false); });
+
+// Runs after the copy handlers above (bubble order), so the text is copied first.
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="https://m.me/"]');
+  if (!a || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+  e.preventDefault();
+  let left = false;
+  const gone = () => { if (document.hidden) left = true; };
+  document.addEventListener('visibilitychange', gone);
+  window.addEventListener('pagehide', () => { left = true; }, { once: true });
+  location.href = MESSENGER_APP;
+  // Messenger not installed: nothing opened and we're still here, so use the web link.
+  setTimeout(() => {
+    document.removeEventListener('visibilitychange', gone);
+    if (!left && !document.hidden) location.href = MESSENGER;
+  }, 1600);
+});
 
 function render(raw, updatedText) {
   renderPaddles(buildPaddles(raw.paddles || []));
