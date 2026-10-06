@@ -49,7 +49,7 @@ a{color:inherit;}
 .step a{color:var(--army);font-weight:700;}
 [data-theme="dark"] .step a{color:var(--accent);}
 .gcash{color:var(--ink);white-space:nowrap;}
-.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);font-size:0.8rem;font-weight:600;padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:all 0.2s;z-index:20;max-width:calc(100% - 32px);text-align:center;}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);font-size:0.8rem;font-weight:600;padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:all 0.2s;z-index:20;max-width:calc(100% - 32px);text-align:center;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 .tabs{display:flex;gap:8px;position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 0;margin-top:16px;border-bottom:1px solid var(--line);}
@@ -69,6 +69,8 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 .badge{position:absolute;top:10px;left:10px;font-size:0.68rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 9px;border-radius:20px;background:var(--army);color:#fff;}
 .badge.low{background:var(--low);}
 .badge.out{background:#777;}
+.badge.soon{background:#2D6A8A;}
+.price.tba{font-size:0.95rem;color:var(--muted);}
 .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1;}
 .brand{font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);}
 .name{font-size:1.05rem;font-weight:800;line-height:1.25;}
@@ -91,22 +93,45 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 .line-price .price{font-size:1.15rem;}
 .line-price small{display:block;font-size:0.7rem;font-weight:600;color:var(--muted);}
 .flavors{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
-.flavor{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg);text-decoration:none;color:inherit;display:block;}
-.flavor:hover{border-color:var(--army);}
+.flavor{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;}
 .flavor .photo .badge{top:6px;left:6px;font-size:0.6rem;padding:3px 7px;}
-.flavor .meta{padding:8px 10px 10px;}
+.flavor .meta{padding:8px 10px 6px;flex:1;}
+.flavor .add{margin:0 8px 8px;padding:7px 8px;font-size:0.74rem;}
 .flavor b{display:block;font-size:0.78rem;font-weight:800;line-height:1.25;}
 .flavor .meta span{font-size:0.7rem;font-weight:600;color:var(--muted);}
-.flavor.sold{opacity:0.5;pointer-events:none;}
+.flavor.sold{opacity:0.5;}
+.btn:disabled{background:var(--line);color:var(--muted);cursor:default;}
+.btn.in{background:var(--army-light);}
+.btn.in:disabled{background:var(--army-light);color:#fff;opacity:0.8;}
 
-.teaser{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);background:var(--surface);border:2px solid var(--army);border-radius:16px;overflow:hidden;margin-top:28px;}
-[data-theme="dark"] .teaser{border-color:var(--accent);}
-.teaser-pics{background:#fff;display:flex;align-items:center;justify-content:center;}
-.teaser-pics img{width:100%;max-width:340px;aspect-ratio:1/1;object-fit:contain;display:block;}
-.teaser-body{padding:22px;display:flex;flex-direction:column;gap:8px;justify-content:center;}
-.teaser-body .badge{position:static;align-self:flex-start;background:var(--low);}
-.teaser-body .name{font-size:1.6rem;font-weight:900;}
-.teaser-body .btn{align-self:flex-start;margin-top:6px;}
+.cart-fab{position:fixed;right:16px;bottom:16px;z-index:15;display:none;align-items:center;gap:8px;font-family:var(--font);font-size:0.9rem;font-weight:800;padding:12px 18px;border-radius:30px;border:none;background:var(--army);color:#fff;box-shadow:0 6px 20px rgba(0,0,0,0.25);cursor:pointer;}
+.cart-fab.show{display:flex;}
+.cart-fab .n{background:#fff;color:var(--army);border-radius:20px;min-width:22px;padding:1px 6px;font-size:0.78rem;text-align:center;}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:30;display:none;}
+.scrim.open{display:block;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--surface);z-index:31;transform:translateX(100%);transition:transform 0.2s;display:flex;flex-direction:column;}
+.drawer.open{transform:none;}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--line);}
+.drawer-head h3{font-size:1.1rem;font-weight:900;}
+.x{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--ink);line-height:1;padding:4px 8px;}
+.items{flex:1;overflow-y:auto;padding:8px 16px;}
+.item{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
+.item img,.item .ph{width:56px;height:56px;object-fit:contain;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
+.item b{display:block;font-size:0.8rem;font-weight:800;line-height:1.3;}
+.item small{font-size:0.72rem;font-weight:600;color:var(--muted);}
+.step-q{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;}
+.step-q button{background:none;border:none;font-family:var(--font);font-size:1rem;font-weight:700;width:30px;height:30px;cursor:pointer;color:var(--ink);}
+.step-q button:disabled{opacity:0.3;cursor:default;}
+.step-q span{min-width:22px;text-align:center;font-size:0.85rem;font-weight:700;}
+.drawer-foot{padding:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
+.total{display:flex;justify-content:space-between;font-size:1rem;font-weight:900;}
+.ship{display:flex;gap:8px;}
+.ship label{flex:1;display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;cursor:pointer;}
+.ship input{accent-color:var(--army);}
+.note{font-size:0.72rem;font-weight:500;color:var(--muted);line-height:1.5;}
+.btn.ghost{background:none;color:var(--ink);border:1.5px solid var(--line);}
+.btn.ghost:hover{border-color:var(--army);background:none;}
+
 .empty,.err{padding:24px;text-align:center;font-size:0.88rem;font-weight:600;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px;}
 .page-foot{padding:32px 0 40px;font-size:0.75rem;font-weight:500;color:var(--muted);line-height:1.7;text-align:center;}
 .page-foot a{font-weight:700;color:var(--army);}
@@ -122,10 +147,6 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   .flavors{grid-template-columns:repeat(3,1fr);gap:8px;}
   .line{padding:14px;}
   .line-price{text-align:left;}
-  .teaser{grid-template-columns:1fr;}
-  .teaser-pics img{max-width:200px;}
-  .teaser-body{padding:16px;}
-  .teaser-body .btn{align-self:stretch;}
 }
 @media (max-width:380px){ .flavors{grid-template-columns:1fr 1fr;} }
 </style>
@@ -147,22 +168,9 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   </div>
 
   <div class="howbuy">
-    <div class="step"><b>Order</b><span>Message <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude Navarra</a> on Messenger, or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a>.</span></div>
+    <div class="step"><b>Order</b><span>Add to cart, then send the order to <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude</a> on Messenger. Or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a>.</span></div>
     <div class="step"><b>Pay</b><span>GCash <strong class="gcash">0908 119 1555</strong>, cash, or bank transfer. Installments OK for paddles.</span></div>
     <div class="step"><b>Get it</b><span>Pick up at open play, or we ship to you.</span></div>
-  </div>
-
-  <div class="teaser">
-    <div class="teaser-pics">
-      <img src="img/loco2-elongated.jpg" alt="Bread &amp; Butter Loco 2 Elongated">
-    </div>
-    <div class="teaser-body">
-      <span class="badge">Coming soon</span>
-      <div class="brand">Bread &amp; Butter</div>
-      <div class="name">Loco 2 Elongated</div>
-      <p class="blurb">The new Loco. Same core as the original, with a new grittier face for more spin. Elongated shape for extra reach and power.</p>
-      <a class="btn" href="https://m.me/juudeng" target="_blank" rel="noopener" data-msg="Hi Jude! I'd like to reserve a Loco 2 Elongated.">Message to reserve</a>
-    </div>
   </div>
 
   <nav class="tabs">
@@ -188,6 +196,23 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<button class="cart-fab" id="cartFab" onclick="openCart(true)">🛒 Cart <span class="n" id="cartN">0</span></button>
+<div class="scrim" id="scrim" onclick="openCart(false)"></div>
+<aside class="drawer" id="drawer" aria-label="Cart">
+  <div class="drawer-head"><h3>Your cart</h3><button class="x" onclick="openCart(false)" aria-label="Close cart">×</button></div>
+  <div class="items" id="cartItems"></div>
+  <div class="drawer-foot">
+    <div class="total"><span>Total</span><span id="cartTotal">₱0</span></div>
+    <div class="ship">
+      <label><input type="radio" name="ship" value="Pick up at open play" checked> Pick up at open play</label>
+      <label><input type="radio" name="ship" value="Ship to me"> Ship to me</label>
+    </div>
+    <a class="btn" id="sendMsg" href="https://m.me/juudeng" target="_blank" rel="noopener">Send order to Jude</a>
+    <a class="btn ghost" id="sendMail" href="mailto:hello@padq.app">Email order instead</a>
+    <p class="note">Your order gets copied so you can paste it in Messenger. Jude will confirm stock, then you pay via GCash 0908 119 1555, cash, or bank transfer.</p>
+  </div>
+</aside>
 
 <script>
 function toggleTheme() {
@@ -221,6 +246,13 @@ const PADDLES = {
 };
 // LOCO rows read "Hybrid Black" / "Elongated Tan": the shape picks the model.
 const LOCO_ELONGATED = { model: 'The Loco 16mm Elongated', img: 'loco-elongated', blurb: 'Longest reach, most power.' };
+// Not in the sheet yet: pre-orders. Remove an entry once it arrives and is logged in POS.
+const COMING = [{
+  brand: 'Bread & Butter', model: 'The Loco 2 Elongated', color: 'Blanco', img: 'img/loco2-elongated.jpg', pcs: 2,
+  blurb: 'New version of the Loco. Same award-winning core, new Space Dust Grit face for more spin that lasts.',
+  specs: ['Space Dust Grit face', '16mm dual-density foam core', 'T700 raw carbon + fiberglass', '7.9–8.2 oz', '16.5" × 7.375"', '5.5" handle', 'USAP + UPA approved'],
+}];
+
 const GRIPS = {
   'doughy grips': { line: 'Doughy Grips', feel: 'Soft & tacky', img: 'doughy',
     blurb: 'Soft and sticky. 0.65mm.' },
@@ -312,17 +344,30 @@ function stockBadge(qty, lowAt) {
 }
 // An item with no photo on file yet (new model) gets a paddle placeholder.
 const pic = (src, alt) => `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph',textContent:'🏓'}))">`;
-const buyAttrs = msg => `href="${MESSENGER}" target="_blank" rel="noopener" data-msg="${esc(msg)}"`;
 
 function renderPaddles(list) {
   const grid = document.getElementById('paddleGrid');
   document.getElementById('paddleCount').textContent = list.length ? `${list.length} in stock` : '';
-  if (!list.length) {
+  if (!list.length && !COMING.length) {
     grid.innerHTML = '<div class="empty">Sold out for now. Message Jude to get on the list for the next batch.</div>';
     return;
   }
-  grid.innerHTML = list.map(p => {
+  grid.innerHTML = [...list, ...COMING].map(p => {
     const label = `${p.brand} ${p.model} (${p.color})`;
+    if (p.pcs) return `<article class="card">
+      <div class="photo">${pic(p.img, label)}<span class="badge soon">Coming soon</span></div>
+      <div class="body">
+        <div class="brand">${esc(p.brand)}</div>
+        <div class="name">${esc(p.model)}</div>
+        <div class="color">${esc(p.color)} · only ${p.pcs} pcs</div>
+        <p class="blurb">${esc(p.blurb)}</p>
+        <ul class="specs">${p.specs.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+        <div class="foot">
+          <span class="price tba">Price coming soon</span>
+          <a class="btn" href="${MESSENGER}" target="_blank" rel="noopener" data-msg="${esc(`Hi Jude! I'd like to reserve a ${label}.`)}">Message to reserve</a>
+        </div>
+      </div>
+    </article>`;
     return `<article class="card">
       <div class="photo">${pic(p.img, label)}${stockBadge(p.qty, 2)}</div>
       <div class="body">
@@ -333,7 +378,7 @@ function renderPaddles(list) {
         <ul class="specs">${(p.specs || []).map(s => `<li>${esc(s)}</li>`).join('')}</ul>
         <div class="foot">
           <span class="price">${peso(p.price)}</span>
-          <a class="btn" ${buyAttrs(`Hi Jude! Is the ${label} still available? (${peso(p.price)})`)}>Message to buy</a>
+          ${addBtn(product(label, p.price, p.qty, p.img), 'Add to cart')}
         </div>
       </div>
     </article>`;
@@ -362,52 +407,170 @@ function renderGrips(lines) {
       </div>
       <div class="flavors">${colors.map(c => {
         const label = `${l.line} grip, ${c.flavor} (${c.color})`;
-        return `<a class="flavor${c.qty > 0 ? '' : ' sold'}" ${buyAttrs(`Hi Jude! I'd like a ${label}. (${peso(c.price)})`)} title="Message to buy: ${esc(label)}">
+        return `<div class="flavor${c.qty > 0 ? '' : ' sold'}">
           <div class="photo">${pic(c.img, label)}${stockBadge(c.qty, 3)}</div>
           <div class="meta"><b>${esc(c.flavor)}</b><span>${esc(c.color)}</span></div>
-        </a>`;
+          ${addBtn(product(label, c.price, c.qty, c.img), 'Add')}
+        </div>`;
       }).join('')}</div>
     </div>`;
   }).join('');
 }
 
-// Messenger links can't carry a pre-typed message, so copy it for the buyer to paste.
+// ---- Cart ----
+// No checkout: the cart turns into an order message for Jude (Messenger or email).
+// Kept in this browser only; quantities are capped at live stock on every render.
+const PRODUCTS = new Map();            // id -> { id, name, price, stock, img }
+let cart = {};                         // id -> qty
+try { cart = JSON.parse(localStorage.getItem('pd_cart')) || {}; } catch (e) {}
+const saveCart = () => { try { localStorage.setItem('pd_cart', JSON.stringify(cart)); } catch (e) {} };
+
+function product(name, price, stock, img) {
+  const id = slug(name);
+  PRODUCTS.set(id, { id, name, price, stock, img });
+  return id;
+}
+function addBtn(id, text) {
+  const p = PRODUCTS.get(id), n = cart[id] || 0;
+  if (p.stock <= 0) return `<button class="btn add" disabled>Sold out</button>`;
+  if (n >= p.stock) return `<button class="btn add in" data-add="${id}" data-text="${text}" disabled>In cart${n > 1 ? ' (' + n + ')' : ''}</button>`;
+  return `<button class="btn add${n ? ' in' : ''}" data-add="${id}" data-text="${text}">${n ? `${text} · ${n} in cart` : text}</button>`;
+}
+function refreshButtons() {
+  document.querySelectorAll('[data-add]').forEach(b => { b.outerHTML = addBtn(b.dataset.add, b.dataset.text); });
+}
+
 let toastTimer;
-document.addEventListener('click', e => {
-  const a = e.target.closest('[data-msg]');
-  if (!a) return;
+function toast(text) {
   const t = document.getElementById('toast');
-  const show = text => { t.textContent = text; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 4000); };
-  try {
-    navigator.clipboard.writeText(a.dataset.msg).then(() => show('Copied! Paste it in your chat with Jude.'), () => {});
-  } catch (err) {}
+  t.textContent = text; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function cartLines() {
+  return Object.entries(cart).map(([id, n]) => ({ p: PRODUCTS.get(id), n })).filter(l => l.p && l.n > 0);
+}
+function orderText() {
+  const lines = cartLines();
+  const total = lines.reduce((t, l) => t + l.p.price * l.n, 0);
+  const ship = document.querySelector('input[name="ship"]:checked').value;
+  return `Hi Jude! Order from padq.app/shop:\n` +
+    lines.map(l => `- ${l.n} x ${l.p.name}: ${peso(l.p.price * l.n)}`).join('\n') +
+    `\nTotal: ${peso(total)}\n${ship}\n\nName:\n` + (ship === 'Ship to me' ? 'Address:\nPhone:\n' : '');
+}
+
+function renderCart() {
+  // Drop items that sold out or vanished from the sheet; cap the rest at stock.
+  if (PRODUCTS.size) for (const id of Object.keys(cart)) {
+    const p = PRODUCTS.get(id);
+    if (!p || p.stock <= 0) delete cart[id]; else cart[id] = Math.min(cart[id], p.stock);
+  }
+  saveCart();
+  const lines = cartLines();
+  const count = lines.reduce((t, l) => t + l.n, 0);
+  document.getElementById('cartN').textContent = count;
+  document.getElementById('cartFab').classList.toggle('show', count > 0);
+  document.getElementById('cartTotal').textContent = peso(lines.reduce((t, l) => t + l.p.price * l.n, 0));
+  document.getElementById('cartItems').innerHTML = lines.length ? lines.map(({ p, n }) => `
+    <div class="item">
+      ${p.img ? `<img src="${esc(p.img)}" alt="">` : '<span class="ph">🏓</span>'}
+      <div><b>${esc(p.name)}</b><small>${peso(p.price)} each · ${p.stock} in stock</small></div>
+      <div class="step-q">
+        <button data-qty="${p.id}" data-d="-1" aria-label="One less">−</button>
+        <span>${n}</span>
+        <button data-qty="${p.id}" data-d="1" aria-label="One more" ${n >= p.stock ? 'disabled' : ''}>+</button>
+      </div>
+    </div>`).join('') : '<p class="note" style="padding:16px 0;">Your cart is empty.</p>';
+  if (!count) openCart(false);
+  refreshButtons();
+}
+
+function openCart(on) {
+  document.getElementById('drawer').classList.toggle('open', on);
+  document.getElementById('scrim').classList.toggle('open', on);
+}
+
+document.addEventListener('click', e => {
+  const add = e.target.closest('[data-add]');
+  if (add && !add.disabled) {
+    const p = PRODUCTS.get(add.dataset.add);
+    cart[p.id] = Math.min((cart[p.id] || 0) + 1, p.stock);
+    renderCart();
+    toast(`Added: ${p.name}`);
+    return;
+  }
+  const q = e.target.closest('[data-qty]');
+  if (q) {
+    const p = PRODUCTS.get(q.dataset.qty);
+    cart[p.id] = Math.max(0, Math.min((cart[p.id] || 0) + Number(q.dataset.d), p.stock));
+    if (!cart[p.id]) delete cart[p.id];
+    renderCart();
+    return;
+  }
+  // Messenger links can't carry a pre-typed message, so copy it for the buyer to paste.
+  const send = e.target.closest('#sendMsg, [data-msg]');
+  if (send) {
+    const text = send.id === 'sendMsg' ? orderText() : send.dataset.msg;
+    try { navigator.clipboard.writeText(text).then(() => toast('Copied! Paste it in your chat with Jude.'), () => {}); } catch (err) {}
+    return;
+  }
+  if (e.target.closest('#sendMail')) {
+    e.target.closest('#sendMail').href = 'mailto:hello@padq.app?subject=' + encodeURIComponent('Order from padq.app/shop') +
+      '&body=' + encodeURIComponent(orderText());
+  }
 });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') openCart(false); });
 
 function render(raw, updatedText) {
   renderPaddles(buildPaddles(raw.paddles || []));
   renderGrips(buildGrips(raw.grips || []));
+  renderCart();
   document.getElementById('updated').textContent = updatedText;
 }
 
+// Google's published CSV can take several seconds to answer, so paint the newest
+// stock we already have (this browser's last live read, or the inventory.json
+// snapshot) right away, then swap in the live numbers when they arrive.
 async function load() {
-  if (FEED_URL) {
-    try {
-      const r = await fetch(FEED_URL, { cache: 'no-store' });
-      if (!r.ok) throw new Error(r.status);
-      const raw = rowsFromCSV(await r.text());
-      if (raw.paddles.length + raw.grips.length) return render(raw, 'Stock updates automatically.');
-    } catch (e) { /* fall through to the snapshot */ }
-  }
+  let shown = 0;  // timestamp of what's on screen
+  const showError = () => {
+    const msg = '<div class="err">Couldn\'t load stock. Try refreshing.</div>';
+    document.getElementById('paddleGrid').innerHTML = msg;
+    document.getElementById('gripLines').innerHTML = msg;
+  };
+  const live = FEED_URL ? fetch(FEED_URL, { cache: 'no-store' })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(rowsFromCSV)
+    .then(raw => {
+      if (!(raw.paddles.length + raw.grips.length)) throw new Error('empty feed');
+      try { localStorage.setItem('pd_feed', JSON.stringify({ t: Date.now(), raw })); } catch (e) {}
+      shown = Date.now();
+      render(raw, 'Stock updates automatically.');
+      return true;
+    }).catch(() => false) : Promise.resolve(false);
+
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem('pd_feed')); } catch (e) {}
   try {
     const r = await fetch('inventory.json', { cache: 'no-cache' });
     if (!r.ok) throw new Error(r.status);
     const data = await r.json();
-    const d = new Date(data.updated);
-    render(data, 'Stock as of ' + d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) + '.');
+    const snapT = new Date(data.updated).getTime();
+    if (!shown) {
+      if (cached && cached.t > snapT) render(cached.raw, 'Checking latest stock…');
+      else render(data, 'Checking latest stock…');
+    }
+    if (!(await live)) {
+      const t = cached && cached.t > snapT ? cached.t : snapT;
+      if (cached && cached.t > snapT) render(cached.raw, ''); else render(data, '');
+      document.getElementById('updated').textContent =
+        'Stock as of ' + new Date(t).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '.';
+    }
   } catch (e) {
-    const msg = '<div class="err">Couldn\'t load stock. Try refreshing.</div>';
-    document.getElementById('paddleGrid').innerHTML = msg;
-    document.getElementById('gripLines').innerHTML = msg;
+    if (!(await live)) {
+      if (cached) render(cached.raw, 'Stock as of ' + new Date(cached.t).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '.');
+      else showError();
+    }
   }
 }
 load();
