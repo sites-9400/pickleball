@@ -16,7 +16,9 @@ from her iPhone with one Shortcut, no spreadsheet editing.
 6. POST JSON `{key, item, qty, name, payment}` to the web app.
 7. Show the reply: `Logged: 1 × Tough Cookie Blue Velvet (Dark Blue) for Alexa · ₱150 · 3 left`.
 
-## Web app (Apps Script bound to the spreadsheet, `scripts/pos-grip-sale.gs`)
+## Web app (standalone Apps Script project, `scripts/pos-grip-sale.gs`)
+Standalone (opens the sheet with `openById`) because the sheet's own bound script
+already has a `doPost`; that script is left untouched.
 - Deployed as web app, execute as owner, access Anyone; every call must carry
   the secret `KEY` (kept out of this public repo).
 - `doGet`: catalog lines from stock table B7:G18 (model, color, price, available),
