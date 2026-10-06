@@ -35,6 +35,8 @@ a{color:inherit;}
 .theme-toggle{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:0.85rem;cursor:pointer;font-family:var(--font);}
 .top-home{font-size:0.78rem;font-weight:700;color:var(--muted);text-decoration:none;letter-spacing:0.02em;}
 .top-home:hover{color:var(--army);}
+.top-back{font-size:0.8rem;font-weight:700;color:#fff;background:var(--army);text-decoration:none;padding:7px 12px;border-radius:20px;white-space:nowrap;}
+.top-back[hidden]{display:none;}
 
 .hero{padding:28px 0 8px;}
 .eyebrow{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--army);}
@@ -173,7 +175,8 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   <header class="top">
     <a class="top-logo" href="../index.html"><img src="../logo.png" alt="Paddle District"></a>
     <div class="top-links">
-      <a class="top-home" href="../index.html">Open play app →</a>
+      <a class="top-back" id="backLink" href="#" hidden>← Back to live view</a>
+      <a class="top-home" id="homeLink" href="../index.html">Open play app →</a>
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle dark mode">🌙</button>
     </div>
   </header>
@@ -276,6 +279,19 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 </aside>
 
 <script>
+// Opened from the live view: show a way back to it (same-origin view.html only).
+(function () {
+  try {
+    const back = new URLSearchParams(location.search).get('back');
+    if (!back) return;
+    const u = new URL(back, location.href);
+    if (u.origin !== location.origin || !/\/view\.html$/.test(u.pathname)) return;
+    const a = document.getElementById('backLink');
+    a.href = u.pathname + u.search + u.hash;
+    a.hidden = false;
+    document.getElementById('homeLink').hidden = true;
+  } catch (e) {}
+})();
 function toggleTheme() {
   const html = document.documentElement;
   const isDark = html.dataset.theme === 'dark';

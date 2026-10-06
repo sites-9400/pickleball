@@ -178,7 +178,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
   </div>
   <div class="live-dot" id="liveDot" title="Connection status"></div>
   <div class="session-clock-view" id="viewClock">--:--:--</div>
-  <a class="shop-btn" href="shop/" target="_blank" rel="noopener" title="Paddle District Shop" aria-label="Shop"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.5L22 7H6"/></svg><span>Shop</span></a>
+  <a class="shop-btn" id="shopBtn" href="shop/" onclick="this.href='shop/?back='+encodeURIComponent(location.pathname+location.search+location.hash)" title="Paddle District Shop" aria-label="Shop"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.5L22 7H6"/></svg><span>Shop</span></a>
   <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️</button>
 </header>
 
