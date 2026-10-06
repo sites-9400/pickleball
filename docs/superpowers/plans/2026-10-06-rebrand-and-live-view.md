@@ -32,19 +32,21 @@ Doc asks for:
    - Ask Jude for a **transparent PNG or SVG of the badge**. Until then I can cut the white out myself (it's a clean shape), but the original file will be sharper.
 3. **Team colors.** Recommendation: Team A light green tint, Team B light blue tint (dark-mode versions too), on live view courts and the Up Next card. Also the host app's courts? The doc only says live view.
 
-## Phase 0: timer bug in the doc screenshot (investigate first)
+## Phase 0: court timer bug after continuing an old open play
 
-The screenshot's court timers read `31500:53`, `31500:51`, `31501:06`, about 21.9 days. Timers are
-`Date.now() - startedAt` (common.js `formatCourtTimer`), with startedAt written by the host device
-and Date.now() from the viewing device. All three courts are off by the *same* ~31,500 min, while their
-seconds still differ normally, so the likely cause is **a wrong clock on the device showing the live view**
-(guess, not confirmed).
-- Confirm: ask which device/TV showed it, and check its date/time setting.
-- Fix (either way): correct every device's time with Firebase's `.info/serverTimeOffset`
-  (`now = Date.now() + offset`) for court timers and session clocks in view.html and app.html, so
-  device clocks stop mattering. Also cap the display (anything over 99 min shows `99:00+`), so a bad
-  clock can never show nonsense on a TV.
-- Test: unit test for the formatter with an offset; browser check with a faked skewed clock.
+The doc screenshot's timers read `31500:53`, `31500:51`, `31501:06` (about 21.9 days). Cause (user report,
+confirmed in code): Jude **continued an old, ended open play**. `continueSession()` in app.html adds the
+break to `sessionPausedMs` so the *session* clock skips it, but games still on court keep their original
+`startedAt`, so their timers (`Date.now() - startedAt`) count the whole 3-week gap. (My earlier guess, a
+wrong device clock, was wrong.)
+- Fix: in `continueSession()`, shift `startedAt` of every unfinished court forward by the same gap
+  (`now - sessionEndTime`), so a game's timer resumes where it stopped, the same rule as the session clock.
+  This also keeps the game length recorded in game history / CSV (endedAt - startedAt) honest.
+- Safety net: cap the court timer display (over 99 min shows `99:00+`), so bad data can never show nonsense on a TV.
+- Not affected: matchmaking. Wait fairness counts rounds (`lastPlayedRound`), not clock time.
+- Already-continued sessions keep their old timestamps (the fix applies from the next Continue).
+- Test: unit test that Continue shifts unfinished courts by the gap and leaves finished ones alone;
+  browser check by ending a session, faking a long gap, and continuing.
 
 ## Phase 1: logo swap
 
