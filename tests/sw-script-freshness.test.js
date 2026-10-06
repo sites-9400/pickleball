@@ -40,3 +40,14 @@ test('offline: a script falls back to the cached copy', async () => {
 test('recap.js is precached for offline use', () => {
   assert.match(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), /'\.\/recap\.js'/);
 });
+
+// Shop stock lives in shop/inventory.json; a stale copy would show sold items as available.
+test('online: shop inventory comes from the network even when an older copy is cached', async () => {
+  const sw = loadSW({ cached: { '/shop/inventory.json': res('old') }, network: () => res('new') });
+  assert.equal((await sw.get('/shop/inventory.json')).body, 'new');
+});
+
+test('offline: shop inventory falls back to the cached copy', async () => {
+  const sw = loadSW({ cached: { '/shop/inventory.json': res('old') }, network: null });
+  assert.equal((await sw.get('/shop/inventory.json')).body, 'old');
+});

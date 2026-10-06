@@ -1,0 +1,177 @@
+{
+ "updated": "2026-10-06T01:57+00:00",
+ "paddles": [
+  {
+   "brand": "Bread & Butter",
+   "model": "The Loco 16mm Hybrid",
+   "color": "Azul",
+   "price": 14900,
+   "qty": 1,
+   "img": "img/loco-hybrid-azul.jpg",
+   "blurb": "Elongated reach with standard-shape touch. Plush, controlled feel with just enough pop.",
+   "specs": [
+    "16mm dual-density foam core",
+    "T700 raw carbon face",
+    "7.9–8.1 oz",
+    "16.2\" × 7.6\"",
+    "5.3\" handle",
+    "USAP approved"
+   ],
+   "source": "https://www.bnbpickleball.com/products/loco-16mm-pickleball-paddle-hybrid"
+  },
+  {
+   "brand": "Bread & Butter",
+   "model": "The Loco 16mm Hybrid",
+   "color": "Black",
+   "price": 14900,
+   "qty": 1,
+   "img": "img/loco-hybrid-black.jpg",
+   "blurb": "Elongated reach with standard-shape touch. Plush, controlled feel with just enough pop.",
+   "specs": [
+    "16mm dual-density foam core",
+    "T700 raw carbon face",
+    "7.9–8.1 oz",
+    "16.2\" × 7.6\"",
+    "5.3\" handle",
+    "USAP approved"
+   ],
+   "source": "https://www.bnbpickleball.com/products/loco-16mm-pickleball-paddle-hybrid"
+  },
+  {
+   "brand": "Kamito",
+   "model": "Dominus",
+   "color": "Ash Silver / Smoky Grey",
+   "price": 7900,
+   "qty": 1,
+   "img": "img/kamito-dominus-ash-silver.jpg",
+   "blurb": "Built with PPA pro Alix Truong. Speed, control and spin in a light frame.",
+   "specs": [
+    "3-layer Japanese Toray carbon face",
+    "Rough textured surface for spin",
+    "EVA foam core",
+    "~8.4 oz"
+   ],
+   "source": "https://kamito.vn/pages/vot-pickleball-dominus"
+  },
+  {
+   "brand": "Kamito",
+   "model": "Dominus",
+   "color": "Rose Gold / Metallic Pink",
+   "price": 7900,
+   "qty": 1,
+   "img": "img/kamito-dominus-rose-gold.jpg",
+   "blurb": "Built with PPA pro Alix Truong. Speed, control and spin in a light frame.",
+   "specs": [
+    "3-layer Japanese Toray carbon face",
+    "Rough textured surface for spin",
+    "EVA foam core",
+    "~8.4 oz"
+   ],
+   "source": "https://kamito.vn/pages/vot-pickleball-dominus"
+  }
+ ],
+ "grips": [
+  {
+   "line": "Doughy Grips",
+   "brand": "cookiegrips",
+   "feel": "Soft & tacky",
+   "blurb": "Cushioned 0.65mm overgrip. Soft, tacky hold that eases hand fatigue.",
+   "source": "https://cookiegrips.com/products/doughy-grips",
+   "colors": [
+    {
+     "flavor": "Sugar Glaze",
+     "color": "White",
+     "price": 150,
+     "qty": 12,
+     "img": "img/doughy-sugar-glaze.jpg"
+    },
+    {
+     "flavor": "Midnight Fudge",
+     "color": "Black",
+     "price": 150,
+     "qty": 12,
+     "img": "img/doughy-midnight-fudge.jpg"
+    },
+    {
+     "flavor": "Bella Blue",
+     "color": "Light Blue",
+     "price": 150,
+     "qty": 12,
+     "img": "img/doughy-bella-blue.jpg"
+    },
+    {
+     "flavor": "Sesame",
+     "color": "Gray",
+     "price": 150,
+     "qty": 12,
+     "img": "img/doughy-sesame.jpg"
+    },
+    {
+     "flavor": "Butter",
+     "color": "Yellow",
+     "price": 150,
+     "qty": 11,
+     "img": "img/doughy-butter.jpg"
+    },
+    {
+     "flavor": "Salted Caramel",
+     "color": "Brown",
+     "price": 150,
+     "qty": 11,
+     "img": "img/doughy-salted-caramel.jpg"
+    }
+   ]
+  },
+  {
+   "line": "Tough Cookie",
+   "brand": "cookiegrips",
+   "feel": "Dry · for sweaty hands",
+   "blurb": "Textured 0.60mm dry overgrip that stays grippy when your hands sweat.",
+   "source": "https://cookiegrips.com/products/tough-cookie",
+   "colors": [
+    {
+     "flavor": "Sugar Glaze",
+     "color": "White",
+     "price": 150,
+     "qty": 11,
+     "img": "img/tough-cookie-sugar-glaze.jpg"
+    },
+    {
+     "flavor": "Glowberry Crunch",
+     "color": "Pink",
+     "price": 150,
+     "qty": 12,
+     "img": "img/tough-cookie-glowberry-crunch.jpg"
+    },
+    {
+     "flavor": "Frosted Crumb Monster",
+     "color": "Light Blue",
+     "price": 150,
+     "qty": 11,
+     "img": "img/tough-cookie-frosted-crumb-monster.jpg"
+    },
+    {
+     "flavor": "Dark Sesame",
+     "color": "Gray",
+     "price": 150,
+     "qty": 10,
+     "img": "img/tough-cookie-dark-sesame.jpg"
+    },
+    {
+     "flavor": "Tangy Snap",
+     "color": "Orange",
+     "price": 150,
+     "qty": 12,
+     "img": "img/tough-cookie-tangy-snap.jpg"
+    },
+    {
+     "flavor": "Blue Velvet",
+     "color": "Dark Blue",
+     "price": 150,
+     "qty": 8,
+     "img": "img/tough-cookie-blue-velvet.jpg"
+    }
+   ]
+  }
+ ]
+}

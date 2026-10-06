@@ -5,7 +5,7 @@
 // static assets (icons, manifest) are stale-while-revalidate, version-pinned CDN modules are cache-first, and
 // Firebase auth/database traffic is never intercepted. Real offline play is
 // the separate local-first milestone — this only keeps the shell usable.
-const CACHE = 'pickled-v27';
+const CACHE = 'pickled-v28';
 const PRECACHE = [
   './index.html',
   './dashboard.html',
@@ -67,8 +67,9 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // same-origin script: network-first, cached copy only when offline
-  if (url.pathname.endsWith('.js')) {
+  // same-origin script or data (shop/inventory.json stock counts): network-first,
+  // cached copy only when offline
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.json')) {
     e.respondWith(fetch(req).then(res => putCopy(req, res)).catch(() => caches.match(req, { ignoreSearch: true })));
     return;
   }
