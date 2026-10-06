@@ -135,7 +135,8 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 .how{padding:14px 0 10px 18px;font-size:0.82rem;line-height:1.5;display:flex;flex-direction:column;gap:6px;}
 .slip{width:100%;border-radius:10px;border:1px solid var(--line);display:block;background:#fff;-webkit-touch-callout:default;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.linkish{background:none;border:none;font-family:var(--font);font-size:0.75rem;font-weight:600;color:var(--muted);text-decoration:underline;cursor:pointer;padding:2px;}
+.v-slip .note a{color:var(--muted);font-weight:600;}
+.linkish{background:none;border:none;font-family:var(--font);font-size:0.72rem;font-weight:600;color:var(--muted);text-decoration:underline;cursor:pointer;padding:2px;}
 .note{font-size:0.72rem;font-weight:500;color:var(--muted);line-height:1.5;}
 .btn.ghost{background:none;color:var(--ink);border:1.5px solid var(--line);}
 .btn.ghost:hover{border-color:var(--army);background:none;}
@@ -227,20 +228,20 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   <!-- 2. slip -->
   <div class="items v-slip">
     <ol class="how">
-      <li><b>Save or share your order slip.</b></li>
-      <li><b>Send it to Jude on Messenger.</b> He'll confirm, then sort out payment and pick-up or shipping with you.</li>
+      <li><b>Copy your order slip.</b></li>
+      <li><b>Open Jude's chat and paste it.</b> He'll confirm, then sort out payment and pick-up or shipping with you.</li>
     </ol>
     <img id="slipImg" class="slip" alt="Your order slip">
-    <p class="note" id="holdHint">Tip: you can also press and hold the image to save it.</p>
+    <p class="note" id="holdHint">Tip: you can also press and hold the slip to copy or save it.</p>
   </div>
   <div class="drawer-foot v-slip">
-    <button class="btn" id="saveSlip" onclick="saveSlip()">Save order slip</button>
-    <a class="btn" href="https://m.me/juudeng" target="_blank" rel="noopener" onclick="copyOrder(true)">Open Jude's chat</a>
+    <button class="btn" id="copySlip" onclick="copySlip()">1 · Copy order slip</button>
+    <a class="btn" href="https://m.me/juudeng" target="_blank" rel="noopener">2 · Open Jude's chat</a>
     <div class="row2">
+      <button class="btn ghost" id="saveSlip" onclick="saveSlip()">Save image</button>
       <button class="btn ghost" onclick="copyOrder()">Copy as text</button>
-      <a class="btn ghost" id="sendMail" href="mailto:hello@padq.app">Email instead</a>
     </div>
-    <button class="linkish" onclick="clearOrder()">Done, clear my cart</button>
+    <p class="note" style="text-align:center;"><a id="sendMail" href="mailto:hello@padq.app">Email the order instead</a> · <button class="linkish" onclick="clearOrder()">Done, clear my cart</button></p>
   </div>
 </aside>
 
@@ -581,7 +582,7 @@ async function makeSlip() {
     if (order.png) URL.revokeObjectURL(order.png.url);
     order.png = await drawSlip(order);
     document.getElementById('slipImg').src = order.png.url;
-    document.getElementById('saveSlip').textContent = phoneShare(order.png.file) ? 'Share / save order slip' : 'Save order slip';
+    document.getElementById('saveSlip').textContent = phoneShare(order.png.file) ? 'Share / save' : 'Save image';
     document.getElementById('sendMail').href = 'mailto:hello@padq.app?subject=' + encodeURIComponent('Order ' + no) +
       '&body=' + encodeURIComponent(orderText());
     setView('slip');
@@ -614,8 +615,21 @@ function saveSlip() {
   toast('Slip saved. Now send it to Jude.');
 }
 
-function copyOrder(quiet) {
-  try { navigator.clipboard.writeText(orderText()).then(() => toast(quiet ? 'Order text copied too. Paste it under the slip.' : 'Copied! Paste it in your chat with Jude.'), () => {}); } catch (e) {}
+// Puts the slip IMAGE on the clipboard (the file is already made, so this runs
+// inside the tap as Safari requires). Nothing else on the page writes to the
+// clipboard behind the buyer's back, so the image is what gets pasted.
+function copySlip() {
+  if (!order || !order.png) return;
+  const fail = () => toast('Couldn\'t copy here. Press and hold the slip, then tap Copy.');
+  try {
+    if (!window.ClipboardItem || !navigator.clipboard?.write) return fail();
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': order.png.file })])
+      .then(() => toast('Slip copied! Now open Jude\'s chat and paste it.'), fail);
+  } catch (e) { fail(); }
+}
+
+function copyOrder() {
+  try { navigator.clipboard.writeText(orderText()).then(() => toast('Order text copied. Paste it in your chat with Jude.'), () => {}); } catch (e) {}
 }
 
 function clearOrder() {
@@ -682,7 +696,6 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') openCart(false); });
 
-// Runs after the copy handlers above (bubble order), so the text is copied first.
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="https://m.me/"]');
   if (!a || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
