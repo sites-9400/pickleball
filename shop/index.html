@@ -148,6 +148,9 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 .v-slip .note a{color:var(--muted);font-weight:600;}
 .linkish{background:none;border:none;font-family:var(--font);font-size:0.72rem;font-weight:600;color:var(--muted);text-decoration:underline;cursor:pointer;padding:2px;}
 .note{font-size:0.72rem;font-weight:500;color:var(--muted);line-height:1.5;}
+.sent-note{font-size:0.82rem;font-weight:700;color:var(--army);padding-bottom:8px;}
+[data-theme="dark"] .sent-note{color:var(--accent);}
+#finishBtn[hidden],.sent-note[hidden]{display:none;}
 .btn.ghost{background:none;color:var(--ink);border:1.5px solid var(--line);}
 .btn.ghost:hover{border-color:var(--army);background:none;}
 
@@ -263,13 +266,14 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   <!-- 3. slip -->
   <div class="items v-slip">
     <ol class="how" id="slipHow"></ol>
+    <p class="note sent-note" id="sentNote" hidden>Sent to Jude. Your cart is cleared.</p>
     <img id="slipImg" class="slip" alt="Your order slip">
     <p class="note" id="holdHint">Tip: you can also press and hold the slip to copy or save it.</p>
   </div>
   <div class="drawer-foot v-slip">
     <button class="btn" id="copySlip" onclick="copySlip()">1 · Copy order slip</button>
     <a class="btn" href="https://m.me/juudeng" target="_blank" rel="noopener">2 · Open Jude's chat</a>
-    <button class="btn" id="finishBtn" onclick="clearOrder()">3 · Finish payment</button>
+    <button class="btn ghost" id="finishBtn" onclick="clearOrder()" hidden>Back to shop</button>
     <div class="row2">
       <button class="btn ghost" id="saveSlip" onclick="saveSlip()">Save image</button>
       <button class="btn ghost" onclick="copyOrder()">Copy as text</button>
@@ -564,6 +568,7 @@ function setView(v) {
 
 function goBack() {
   const v = document.getElementById('drawer').dataset.view;
+  if (v === 'slip' && order && order.sent) return clearOrder();
   setView(v === 'slip' && order && order.paid ? 'pay' : 'cart');
 }
 
@@ -742,9 +747,9 @@ async function buildSlip() {
   document.getElementById('sendMail').href = 'mailto:hello@padq.app?subject=' + encodeURIComponent('Order ' + o.no) +
     '&body=' + encodeURIComponent(orderText());
   document.getElementById('slipHow').innerHTML = o.paid
-    ? '<li><b>Copy your order slip.</b> Your payment screenshot is on it.</li><li><b>Open Jude\'s chat and paste it.</b> She\'ll check the payment and confirm, then sort out pick-up or shipping.</li><li><b>Tap Finish payment</b> once it\'s sent. This clears your cart.</li>'
-    : '<li><b>Copy your order slip.</b></li><li><b>Open Jude\'s chat and paste it.</b> She\'ll confirm, then sort out payment and pick-up or shipping with you.</li><li><b>Tap Done</b> once it\'s sent. This clears your cart.</li>';
-  document.getElementById('finishBtn').textContent = o.paid ? '3 · Finish payment' : '3 · Done, clear my cart';
+    ? '<li><b>Copy your order slip.</b> Your payment screenshot is on it.</li><li><b>Open Jude\'s chat and paste it.</b> That\'s it. She\'ll check the payment, then sort out pick-up or shipping.</li>'
+    : '<li><b>Copy your order slip.</b></li><li><b>Open Jude\'s chat and paste it.</b> That\'s it. She\'ll confirm, then sort out payment and pick-up or shipping with you.</li>';
+  showSent(o.sent);
   setView('slip');
 }
 
@@ -787,10 +792,24 @@ function copyOrder() {
   try { navigator.clipboard.writeText(orderText()).then(() => toast('Order text copied. Paste it in your chat with Jude.'), () => {}); } catch (e) {}
 }
 
+// Opening Jude's chat (or the email) IS the last step: Messenger often takes over the
+// screen and the buyer never comes back here (in-app browsers close outright), so the
+// cart clears on that tap. The slip stays on screen in case they do come back.
+function markSent() {
+  if (!order || order.sent) return;
+  order.sent = true;
+  cart = {}; saveCart(); renderCart();
+  showSent(true);
+}
+function showSent(on) {
+  document.getElementById('sentNote').hidden = !on;
+  document.getElementById('finishBtn').hidden = !on;
+}
+
 function clearOrder() {
-  const paid = order && order.paid;
+  const sent = order && order.sent;
   cart = {}; order = null; saveCart(); setView('cart'); renderCart(); openCart(false);
-  toast(paid ? 'Thanks! Jude will confirm your payment in chat.' : 'Cart cleared. Thanks!');
+  if (!sent) toast('Cart cleared.');
 }
 
 function renderCart() {
@@ -815,7 +834,7 @@ function renderCart() {
         <button data-qty="${p.id}" data-d="1" aria-label="One more" ${n >= p.stock ? 'disabled' : ''}>+</button>
       </div>
     </div>`).join('') : '<p class="note" style="padding:16px 0;">Your cart is empty.</p>';
-  if (!count) openCart(false);
+  if (!count && !(order && order.sent)) openCart(false);
   refreshButtons();
 }
 
@@ -852,6 +871,9 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') openCart(false); });
 
+document.addEventListener('click', e => {
+  if (e.target.closest('.v-slip a[href^="https://m.me/"], #sendMail')) markSent();
+});
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="https://m.me/"]');
   if (!a || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
