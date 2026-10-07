@@ -237,6 +237,7 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
     <button class="btn ghost" id="makeSlip" onclick="makeSlip()">Chat with Jude first</button>
     <p class="form-err" id="formErr"></p>
     <p class="note">Paying in installments or have questions? Chat with Jude first.</p>
+    <p class="note" style="text-align:center;"><a href="#" onclick="clearOrder(); return false;">Clear cart</a></p>
   </div>
 
 
@@ -266,14 +267,14 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   <!-- 3. slip -->
   <div class="items v-slip">
     <ol class="how" id="slipHow"></ol>
-    <p class="note sent-note" id="sentNote" hidden>Sent to Jude. Your cart is cleared.</p>
+    <p class="note sent-note" id="sentNote" hidden>Sent it to Jude? You're done. Clear your cart below.</p>
     <img id="slipImg" class="slip" alt="Your order slip">
     <p class="note" id="holdHint">Tip: you can also press and hold the slip to copy or save it.</p>
   </div>
   <div class="drawer-foot v-slip">
     <button class="btn" id="copySlip" onclick="copySlip()">1 · Copy order slip</button>
     <a class="btn" href="https://m.me/juudeng" target="_blank" rel="noopener">2 · Open Jude's chat</a>
-    <button class="btn ghost" id="finishBtn" onclick="clearOrder()" hidden>Back to shop</button>
+    <button class="btn ghost" id="finishBtn" onclick="clearOrder()" hidden>Clear my cart</button>
     <div class="row2">
       <button class="btn ghost" id="saveSlip" onclick="saveSlip()">Save image</button>
       <button class="btn ghost" onclick="copyOrder()">Copy as text</button>
@@ -568,7 +569,6 @@ function setView(v) {
 
 function goBack() {
   const v = document.getElementById('drawer').dataset.view;
-  if (v === 'slip' && order && order.sent) return clearOrder();
   setView(v === 'slip' && order && order.paid ? 'pay' : 'cart');
 }
 
@@ -792,13 +792,13 @@ function copyOrder() {
   try { navigator.clipboard.writeText(orderText()).then(() => toast('Order text copied. Paste it in your chat with Jude.'), () => {}); } catch (e) {}
 }
 
-// Opening Jude's chat (or the email) IS the last step: Messenger often takes over the
-// screen and the buyer never comes back here (in-app browsers close outright), so the
-// cart clears on that tap. The slip stays on screen in case they do come back.
+// Opening Jude's chat (or the email) is the last required step: Messenger often takes
+// over the screen and the buyer may never come back here. If they do, offer to clear
+// the cart; it's never cleared for them. The cart view has Clear cart too, for buyers
+// who come back on a fresh page.
 function markSent() {
   if (!order || order.sent) return;
   order.sent = true;
-  cart = {}; saveCart(); renderCart();
   showSent(true);
 }
 function showSent(on) {
@@ -807,9 +807,8 @@ function showSent(on) {
 }
 
 function clearOrder() {
-  const sent = order && order.sent;
   cart = {}; order = null; saveCart(); setView('cart'); renderCart(); openCart(false);
-  if (!sent) toast('Cart cleared.');
+  toast('Cart cleared. Thanks!');
 }
 
 function renderCart() {
@@ -834,7 +833,7 @@ function renderCart() {
         <button data-qty="${p.id}" data-d="1" aria-label="One more" ${n >= p.stock ? 'disabled' : ''}>+</button>
       </div>
     </div>`).join('') : '<p class="note" style="padding:16px 0;">Your cart is empty.</p>';
-  if (!count && !(order && order.sent)) openCart(false);
+  if (!count) openCart(false);
   refreshButtons();
 }
 
