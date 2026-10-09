@@ -186,7 +186,7 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
 
   <div class="hero">
     <div class="eyebrow">Paddle District Shop</div>
-    <h1>Paddles &amp; grips</h1>
+    <h1>Paddles, grips &amp; balls</h1>
     <p>Buy at our open play pop-up, or message us and we'll ship anywhere in the Philippines.</p>
   </div>
 
@@ -199,6 +199,7 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
   <nav class="tabs">
     <a class="tab" href="#paddles">Paddles</a>
     <a class="tab" href="#grips">Grips</a>
+    <a class="tab" href="#balls">Balls</a>
   </nav>
 
   <section id="paddles">
@@ -211,10 +212,15 @@ section{padding:28px 0 8px;scroll-margin-top:64px;}
     <div id="gripLines"><div class="empty">Loading stock…</div></div>
   </section>
 
+  <section id="balls">
+    <div class="sec-head"><h2>Balls</h2><small>outdoor</small></div>
+    <div class="grid" id="ballGrid"></div>
+  </section>
+
   <footer class="page-foot">
     <div id="updated"></div>
     Questions? Message <a href="https://m.me/juudeng" target="_blank" rel="noopener">Jude</a> or email <a href="mailto:hello@padq.app?subject=Paddle%20District%20Shop">hello@padq.app</a><br>
-    Photos from Bread &amp; Butter, Kamito and cookiegrips.
+    Photos from Bread &amp; Butter, Kamito, cookiegrips and Franklin Sports.
   </footer>
 </div>
 
@@ -338,6 +344,14 @@ const COMING = [{
   blurb: 'New version of the Loco. Same award-winning core, new Space Dust Grit face for more spin that lasts.',
   specs: ['Space Dust Grit face', '16mm dual-density foam core', 'T700 raw carbon + fiberglass', '7.9–8.2 oz', '16.5" × 7.375"', '5.5" handle', 'USAP + UPA approved'],
 }];
+// Balls aren't in the sheet yet: a pre-order card until the batch lands and is priced.
+// `ask` is the Messenger text; without it the card asks to reserve "a <label>".
+const COMING_BALLS = [{
+  brand: 'Franklin', model: 'X-40 Outdoor Pickleballs', color: 'Optic Yellow', img: 'img/franklin-x40-optic.jpg',
+  blurb: 'The official ball of the US Open, USA Pickleball and the APP Tour. Flies true, spins tight, lasts on concrete.',
+  specs: ['USAP approved', '40 machine-drilled holes', 'One-piece build for outdoor courts', '26 g · 74 mm'],
+  ask: "Hi Jude! I'd like to reserve some Franklin X-40 outdoor balls.",
+}];
 
 const GRIPS = {
   'doughy grips': { line: 'Doughy Grips', feel: 'Soft & tacky', img: 'doughy',
@@ -434,6 +448,29 @@ function stockBadge(qty, lowAt, count = true) {
 // An item with no photo on file yet (new model) gets a paddle placeholder.
 const pic = (src, alt) => `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph',textContent:'🏓'}))">`;
 
+// Pre-order card: no price, no cart; the button opens Jude's chat with a reserve message.
+function comingCard(p) {
+  const label = `${p.brand} ${p.model} (${p.color})`;
+  return `<article class="card">
+      <div class="photo">${pic(p.img, label)}<span class="badge soon">Coming soon</span></div>
+      <div class="body">
+        <div class="brand">${esc(p.brand)}</div>
+        <div class="name">${esc(p.model)}</div>
+        <div class="color">${esc(p.color)}${p.pcs ? ` · only ${p.pcs} pcs` : ''}</div>
+        <p class="blurb">${esc(p.blurb)}</p>
+        <ul class="specs">${p.specs.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+        <div class="foot">
+          <span class="price tba">Price coming soon</span>
+          <a class="btn" href="${MESSENGER}" target="_blank" rel="noopener" data-msg="${esc(p.ask || `Hi Jude! I'd like to reserve a ${label}.`)}">Message to reserve</a>
+        </div>
+      </div>
+    </article>`;
+}
+
+function renderBalls() {
+  document.getElementById('ballGrid').innerHTML = COMING_BALLS.map(comingCard).join('');
+}
+
 function renderPaddles(list) {
   const grid = document.getElementById('paddleGrid');
   document.getElementById('paddleCount').textContent = list.length ? `${list.length} in stock` : '';
@@ -443,20 +480,7 @@ function renderPaddles(list) {
   }
   grid.innerHTML = [...list, ...COMING].map(p => {
     const label = `${p.brand} ${p.model} (${p.color})`;
-    if (p.pcs) return `<article class="card">
-      <div class="photo">${pic(p.img, label)}<span class="badge soon">Coming soon</span></div>
-      <div class="body">
-        <div class="brand">${esc(p.brand)}</div>
-        <div class="name">${esc(p.model)}</div>
-        <div class="color">${esc(p.color)} · only ${p.pcs} pcs</div>
-        <p class="blurb">${esc(p.blurb)}</p>
-        <ul class="specs">${p.specs.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
-        <div class="foot">
-          <span class="price tba">Price coming soon</span>
-          <a class="btn" href="${MESSENGER}" target="_blank" rel="noopener" data-msg="${esc(`Hi Jude! I'd like to reserve a ${label}.`)}">Message to reserve</a>
-        </div>
-      </div>
-    </article>`;
+    if (COMING.includes(p)) return comingCard(p);
     return `<article class="card">
       <div class="photo">${pic(p.img, label)}${stockBadge(p.qty, 2)}</div>
       <div class="body">
@@ -944,6 +968,7 @@ async function load() {
     }
   }
 }
+renderBalls();  // static pre-order card, no feed needed
 load();
 </script>
 </body>

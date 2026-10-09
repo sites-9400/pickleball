@@ -5,7 +5,7 @@
 // static assets (icons, manifest) are stale-while-revalidate, version-pinned CDN modules are cache-first, and
 // Firebase auth/database traffic is never intercepted. Real offline play is
 // the separate local-first milestone — this only keeps the shell usable.
-const CACHE = 'pickled-v34';
+const CACHE = 'pickled-v35';
 const PRECACHE = [
   './index.html',
   './dashboard.html',

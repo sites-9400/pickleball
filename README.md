@@ -11,7 +11,7 @@ Pickleball open-play organizer — a static, single-page-per-screen app
 - `view.html` — public read-only live view (projector/phone)
 - `checkin.html` — anonymous player self-check-in
 
-- `shop/index.html` — public shop at padq.app/shop (paddles + grips, cart,
+- `shop/index.html` — public shop at padq.app/shop (paddles, grips + balls, cart,
   order-slip image sent to Jude on Messenger). Checkout: **Pay now** (Jude's
   GCash/MariBank InstaPay QR, the buyer adds their payment screenshot, which is
   drawn onto the slip in the browser and never uploaded) or **Chat with Jude
@@ -33,7 +33,7 @@ only: model, color, price, qty of unsold stock; no buyer data), published to
 the web as CSV. Only that tab is published; never publish the whole sheet.
 `shop/inventory.json` is a fallback snapshot:
 `~/.claude/gdocs-env/bin/python scripts/sync-shop.py`. Brand facts, photos
-(`shop/img/<line>-<color>.jpg`) and pre-order cards (`COMING`) live in
+(`shop/img/<line>-<color>.jpg`) and pre-order cards (`COMING`, `COMING_BALLS`) live in
 `shop/index.html`.
 
 ## Grip sale shortcut (POS)
