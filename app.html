@@ -547,6 +547,30 @@ input:focus, textarea:focus { border-color: var(--army); }
 .skill-badge.beginner{background:#e6f4ea;color:#1e7e34;}
 .skill-badge.intermediate{background:#fff4e0;color:#b8860b;}
 .skill-badge.advanced{background:#fde8e8;color:#c0392b;}
+.gender-badge{font-size:0.6rem;font-weight:800;padding:3px 7px;border-radius:6px;border:none;cursor:pointer;font-family:var(--font);background:#eef0e8;color:#555;min-width:22px;}
+.gender-badge.m{background:#e3ecf7;color:#2a5d9f;}
+.gender-badge.f{background:#f7e6ef;color:#9f2a63;}
+.gender-badge.none{background:#eee;color:#999;}
+.queue-g{font-size:0.58rem;font-weight:800;opacity:0.7;margin-left:4px;}
+.court-group{font-size:0.6rem;font-weight:800;letter-spacing:0.03em;padding:2px 7px;border-radius:10px;background:rgba(0,0,0,0.08);}
+.hybrid-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;font-size:0.82rem;font-weight:700;}
+.hybrid-bar .hyb-switch{display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;font:inherit;color:var(--ink);padding:0;}
+.hyb-track{width:36px;height:20px;border-radius:10px;background:#ccc;position:relative;transition:background .15s;}
+.hyb-track::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;}
+.hyb-switch.on .hyb-track{background:var(--army);}
+.hyb-switch.on .hyb-track::after{left:18px;}
+.hyb-split{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 10px;font:inherit;font-size:0.76rem;color:var(--ink);cursor:pointer;}
+.hyb-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-weight:700;}
+.hyb-step{display:flex;align-items:center;gap:12px;}
+.hyb-step button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);font-size:1.1rem;font-weight:800;cursor:pointer;}
+.hyb-step span{min-width:18px;text-align:center;font-size:1.05rem;}
+.hyb-total{text-align:right;font-size:0.78rem;color:var(--muted);margin:8px 0;}
+.hyb-total.bad{color:#C0392B;}
+.hyb-note{font-size:0.78rem;color:var(--muted);margin:6px 0;}
+.hyb-note button{background:none;border:none;color:var(--army);font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;padding:0;}
+.add-gender{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:0.78rem;font-weight:700;color:var(--muted);}
+.add-gender button{flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--line);background:none;color:var(--ink);font:inherit;font-weight:800;cursor:pointer;}
+.add-gender button.on{background:var(--army);color:#fff;border-color:var(--army);}
 .via-tag{font-size:0.55rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;padding:2px 6px;border-radius:5px;margin-left:4px;}
 .via-tag.qr{background:#e8f0fe;color:#1a56db;}
 .via-tag.manual{background:#eee;color:#777;}
@@ -1306,6 +1330,7 @@ input:focus, textarea:focus { border-color: var(--army); }
         <div class="card">
           <div class="card-title">Add Players</div>
           <textarea id="playerNameInput" placeholder="Add one name per line, or paste a list from Reclub:&#10;Eve&#10;Jude&#10;Alysson" rows="7" style="resize:vertical;margin-bottom:8px;"></textarea>
+          <div id="addGenderRow" class="add-gender hidden">Plays in <button type="button" data-g="m" onclick="pickAddGender('m')">Men</button><button type="button" data-g="f" onclick="pickAddGender('f')">Women</button></div>
           <button class="btn btn-primary btn-full" onclick="addPlayer()">Add Players</button>
           <button class="btn btn-outline btn-full" id="importPrevBtn" style="margin-top:8px;" onclick="openImportSessions()">⤵ Import from a previous session</button>
 
@@ -1399,6 +1424,7 @@ input:focus, textarea:focus { border-color: var(--army); }
       <span class="mode-badge" id="modeBadge"></span>
       <button class="btn btn-accent btn-sm addbar-btn" id="addCourtBtn" type="button" onclick="addCourt()">+ Add Court</button>
     </div>
+    <div id="hybridBar" class="hybrid-bar"></div>
     <div id="courtAlert"></div>
     <div class="live-flow">
       <div id="courtList" class="live-courts"></div>
@@ -1523,6 +1549,15 @@ input:focus, textarea:focus { border-color: var(--army); }
     <div id="lockOptions"></div>
     <div id="lockNoMatch" class="hidden" style="text-align:center;color:var(--muted);font-size:0.82rem;padding:10px 0;">No players match your search.</div>
     <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeLockModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="hybridOverlay" onclick="closeHybridModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="hybridTitle">How do you want to split your courts?</div>
+    <div id="hybridBody"></div>
+    <button class="btn btn-primary btn-full" id="hybridGo" style="margin-top:8px" onclick="confirmHybridSplit()">Start hybrid</button>
+    <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="closeHybridModal()">Cancel</button>
   </div>
 </div>
 
@@ -1653,6 +1688,7 @@ let sessionEnded = false;
 let sessionEndTime = null;
 let sessionPausedMs = 0;
 let upNextAlways = null;
+let hybrid = null;          // Hybrid matchmaking (Men's / Women's / Mixed courts); null = never set
 let recapPhoto = null;
 let recapGroup = null;
 let recapPhotoFrame = null;  // {z,x,y} photo zoom + focal point (null = centred, fills header)
@@ -1725,6 +1761,7 @@ function saveState() {
     // only once a session has been continued, so ordinary saves never touch the key
     ...(sessionPausedMs ? { sessionPausedMs } : {}),
     ...(upNextAlways !== null ? { upNextAlways } : {}),
+    ...(hybrid !== null ? { hybrid } : {}),
     ...(recapGroup !== null ? { recapGroup } : {}),
     ...((recapPhotoFrame !== null || _frameTouched) ? { recapPhotoFrame } : {}),
     checkinOpen: checkinOpen,
@@ -1833,6 +1870,7 @@ window._fbApplyRemote = function(s) {
   recapGroup        = (typeof s.recapGroup === 'string') ? s.recapGroup : null;
   recapPhotoFrame   = (s.recapPhotoFrame && typeof s.recapPhotoFrame.z === 'number') ? { z: s.recapPhotoFrame.z, x: +s.recapPhotoFrame.x, y: +s.recapPhotoFrame.y } : null;
   upNextAlways      = (s.upNextAlways === undefined || s.upNextAlways === null) ? null : !!s.upNextAlways;
+  hybrid            = (s.hybrid === undefined || s.hybrid === null) ? null : !!s.hybrid;
   const _hadCheckinOpen = (s.checkinOpen !== undefined);
   checkinOpen       = (s.checkinOpen !== false); // default open; only an explicit false closes it
 
@@ -2129,7 +2167,7 @@ function addPlayer() {
   let added=0, skipped=0;
   names.forEach(name=>{
     if(players.find(p=>p.name.toLowerCase()===name.toLowerCase())){skipped++;return;}
-    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate',via:'manual',events:[],partnerId:null});
+    players.push({id:++playerIdCounter,name,present:false,gamesPlayed:0,wins:0,losses:0,points:0,pointsAgainst:0,lastPlayedRound:-1,skill:'intermediate',via:'manual',events:[],partnerId:null,...(hybridOn()&&_addGender?{gender:_addGender}:{})});
     added++;
   });
   input.value=''; rebuildMatchQueue(); renderPlayers(); saveState();
@@ -2219,12 +2257,12 @@ function exportAttendanceCSV(){
   if(!players.length){ showToast('No players to export.'); return; }
   const q=s=>{ s=String(s==null?'':s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
   const ab={beginner:'Beg',intermediate:'Int',advanced:'Adv'};
-  const rows=[['Player','Skill','Via','Checked in','Status','Timeline']];
+  const rows=[['Player','Skill','Gender','Via','Checked in','Status','Timeline']];
   players.forEach(p=>{
     const evs=Array.isArray(p.events)?p.events:[];
     const firstIn=evs.find(e=>e.t==='in');
     const status=p.present?'Here':(evs.length?'On hold':'Never');
-    rows.push([p.name, ab[p.skill||'intermediate'], (p.via==='qr'?'QR':'manual'),
+    rows.push([p.name, ab[p.skill||'intermediate'], p.gender==='m'?'M':p.gender==='f'?'F':'', (p.via==='qr'?'QR':'manual'),
       firstIn?fmtTime(firstIn.ts):'-', status,
       evs.length?evs.map(e=>`${e.t} ${fmtTime(e.ts)}`).join('; '):'-']);
   });
@@ -2423,7 +2461,9 @@ window.openProfile=openProfile; window.closeProfile=closeProfile;
 function renderPlayers() {
   const list=document.getElementById('playerList');
   const search=(document.getElementById('attendanceSearch')?.value||'').toLowerCase().trim();
-  const filtered=players.filter(p=>p.name.toLowerCase().includes(search));
+  const untaggedOnly=_rosterUntagged && hybridOn();
+  const filtered=players.filter(p=>p.name.toLowerCase().includes(search) && (!untaggedOnly || (p.present && !p.gender)));
+  const agr=document.getElementById('addGenderRow'); if(agr) agr.classList.toggle('hidden', !hybridOn());
   document.getElementById('presentCount').textContent=presentPlayers().length;
   document.getElementById('totalCount').textContent=players.length;
   const sc={beginner:0,intermediate:0,advanced:0};
@@ -2432,8 +2472,9 @@ function renderPlayers() {
   document.getElementById('sessionBadge').textContent=`${presentPlayers().length} playing`;
   renderCheckinPanel(); // before the early returns — a fresh session (0 players) must still render the check-in link/QR
   if(!players.length){list.innerHTML='<div class="empty-state"><div class="icon">👥</div>No players yet. Add some above!</div>';return;}
-  if(!filtered.length){list.innerHTML='<div class="empty-state"><div class="icon">🔍</div>No players match your search.</div>';return;}
-  list.innerHTML=filtered.map(p=>`
+  const untagBar=untaggedOnly?`<div class="hyb-note">Showing players not tagged yet. <button onclick="showAllRoster()">Show everyone</button></div>`:'';
+  if(!filtered.length){list.innerHTML=untagBar+(untaggedOnly?'<div class="empty-state"><div class="icon">✓</div>Everyone here is tagged.</div>':'<div class="empty-state"><div class="icon">🔍</div>No players match your search.</div>');return;}
+  list.innerHTML=untagBar+filtered.map(p=>`
     <div class="player-rowwrap">
     <div class="player-row ${p.present?'present':'absent'}">
       <div class="player-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div>
@@ -2444,6 +2485,7 @@ function renderPlayers() {
       </div>
       <div class="status-dot ${p.present?'present':''}"></div>
       ${lockRowBtn(p.id)}
+      ${hybridOn()?`<button class="gender-badge ${p.gender||'none'}" onclick="setGender(${p.id})" title="Tap to change: Men / Women">${p.gender==='m'?'M':p.gender==='f'?'F':'?'}</button>`:''}
       <button class="skill-badge ${p.skill||'intermediate'}" onclick="setSkill(${p.id})" title="Tap to change skill">${({beginner:'Beg',intermediate:'Int',advanced:'Adv'})[p.skill||'intermediate']}</button>
       <span class="via-tag ${p.via||'manual'}">${(p.via||'manual')==='qr'?'QR':'manual'}</span>
       ${sessionEnded
@@ -2478,7 +2520,7 @@ function approveCheckin(key){
   const res=window.checkinToPlayer ? window.checkinToPlayer(entry, players) : null;
   if(res && res.markPresentName){
     const ex=players.find(p=>p&&typeof p.name==='string'&&p.name.toLowerCase()===res.markPresentName.toLowerCase());
-    if(ex){ if(res.skill) ex.skill=res.skill; ex.present=true; logPresence(ex, true, entry.ts||Date.now()); seedWaitClock(ex); if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
+    if(ex){ if(res.skill) ex.skill=res.skill; if(res.gender) ex.gender=res.gender; ex.present=true; logPresence(ex, true, entry.ts||Date.now()); seedWaitClock(ex); if(!queueOrder.includes(ex.id)) queueOrder.push(ex.id); }
   } else if(res && res.player){
     const p=res.player; p.id=++playerIdCounter; players.push(p); logPresence(p, true, entry.ts||Date.now()); seedWaitClock(p); if(!queueOrder.includes(p.id)) queueOrder.push(p.id);
   }
@@ -2689,6 +2731,171 @@ function showUpNext(){ return courtDefs.length >= 3 || upNextAlways === true; }
 // it's only hidden. The organizer can show it anyway (display only; matchmaking unchanged).
 // Modes that reserve exactly one next match (Up Next shown from 3 courts, switch below).
 function oneUpNextMode(){ return mm()==='random'||mm()==='balanced'||mm()==='waittime'; }
+// ===== HYBRID MATCHMAKING (Men's / Women's / Mixed courts) =====
+// Each court belongs to a group. The session's own mode runs unchanged once per group,
+// on that group's free players only: Men's = tagged m, Women's = tagged f, Mixed = anyone
+// (untagged players can only play Mixed). One Up Next match per group, labelled with it.
+// Only for the queue modes; with hybrid off nothing here runs.
+const HYB_GROUPS=['men','women','mixed'];
+const HYB_LABEL={men:"Men's", women:"Women's", mixed:'Mixed'};
+function hybridOn(){ return hybrid===true && oneUpNextMode(); }
+function courtGroup(def){ return (def && HYB_GROUPS.includes(def.group)) ? def.group : 'mixed'; }
+function courtGroupById(id){ return courtGroup(courtDefs.find(d=>d.id===id)); }
+function fitsGroup(p, g){ return !!p && (g==='men' ? p.gender==='m' : g==='women' ? p.gender==='f' : true); }
+function hybridGroupsInUse(){ return HYB_GROUPS.filter(g=>courtDefs.some(d=>courtGroup(d)===g)); }
+// Run the mode's picker as if this group were the whole session: its players, its courts.
+// The pool is taken first from the full state (so players busy elsewhere stay busy).
+// Groups with a court free right now, i.e. a court waiting for its next match.
+function hybridOpenGroups(){
+  return new Set(courtDefs.filter(d=>!courts.some(c=>c.id===d.id && !c.submitted)).map(courtGroup));
+}
+// Who may take players from another group's Up Next (not yet on court):
+// 1. a group with a free court, from a group whose courts are all busy. Otherwise the
+//    Men's + Women's Up Next held 8 of the 6 players off court and the free Mixed court
+//    sat idle (sim: 10 of 80 starts);
+// 2. Men's / Women's from Mixed. Otherwise Mixed booked every rested woman the moment she
+//    came off, and the Women's court re-dealt the same 4 women all night (sim: 19 vs 10).
+// Lenders always come later in the build order (free first, then Men's, Women's, Mixed),
+// so a match that lends is re-picked in the same pass.
+function canBorrow(g, h, open){
+  if(g===h || open.has(h)) return false;
+  return open.has(g) || (h==='mixed' && g!=='mixed');
+}
+function hybridBuildOrder(){
+  const open=hybridOpenGroups(), inUse=hybridGroupsInUse();
+  return [...inUse.filter(g=>open.has(g)), ...inUse.filter(g=>!open.has(g))];
+}
+// Returns the match; players taken from another Up Next are blanked there (the caller
+// drops that match and it is re-picked from who is left).
+function chooseMatchInGroup(g){
+  const open=hybridOpenGroups();
+  const lenders=matchQueue.filter(m=>canBorrow(g, m.group, open));
+  const borrow=lenders.flatMap(m=>[...m.team1,...m.team2]).map(getPlayer).filter(p=>p&&p.present&&fitsGroup(p,g));
+  const byWait=(a,b)=>a.lastPlayedRound!==b.lastPlayedRound ? a.lastPlayedRound-b.lastPlayedRound : queueOrder.indexOf(a.id)-queueOrder.indexOf(b.id);
+  const pool=[...getFreeWaiting().filter(p=>fitsGroup(p,g)), ...borrow].sort(byWait);
+  const ids=new Set(courtDefs.filter(d=>courtGroup(d)===g).map(d=>d.id));
+  const saved={players, courts, courtDefs};
+  let m;
+  try{
+    players=players.filter(p=>fitsGroup(p,g));
+    courtDefs=courtDefs.filter(d=>ids.has(d.id));
+    courts=courts.filter(c=>ids.has(c.id));
+    m=chooseMatchPlayers(pool);
+  } finally { players=saved.players; courts=saved.courts; courtDefs=saved.courtDefs; }
+  if(m && lenders.length){
+    const taken=new Set([...m.team1,...m.team2]);
+    lenders.forEach(q=>['team1','team2'].forEach(tk=>{ q[tk]=q[tk].map(id=>taken.has(id)?null:id); }));
+  }
+  return m;
+}
+// "Need 1 more woman" when a group can't fill a match; '' when it can.
+function hybridShortMsg(g){
+  if(matchQueue.some(m=>m.group===g)) return '';
+  const n=matchSize()-getFreeWaiting().filter(p=>fitsGroup(p,g)).length;
+  if(n<=0) return '';
+  const w={men:['man','men'], women:['woman','women'], mixed:['player','players']}[g];
+  return `Need ${n} more ${n===1?w[0]:w[1]}`;
+}
+// Even Men's/Women's split; an odd court goes to Mixed (4 -> 2/2/0, 5 -> 2/2/1).
+function defaultHybridSplit(n){
+  const half=Math.floor(n/2);
+  return { men: half, women: half, mixed: n-2*half };
+}
+function setHybrid(on){
+  hybrid=!!on;
+  matchQueue=[];                       // re-pick Up Next under the new rules
+  rebuildMatchQueue(); renderCourts(); renderQueue(); renderPlayers(); saveState();
+}
+// split = {men, women, mixed} court counts; courts are tagged in that order.
+function setHybridSplit(split){
+  const order=[...Array(split.men|0).fill('men'), ...Array(split.women|0).fill('women'), ...Array(split.mixed|0).fill('mixed')];
+  courtDefs.forEach((d,i)=>{ d.group=order[i]||'mixed'; });
+  setHybrid(true);
+}
+function setGender(id){
+  const p=getPlayer(id); if(!p) return;
+  p.gender = p.gender==='m' ? 'f' : 'm';
+  rebuildMatchQueue();   // a queued match the player no longer fits refills from its group
+  renderPlayers(); renderQueue(); renderCourts(); saveState();
+}
+window.setGender=setGender; window.setHybrid=setHybrid; window.setHybridSplit=setHybridSplit;
+function currentHybridSplit(){
+  const out={men:0,women:0,mixed:0};
+  courtDefs.forEach(d=>{ out[courtGroup(d)]++; });
+  return out;
+}
+function hybridSplitText(sp){
+  return HYB_GROUPS.filter(g=>sp[g]).map(g=>`${sp[g]} ${HYB_LABEL[g]}`).join(' · ');
+}
+function renderHybridBar(){
+  const el=document.getElementById('hybridBar'); if(!el) return;
+  const canEdit=(_access==='owner'||_access==='cohost') && !sessionEnded;
+  if(!oneUpNextMode() || !canEdit || !courtDefs.length){ el.innerHTML=''; return; }
+  const on=hybridOn();
+  el.innerHTML=`<button class="hyb-switch${on?' on':''}" onclick="toggleHybrid()" aria-pressed="${on}"><span class="hyb-track"></span>Hybrid matchmaking</button>`+
+    (on?`<button class="hyb-split" onclick="openHybridModal()">Split: ${hybridSplitText(currentHybridSplit())} ›</button>`:'');
+}
+function toggleHybrid(){
+  if(endedGuard()) return;
+  if(hybridOn()) { setHybrid(false); showToast('Hybrid off.'); return; }
+  openHybridModal();
+}
+let _hybDraft=null;
+function openHybridModal(){
+  if(!courtDefs.length){ showToast('Add courts first.'); return; }
+  const n=courtDefs.length;
+  _hybDraft = hybridOn() ? currentHybridSplit() : defaultHybridSplit(n);
+  document.getElementById('hybridTitle').textContent=`How do you want to split your ${n} court${n>1?'s':''}?`;
+  document.getElementById('hybridGo').textContent=hybridOn()?'Save split':'Start hybrid';
+  renderHybridModal();
+  document.getElementById('hybridOverlay').classList.remove('hidden');
+}
+function renderHybridModal(){
+  const n=courtDefs.length, sp=_hybDraft, total=sp.men+sp.women+sp.mixed;
+  const here=presentPlayers();
+  const men=here.filter(p=>p.gender==='m').length, women=here.filter(p=>p.gender==='f').length, untagged=here.length-men-women;
+  const row=g=>`<div class="hyb-row">${HYB_LABEL[g]}<div class="hyb-step"><button onclick="stepHybrid('${g}',-1)" aria-label="Fewer ${HYB_LABEL[g]} courts">−</button><span>${sp[g]}</span><button onclick="stepHybrid('${g}',1)" aria-label="More ${HYB_LABEL[g]} courts">+</button></div></div>`;
+  document.getElementById('hybridBody').innerHTML=
+    `<div class="hyb-note">Here now: ${men} men · ${women} women</div>`+
+    HYB_GROUPS.map(row).join('')+
+    `<div class="hyb-total${total!==n?' bad':''}">${total} of ${n} courts</div>`+
+    (untagged?`<div class="hyb-note">${untagged} player${untagged>1?'s':''} not tagged yet. They can only play Mixed. <button onclick="showUntagged()">Tag them</button></div>`:'');
+  document.getElementById('hybridGo').disabled = total!==n;
+}
+function stepHybrid(g,d){
+  if(!_hybDraft) return;
+  _hybDraft[g]=Math.max(0,_hybDraft[g]+d);
+  renderHybridModal();
+}
+function confirmHybridSplit(){
+  if(!_hybDraft) return;
+  const sp=_hybDraft, n=courtDefs.length;
+  if(sp.men+sp.women+sp.mixed!==n) return;
+  const was=hybridOn();
+  closeHybridModal();
+  setHybridSplit(sp);
+  showToast(was?'Split saved.':'Hybrid on.');
+}
+function closeHybridModal(e){
+  if(e&&e.target!==document.getElementById('hybridOverlay')) return;
+  document.getElementById('hybridOverlay').classList.add('hidden');
+  _hybDraft=null;
+}
+let _rosterUntagged=false;   // Players tab: show only untagged present players
+function showUntagged(){
+  closeHybridModal();
+  _rosterUntagged=true;
+  switchTab('players'); renderPlayers();
+}
+function showAllRoster(){ _rosterUntagged=false; renderPlayers(); }
+let _addGender=null;         // Add Players: gender for the names being added (hybrid only)
+function pickAddGender(g){
+  _addGender = _addGender===g ? null : g;
+  document.querySelectorAll('#addGenderRow button').forEach(b=>b.classList.toggle('on', b.getAttribute('data-g')===_addGender));
+}
+window.toggleHybrid=toggleHybrid; window.openHybridModal=openHybridModal; window.stepHybrid=stepHybrid;
+window.confirmHybridSplit=confirmHybridSplit; window.closeHybridModal=closeHybridModal;
+window.showUntagged=showUntagged; window.showAllRoster=showAllRoster; window.pickAddGender=pickAddGender;
 function upNextSmall(){ return oneUpNextMode() && courtDefs.length < 3; }
 function canToggleUpNext(){ return upNextSmall() && (_access==='owner'||_access==='cohost'); }
 // Not enough free players to reserve a whole match (e.g. 1 court, 6 players): name who
@@ -2846,9 +3053,10 @@ function freshestSplit(ps){
   return Math.random()<0.5 ? {team1:o.t1, team2:o.t2} : {team1:o.t2, team2:o.t1};
 }
 // Pick the players + teams for the next match per the session's matchmaking style.
-function chooseMatchPlayers(){
+// poolArg: hybrid passes one group's free players (see chooseMatchInGroup).
+function chooseMatchPlayers(poolArg){
   const need=matchSize();
-  let pool=getFreeWaiting(); // sorted by wait (lastPlayedRound asc, then queueOrder)
+  let pool=poolArg||getFreeWaiting(); // sorted by wait (lastPlayedRound asc, then queueOrder)
   if(pool.length<need) return null;
   const style=mm(), ts=teamSize();
   if(style==='random' || style==='balanced' || style==='waittime'){
@@ -2918,11 +3126,20 @@ function rebuildMatchQueue() {
   // of the match and hand the vacated slot to the longest-waiting free player — an arranged
   // foursome must not silently vanish because one of them was pulled away. A match is only
   // dropped when there is nobody left to fill in.
-  const slotLost=id=>!presentIds.has(id)||onCourtIds.has(id);
+  // Hybrid: a slot only counts if the player fits the match's group, and refills come
+  // from that group. A match whose group no longer has a court is dropped.
+  const hyb=hybridOn(), inUse=hyb?hybridGroupsInUse():null;
+  if(hyb) matchQueue=matchQueue.filter((m,i,a)=>inUse.includes(m.group) && a.findIndex(x=>x.group===m.group)===i);
+  const fits=(id,m)=>!hyb||fitsGroup(getPlayer(id),m.group);
+  const slotLost=(id,m)=>!presentIds.has(id)||onCourtIds.has(id)||!fits(id,m);
   const spare=getFreeWaiting().map(p=>p.id);
   matchQueue.forEach(m=>{
     ['team1','team2'].forEach(tk=>{
-      m[tk]=(m[tk]||[]).map(id=>slotLost(id)?(spare.length?spare.shift():null):id);
+      m[tk]=(m[tk]||[]).map(id=>{
+        if(!slotLost(id,m)) return id;
+        const i=spare.findIndex(s=>fits(s,m));
+        return i<0?null:spare.splice(i,1)[0];
+      });
     });
   });
   matchQueue=matchQueue.filter(m=>{
@@ -2938,6 +3155,18 @@ function rebuildMatchQueue() {
   if(mm()==='challenge'){
     matchQueue=[];
     fillChallengeCourts();
+    return;
+  }
+  if(hyb){
+    // Groups with a free court first, then Men's, Women's, Mixed (see canBorrow).
+    hybridBuildOrder().forEach(g=>{
+      if(matchQueue.some(m=>m.group===g)) return;
+      const m=chooseMatchInGroup(g);
+      if(m) matchQueue.push({id:++mqIdCounter,group:g,team1:m.team1,team2:m.team2});
+      // A match that lent players to this group is re-picked later in this same pass.
+      matchQueue=matchQueue.filter(q=>[...q.team1,...q.team2].every(id=>id!=null));
+    });
+    matchQueue.sort((a,b)=>HYB_GROUPS.indexOf(a.group)-HYB_GROUPS.indexOf(b.group));
     return;
   }
   const MAX_QUEUED = oneUpNextMode() ? 1 : 3;
@@ -2970,7 +3199,9 @@ function addCourt() {
   if(mm()==='challenge') rebuildMatchQueue();
   // Round robin / bracket: pull the next scheduled match onto the new court.
   else if((mm()==='roundrobin'||mm()==='bracket') && tournament && tournament.started) fillCourtsFromTournament();
+  if(hybridOn()) rebuildMatchQueue();
   if(input) input.value=''; renderCourts(); saveState(); showToast(`${name} added!`);
+  if(hybridOn()){ renderQueue(); openHybridModal(); }   // new court (Mixed until changed): ask the split again
 }
 let closeCourtContext = null;
 function removeCourt(courtId) {
@@ -3047,11 +3278,16 @@ function generateMatchForCourt(courtId) {
   if(endedGuard()) return;
   if(mm()==='ladder'){ showToast('Ladder mode: use Save Result and Advance Round.'); return; }
   rebuildMatchQueue();
-  if(!matchQueue.length){showToast(`Need at least ${matchSize()} waiting players.`);return;}
+  // Hybrid: the court takes the queued match of its own group.
+  const qi=hybridOn() ? matchQueue.findIndex(m=>m.group===courtGroupById(courtId)) : 0;
+  if(!matchQueue.length || qi<0){
+    showToast(hybridOn() ? (hybridShortMsg(courtGroupById(courtId))||'Up Next is waiting for a court to finish.') : `Need at least ${matchSize()} waiting players.`);
+    return;
+  }
   const def=courtDefs.find(d=>d.id===courtId);
   const now=Date.now();
   globalRound++;
-  const next=matchQueue.shift();
+  const next=matchQueue.splice(qi,1)[0];
   const slot={id:courtId,name:def?.name||`Court ${courtId}`,team1:next.team1,team2:next.team2,score1:'',score2:'',submitted:false,round:globalRound,startedAt:now};
   const idx=courts.findIndex(c=>c.id===courtId);
   if(idx>=0) courts[idx]=slot; else courts.push(slot);
@@ -3113,7 +3349,7 @@ function submitScore(courtId) {
   } else { allFour.forEach(id=>{const p=getPlayer(id);if(p){p.points+=s1;p.pointsAgainst+=s2;}}); }
   const t1names=c.team1.map(id=>getPlayer(id)?.name||'?');
   const t2names=c.team2.map(id=>getPlayer(id)?.name||'?');
-  gameHistory.unshift({round:c.round,court:c.id,courtName:c.name||`Court ${c.id}`,team1:t1names,team2:t2names,team1Ids:[...c.team1],team2Ids:[...c.team2],score1:s1,score2:s2,startedAt:c.startedAt||null,endedAt:Date.now()});
+  gameHistory.unshift({round:c.round,court:c.id,courtName:c.name||`Court ${c.id}`,...(hybridOn()?{group:courtGroupById(c.id)}:{}),team1:t1names,team2:t2names,team1Ids:[...c.team1],team2Ids:[...c.team2],score1:s1,score2:s2,startedAt:c.startedAt||null,endedAt:Date.now()});
   if(mm()==='challenge' && winTeam){
     const winnerIds=[...winTeam];
     const loserIds=[...loseTeam];
@@ -3470,17 +3706,28 @@ function _openSwapOptions(outgoingId) {
   // wait for Match 1 left admins with nothing to pick. Free players are listed first.
   const reservedIn=new Map();
   matchQueue.forEach((m,i)=>[...m.team1,...m.team2].forEach(id=>{ if(!reservedIn.has(id)) reservedIn.set(id,i+1); }));
+  // Hybrid: only players who fit this match's group. When the swap exchanges two slots
+  // (incoming held in another upcoming match or seated on another court), the outgoing
+  // player must fit that other group too.
+  const hybGroup=!hybridOn()||!swapContext ? null
+    : swapContext.type==='queue' ? (matchQueue.find(q=>q.id===swapContext.matchId)||{}).group : courtGroupById(swapContext.courtId);
+  const heldGroup=new Map();
+  if(hybGroup){
+    matchQueue.forEach(m=>[...m.team1,...m.team2].forEach(id=>{ if(!heldGroup.has(id)) heldGroup.set(id,m.group); }));
+    courts.filter(c=>!c.submitted).forEach(c=>[...c.team1,...c.team2].forEach(id=>heldGroup.set(id,courtGroupById(c.id))));
+  }
+  const swapFits=p=>!hybGroup || (fitsGroup(p,hybGroup) && (!heldGroup.has(p.id) || fitsGroup(outgoing,heldGroup.get(p.id))));
   const freeOrder=getFreeWaiting().map(p=>p.id);
   const rank=id=>{ const i=freeOrder.indexOf(id); return i>=0?i:freeOrder.length+(reservedIn.get(id)||0); };
   const queueCands=presentPlayers()
-    .filter(p=>p.id!==outgoingId&&!onCourtIds.has(p.id)&&!sameCourtIds.has(p.id))
+    .filter(p=>p.id!==outgoingId&&!onCourtIds.has(p.id)&&!sameCourtIds.has(p.id)&&swapFits(p))
     .sort((a,b)=>rank(a.id)-rank(b.id))
     .map(p=>({id:p.id, skill:p.skill||'intermediate', name:p.name, tag:reservedIn.has(p.id)?`Match ${reservedIn.get(p.id)}`:''}));
   // Everyone not on a court is already listed above; the override list is the other live
   // courts. Queue swaps never offer a seated player — taking one would gut their live match.
   const waitingIds=new Set(queueCands.map(c=>c.id));
   const overrideCands=swapContext&&swapContext.type==='queue' ? [] : presentPlayers()
-    .filter(p=>p.id!==outgoingId&&!sameCourtIds.has(p.id)&&!waitingIds.has(p.id))
+    .filter(p=>p.id!==outgoingId&&!sameCourtIds.has(p.id)&&!waitingIds.has(p.id)&&swapFits(p))
     .map(p=>({id:p.id, name:p.name, playing:onCourtIds.has(p.id)}));
   // Suggest a genuinely free player when there is one, rather than poaching a reserved slot.
   const autoPool=queueCands.filter(c=>!c.tag);
@@ -3738,6 +3985,7 @@ function confirmCancel() {
 // ===== RENDER COURTS =====
 function renderCourts() {
   const mb=document.getElementById('modeBadge'); if(mb) mb.textContent=modeLabel();
+  renderHybridBar();
   if(mm()==='ladder'){ renderLadder(); return; }
   if ((mm()==='roundrobin' || mm()==='bracket')) {
     if (!tournament || !tournament.started) { renderTournamentSetup(); return; }
@@ -3751,15 +3999,19 @@ function renderCourts() {
     const header=`<div class="court-header">
       <input class="court-name-input" data-id="${def.id}" value="${esc(def.name)}" onchange="renameCourtDef(${def.id},this.value)" onclick="this.select()" title="Click to rename">
       ${c&&!c.submitted?`<span class="court-timer ${warn?'warn':''}" id="court-timer-${def.id}">${formatCourtTimer(c.startedAt)}</span>`:''}
+      ${hybridOn()?`<span class="court-group">${HYB_LABEL[courtGroup(def)]}</span>`:''}
       ${c?`<span class="court-round">Rd ${c.round}${c.submitted?' ✓':''}</span>`:''}
       <button class="remove-court-btn" onclick="removeCourt(${def.id})">✕</button>
     </div>`;
+    // Hybrid: a court can start only its own group's queued match.
+    const hasNext=hybridOn() ? matchQueue.some(m=>m.group===courtGroup(def)) : matchQueue.length>0;
+    const shortMsg=hybridOn() ? (hybridShortMsg(courtGroup(def))||'Waiting for a court to finish') : '';
     if(!c){
       const idleMsg = (mm()==='roundrobin'||mm()==='bracket')
         ? `<div class="court-hint">${tournament&&tournament.matches&&tournament.matches.some(m=>!m.submitted)?'Waiting for the next scheduled match. A team is still finishing.':'All scheduled matches are done.'}</div>`
         : mm()==='manual'
           ? (freeForManual().length>=matchSize()?`<button class="btn btn-accent" onclick="openManualPick(${def.id})">⚡ Pick Match</button>`:`<div class="court-hint">Need at least ${matchSize()} free players</div>`)
-          : (matchQueue.length>0?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div class="court-hint">Need at least ${matchSize()} waiting players</div>`);
+          : (hasNext?`<button class="btn btn-accent" onclick="generateMatchForCourt(${def.id})">⚡ Generate Match</button>`:`<div class="court-hint">${shortMsg||`Need at least ${matchSize()} waiting players`}</div>`);
       return `<div class="court-idle-card">${header}<div class="court-body" style="text-align:center;padding:20px 16px;">
         <div style="color:var(--muted);font-size:0.85rem;font-weight:500;margin-bottom:14px;">No match assigned yet</div>
         ${idleMsg}
@@ -3780,7 +4032,7 @@ function renderCourts() {
         </div>
         ${mm()==='manual'
           ? (freeForManual().length>=matchSize()?`<button class="next-match-btn" onclick="openManualPick(${def.id})">⚡ Pick Next Match</button>`:`<div class="court-hint-center">Need ${matchSize()} free players</div>`)
-          : (c.tMatchId?`<div class="court-hint-center">Match complete</div>`:matchQueue.length>0?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div class="court-hint-center">Not enough waiting players</div>`)}
+          : (c.tMatchId?`<div class="court-hint-center">Match complete</div>`:hasNext?`<button class="next-match-btn" onclick="generateMatchForCourt(${def.id})">⚡ Next Match</button>`:`<div class="court-hint-center">${shortMsg||'Not enough waiting players'}</div>`)}
       </div></div>`;
     }
     const teamCol=(tp,tk,lbl,cls)=>`<div class="ct-team ${cls}"><span class="ct-team-lbl">${lbl}</span>`+
@@ -4071,7 +4323,7 @@ function renderQueue() {
   html+='<div class="mm-queue"><div class="mm-qhead">Queue <span>'+freeWaiting.length+'</span></div>';
   if(canToggleUpNext() && !showUpNext()) html+='<button class="upnext-toggle" onclick="toggleUpNext()">Show Up Next</button>';
   if(freeWaiting.length){
-    html+=freeWaiting.map((p,i)=>`<div class="queue-item tappable" onclick="openProfile(${p.id})" title="View ${esc(p.name)}'s games"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}${lockBadge(p.id)}</span><span class="queue-gp" title="Games played this session">${p.gamesPlayed}G</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}" title="Rounds since last played">${p.lastPlayedRound===-1?'-':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
+    html+=freeWaiting.map((p,i)=>`<div class="queue-item tappable" onclick="openProfile(${p.id})" title="View ${esc(p.name)}'s games"><div class="queue-rank">${i+1}</div><div class="mini-avatar" style="background:${avatarColor(p.name)}">${initials(p.name)}</div><span class="queue-name">${esc(p.name)}${lockBadge(p.id)}${hybridOn()?`<span class="queue-g">${p.gender==='m'?'M':p.gender==='f'?'F':'?'}</span>`:''}</span><span class="queue-gp" title="Games played this session">${p.gamesPlayed}G</span><span class="queue-idle${p.lastPlayedRound!==-1&&(globalRound-p.lastPlayedRound)>=3?' long':''}" title="Rounds since last played">${p.lastPlayedRound===-1?'-':globalRound-p.lastPlayedRound+'r'}</span></div>`).join('');
   } else {
     html+='<div class="mm-empty">No one waiting.</div>';
   }
@@ -4081,7 +4333,16 @@ function renderQueue() {
     html+='<div class="mm-upnext">';
     if(upNextSmall()) html+='<div class="upnext-note">With 1-2 courts, Up Next can still change if players swap, check in or leave.'+
       (canToggleUpNext()?' <button class="upnext-hide" onclick="toggleUpNext()">Hide</button>':'')+'</div>';
-    if(matchQueue.length){
+    if(hybridOn()){
+      // "Need 1 more woman" only while one of the group's courts is free; with every court
+      // busy, the next game simply comes off the court that finishes first.
+      const open=hybridOpenGroups();
+      hybridGroupsInUse().forEach(g=>{
+        const m=matchQueue.find(q=>q.group===g);
+        html+= m ? mqMatchCard(m,`Up Next · ${HYB_LABEL[g]}`,true)
+          : `<div class="upnext-placeholder"><div class="uph-label">Up Next · ${HYB_LABEL[g]}</div><div class="uph-body"><span>${(open.has(g)&&hybridShortMsg(g))||'Players from the next game to finish'}</span></div></div>`;
+      });
+    } else if(matchQueue.length){
       matchQueue.forEach((m,i)=>{html+=mqMatchCard(m,`Up Next ${i+1}`,i===0);});
     } else {
       const ph=upNextPlaceholder();
@@ -4255,7 +4516,7 @@ function renderGameHistory() {
   }
   const list = items.length ? items.map(({g,idx})=>{
     const winner=g.score1>g.score2?g.team1:g.score2>g.score1?g.team2:null;
-    return `<div class="history-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:0.72rem;font-weight:600;color:var(--muted);">${histLabel(g,idx)} · ${esc(g.courtName||'Court '+g.court)}</span><span style="display:flex;align-items:center;gap:8px;"><span class="history-score">${g.score1} – ${g.score2}</span><button class="hist-edit-btn" onclick="openEditScore(${idx})" title="Edit score">✏️</button></span></div><div class="history-players">${esc(g.team1.join(' & '))} vs ${esc(g.team2.join(' & '))}</div>${winner?`<span class="badge badge-gold" style="margin-top:5px;">🏆 ${esc(winner.join(' & '))}</span>`:`<span class="badge" style="background:var(--surface2);color:var(--muted);margin-top:5px;">Tie</span>`}</div>`;
+    return `<div class="history-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:0.72rem;font-weight:600;color:var(--muted);">${histLabel(g,idx)} · ${esc(g.courtName||'Court '+g.court)}${HYB_LABEL[g.group]?' · '+HYB_LABEL[g.group]:''}</span><span style="display:flex;align-items:center;gap:8px;"><span class="history-score">${g.score1} – ${g.score2}</span><button class="hist-edit-btn" onclick="openEditScore(${idx})" title="Edit score">✏️</button></span></div><div class="history-players">${esc(g.team1.join(' & '))} vs ${esc(g.team2.join(' & '))}</div>${winner?`<span class="badge badge-gold" style="margin-top:5px;">🏆 ${esc(winner.join(' & '))}</span>`:`<span class="badge" style="background:var(--surface2);color:var(--muted);margin-top:5px;">Tie</span>`}</div>`;
   }).join('') : `<div class="empty-state" style="padding:16px 0;"><div class="icon">🔍</div>No games match that name.</div>`;
   el.innerHTML = summary + list;
 }
@@ -4488,6 +4749,7 @@ window._importCheckin = function(key, entry) {
     const ex = players.find(p => p && typeof p.name === 'string' && p.name.toLowerCase() === res.markPresentName.toLowerCase());
     if (ex) {
       if (res.skill) ex.skill = res.skill;   // level picked on the check-in page
+      if (res.gender) ex.gender = res.gender; // Men / Women picked on the check-in page (hybrid)
       ex.present = true;
       logPresence(ex, true, entry.ts||Date.now());
       seedWaitClock(ex);

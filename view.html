@@ -470,6 +470,9 @@ function balanceCourtGrid(n) {
 }
 window.addEventListener('resize', () => { if(state) balanceCourtGrid((state.courtDefs||[]).length); });
 
+// Hybrid matchmaking (Men's / Women's / Mixed courts) — mirrors app.html's hybridOn().
+const HYB_LABEL={men:"Men's", women:"Women's", mixed:'Mixed'};
+function hybOn(s){ const m=(s.mode&&s.mode.matchmaking)||'waittime'; return s.hybrid===true && (m==='random'||m==='balanced'||m==='waittime'); }
 function renderCourts(s) {
   const el=document.getElementById('vCourts');
   if(!el) return;
@@ -481,6 +484,7 @@ function renderCourts(s) {
     const c=courts.find(ct=>ct.id===def.id);
     const hdr=`<div class="court-view-header">
       <span class="court-view-name">${escapeHtml(def.name)}</span>
+      ${hybOn(s)?`<span class="court-view-round">${HYB_LABEL[def.group]||'Mixed'}</span>`:''}
       ${c&&!c.submitted?`<span class="court-view-timer ${isWarn(c.startedAt)?'warn':''}" id="vt-${def.id}">${fmtCourt(c.startedAt)}</span>`:''}
       ${c?`<span class="court-view-round">Rd ${c.round}${c.submitted?' ✓':''}</span>`:''}
     </div>`;
@@ -555,7 +559,8 @@ function renderQueue(s) {
   const allBusy=(s.courtDefs||[]).every(d=>(s.courts||[]).some(c=>c.id===d.id&&!c.submitted));
   const held=(mode==='random'||mode==='balanced'||mode==='waittime') && need===0 && allBusy &&
     isWholeLastGroup(freeNow.map(p=>p.id), s.gameHistory);
-  if(showUpNext && !mq.length && liveCourts && (need>0 || held)){
+  const hyb=hybOn(s);
+  if(!hyb && showUpNext && !mq.length && liveCourts && (need>0 || held)){
     const from=liveCourts===1?'the current game':'the next game to finish';
     if(small) html+=`<div class="upnext-note" style="font-size:0.78rem;font-weight:600;color:#B7791F;background:rgba(183,121,31,0.1);border-radius:8px;padding:8px 12px;margin-bottom:8px;">With 1-2 courts, the next match can still change if players swap, check in or leave.</div>`;
     const nm=freeNow.map(p=>escapeHtml(p.name)), names=nm.join(' &amp; '), k=ms/2;
@@ -567,7 +572,7 @@ function renderQueue(s) {
   if(showUpNext && mq.length){
     html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink);margin-bottom:8px;">📋 Upcoming Matches</div>`;
     if(small) html+=`<div class="upnext-note" style="font-size:0.78rem;font-weight:600;color:#B7791F;background:rgba(183,121,31,0.1);border-radius:8px;padding:8px 12px;margin-bottom:8px;">With 1-2 courts, the next match can still change if players swap, check in or leave.</div>`;
-    mq.forEach((m,i)=>{ html+=mqCardView(m, `Match ${i+1}`, i===0, s.players||[]); });
+    mq.forEach((m,i)=>{ html+= hyb ? mqCardView(m, HYB_LABEL[m.group]||'Mixed', true, s.players||[]) : mqCardView(m, `Match ${i+1}`, i===0, s.players||[]); });
     html+=`<div style="height:1px;background:var(--line);margin:10px 0;"></div>`;
   }
 
@@ -590,7 +595,14 @@ function renderQueue(s) {
     if(showUpNext && mq.length){
       html+=`<div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:7px;">⏳ Still Waiting</div>`;
     }
-    html+=waiting.map((p,i)=>`<div class="queue-view-item"><div class="queue-view-rank">${i+1}</div><div class="player-chip-avatar" style="background:${avatarColor(p.name)};width:26px;height:26px;">${initials(p.name)}</div><span class="queue-view-name">${escapeHtml(p.name)}</span></div>`).join('');
+    const row=(p,i)=>`<div class="queue-view-item"><div class="queue-view-rank">${i+1}</div><div class="player-chip-avatar" style="background:${avatarColor(p.name)};width:26px;height:26px;">${initials(p.name)}</div><span class="queue-view-name">${escapeHtml(p.name)}</span></div>`;
+    if(hyb){
+      // Hybrid: one waiting line per group so players can see where they stand.
+      const sub=t=>`<div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin:8px 0 5px;">${t}</div>`;
+      [['Men',p=>p.gender==='m'],['Women',p=>p.gender==='f'],['Not tagged',p=>p.gender!=='m'&&p.gender!=='f']].forEach(([t,f])=>{
+        const ps=waiting.filter(f); if(ps.length) html+=sub(t)+ps.map(row).join('');
+      });
+    } else html+=waiting.map(row).join('');
   }
 
   if(!html) html='<div class="empty-v">No one waiting right now.</div>';

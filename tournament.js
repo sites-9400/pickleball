@@ -96,13 +96,15 @@ export function checkinToPlayer(entry, existingPlayers) {
   if (!name) return { skip: true, reason: 'invalid' };
   const skills = ['beginner', 'intermediate', 'advanced'];
   const skill = (entry && skills.includes(entry.skill)) ? entry.skill : 'intermediate';
+  // Hybrid matchmaking: Men ('m') / Women ('f') picked on the check-in page.
+  const g = (entry && (entry.gender === 'm' || entry.gender === 'f')) ? { gender: entry.gender } : {};
   const match = (existingPlayers || []).find(p =>
     p && typeof p.name === 'string' && p.name.toLowerCase() === name.toLowerCase());
   // A listed player may pick a different level on the check-in page; pass it along.
-  if (match) return (entry && skills.includes(entry.skill)) ? { markPresentName: match.name, skill: entry.skill } : { markPresentName: match.name };
+  if (match) return (entry && skills.includes(entry.skill)) ? { markPresentName: match.name, skill: entry.skill, ...g } : { markPresentName: match.name, ...g };
   return { player: {
     name, present: true, gamesPlayed: 0, wins: 0, losses: 0,
-    points: 0, pointsAgainst: 0, lastPlayedRound: -1, skill, via: 'qr'
+    points: 0, pointsAgainst: 0, lastPlayedRound: -1, skill, via: 'qr', ...g
   } };
 }
 
@@ -128,7 +130,8 @@ export function mergeImportedNames(sourcePlayers, existingPlayers, counterStart)
     players.push({
       id: ++counter, name, present: false, gamesPlayed: 0, wins: 0, losses: 0,
       points: 0, pointsAgainst: 0, lastPlayedRound: -1, skill: 'intermediate',
-      via: 'import', events: [], partnerId: null
+      via: 'import', events: [], partnerId: null,
+      ...((src.gender === 'm' || src.gender === 'f') ? { gender: src.gender } : {})   // hybrid tag
     });
   });
   return { players, added: players.length, skipped, nextCounter: counter };

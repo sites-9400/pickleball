@@ -19,7 +19,7 @@ export const SESSION_KEYS = [
   'players', 'courts', 'courtDefs', 'matchQueue', 'gameHistory', 'queueOrder',
   'globalRound', 'playerIdCounter', 'courtIdCounter', 'mqIdCounter',
   'sessionStartTime', 'sessionName', 'name', 'ladder', 'tournament',
-  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'upNextAlways', 'recapGroup', 'recapPhotoFrame', 'checkinOpen', 'status',
+  'sessionEnded', 'sessionEndTime', 'sessionPausedMs', 'upNextAlways', 'hybrid', 'recapGroup', 'recapPhotoFrame', 'checkinOpen', 'status',
 ];
 
 export function buildRules() {
@@ -30,6 +30,8 @@ export function buildRules() {
   // Recap event photo: written on its own (not by saveState). Only a JPEG data URL
   // under the cap is accepted, so the slot can't be used as general storage.
   // Group / event name on the recap: a short string.
+  // Hybrid matchmaking switch (Men's / Women's / Mixed courts).
+  perKey.hybrid['.validate'] = "!newData.exists() || newData.isBoolean()";
   perKey.recapGroup['.validate'] = "!newData.exists() || (newData.isString() && newData.val().length <= 60)";
   // Photo framing: zoom (1 = fills the header) and the photo point kept at the centre.
   const num = (lo, hi) => ({ '.validate': `newData.isNumber() && newData.val() >= ${lo} && newData.val() <= ${hi}` });
@@ -69,6 +71,8 @@ export function buildRules() {
               name: { '.validate': 'newData.isString() && newData.val().length > 0 && newData.val().length <= 40' },
               skill: { '.validate': "newData.isString() && newData.val().matches(/^(beginner|intermediate|advanced)$/)" },
               ts: { '.validate': 'newData.isNumber()' },
+              // hybrid matchmaking: Men / Women picked on the check-in page (optional)
+              gender: { '.validate': "newData.isString() && newData.val().matches(/^(m|f)$/)" },
               $other: { '.validate': false },
             },
           },

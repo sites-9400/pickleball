@@ -86,6 +86,13 @@
           <button type="button" data-skill="intermediate" class="on">Intermediate</button>
           <button type="button" data-skill="advanced">Advanced</button>
         </div>
+        <div id="genderArea" class="hidden">
+          <label>Plays in</label>
+          <div class="skills" id="genders">
+            <button type="button" data-g="m">Men</button>
+            <button type="button" data-g="f">Women</button>
+          </div>
+        </div>
         <button class="submit" id="submitBtn">Check in</button>
         <button class="submit secondary" id="backToRosterBtn">Back to list</button>
       </div>
@@ -123,6 +130,11 @@ let roster = [];
 let checkinOpen = false;
 const selected = new Set();
 const chosenSkill = new Map();   // name -> level picked on the list (defaults to the saved level)
+// Hybrid matchmaking (Men's / Women's / Mixed courts): players pick Men or Women.
+let hybrid = false;
+let gender = null;               // add-me form
+const chosenGender = new Map();  // name -> 'm' | 'f' picked on the list (defaults to the saved tag)
+const genderFor = p => chosenGender.get(p.name) || ((p.gender === 'm' || p.gender === 'f') ? p.gender : null);
 
 const rosterArea = document.getElementById('rosterArea');
 const formArea = document.getElementById('formArea');
@@ -139,14 +151,15 @@ function readPlayers(val){
   if(!val) return [];
   const arr = Array.isArray(val) ? val : Object.values(val);
   return arr.filter(p => p && typeof p.name === 'string' && p.name.length)
-            .map(p => ({ name: p.name, skill: p.skill, present: !!p.present }))
+            .map(p => ({ name: p.name, skill: p.skill, gender: p.gender, present: !!p.present }))
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
 function updateCheckinBtn(){
   const btn = document.getElementById('checkinBtn');
-  btn.disabled = selected.size === 0;
-  btn.textContent = selected.size ? `Check in (${selected.size})` : 'Check in';
+  const missing = hybrid && [...selected].some(nm => !genderFor(roster.find(r => r.name === nm) || { name: nm }));
+  btn.disabled = selected.size === 0 || missing;
+  btn.textContent = missing ? 'Pick Men or Women' : (selected.size ? `Check in (${selected.size})` : 'Check in');
 }
 
 function renderRoster(){
@@ -159,12 +172,15 @@ function renderRoster(){
     const cur = chosenSkill.get(p.name) || (SKILLS.includes(p.skill) ? p.skill : 'intermediate');
     // Selected rows let the player correct their level before checking in.
     const lvl = sel ? `<div class="lvl-row">${SKILLS.map(s => `<button type="button" class="lvl${s===cur?' on':''}" data-name="${esc(p.name)}" data-skill="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>` : '';
-    return `<div class="${cls}" data-i="${i}"><span class="nm">${esc(p.name)}</span><span class="sk">${sel ? '' : sk}</span>${right}${lvl}</div>`;
+    const g = genderFor(p);
+    const gen = (sel && hybrid) ? `<div class="lvl-row">${[['m','Men'],['f','Women']].map(([v,l]) => `<button type="button" class="lvl gen${v===g?' on':''}" data-name="${esc(p.name)}" data-g="${v}">${l}</button>`).join('')}</div>` : '';
+    return `<div class="${cls}" data-i="${i}"><span class="nm">${esc(p.name)}</span><span class="sk">${sel ? '' : sk}</span>${right}${lvl}${gen}</div>`;
   }).join('');
   document.getElementById('rosterEmpty').classList.toggle('hidden', roster.length > 0);
   list.querySelectorAll('.lvl').forEach(b => b.addEventListener('click', ev => {
     ev.stopPropagation();   // don't toggle the row
-    chosenSkill.set(b.getAttribute('data-name'), b.getAttribute('data-skill'));
+    if (b.hasAttribute('data-g')) chosenGender.set(b.getAttribute('data-name'), b.getAttribute('data-g'));
+    else chosenSkill.set(b.getAttribute('data-name'), b.getAttribute('data-skill'));
     renderRoster();
   }));
   list.querySelectorAll('.roster-row:not(.here)').forEach(row => {
@@ -182,6 +198,15 @@ document.querySelectorAll('#skills button').forEach(b => b.addEventListener('cli
   document.querySelectorAll('#skills button').forEach(x => x.classList.remove('on'));
   b.classList.add('on'); skill = b.getAttribute('data-skill');
 }));
+
+document.querySelectorAll('#genders button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#genders button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); gender = b.getAttribute('data-g');
+}));
+function applyHybrid(){
+  document.getElementById('genderArea').classList.toggle('hidden', !hybrid);
+  if(!rosterArea.classList.contains('hidden')) renderRoster();
+}
 
 document.getElementById('addToggleBtn').addEventListener('click', showForm);
 document.getElementById('backToRosterBtn').addEventListener('click', showRoster);
@@ -202,7 +227,8 @@ document.getElementById('checkinBtn').addEventListener('click', async () => {
     await Promise.all(names.map(nm => {
       const p = roster.find(r => r.name === nm);
       const sk = chosenSkill.get(nm) || ((p && SKILLS.includes(p.skill)) ? p.skill : 'intermediate');
-      return push(ref(db, `sessions/${SID}/checkins`), { name: nm, skill: sk, ts: Date.now() });
+      const g = hybrid ? genderFor(p || { name: nm }) : null;
+      return push(ref(db, `sessions/${SID}/checkins`), { name: nm, skill: sk, ...(g ? { gender: g } : {}), ts: Date.now() });
     }));
     selected.clear();
     showDone(names);
@@ -215,10 +241,11 @@ document.getElementById('checkinBtn').addEventListener('click', async () => {
 document.getElementById('submitBtn').addEventListener('click', async () => {
   const name = document.getElementById('nameInput').value.trim();
   if(!name){ document.getElementById('nameInput').focus(); return; }
+  if(hybrid && !gender){ alert('Pick Men or Women.'); return; }
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   try {
-    await push(ref(db, `sessions/${SID}/checkins`), { name, skill, ts: Date.now() });
+    await push(ref(db, `sessions/${SID}/checkins`), { name, skill, ...(hybrid && gender ? { gender } : {}), ts: Date.now() });
     showDone([name]);
   } catch(e){
     btn.disabled = false;
@@ -231,6 +258,8 @@ document.getElementById('againBtn').addEventListener('click', () => {
   document.getElementById('submitBtn').disabled = false;
   document.getElementById('checkinBtn').disabled = true;
   skill = 'intermediate';
+  gender = null;
+  document.querySelectorAll('#genders button').forEach(x => x.classList.remove('on'));
   document.querySelectorAll('#skills button').forEach(x => x.classList.remove('on'));
   document.querySelector('#skills button[data-skill="intermediate"]').classList.add('on');
   if(checkinOpen) showRoster(); else showClosed();
@@ -239,6 +268,7 @@ document.getElementById('againBtn').addEventListener('click', () => {
 function start(){
   if(!SID){ document.getElementById('card').innerHTML = '<div class="closed">This link is missing a session. Ask the organizer for the correct link.</div>'; return; }
   onValue(ref(db, `sessions/${SID}/name`), s => { const n = s.val(); if(n) document.getElementById('sessionName').textContent = n; });
+  onValue(ref(db, `sessions/${SID}/hybrid`), s => { hybrid = s.val() === true; applyHybrid(); });
   onValue(ref(db, `sessions/${SID}/players`), s => { roster = readPlayers(s.val()); if(!rosterArea.classList.contains('hidden')) renderRoster(); });
   onValue(ref(db, `sessions/${SID}/checkinOpen`), s => {
     checkinOpen = s.val() === true;
