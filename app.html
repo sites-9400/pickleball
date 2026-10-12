@@ -953,6 +953,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   transition: all 0.15s;
 }
 .sort-pill.active { background: var(--army); border-color: var(--army); color: white; }
+.rank-untagged { align-self: center; font-size: 0.7rem; font-weight: 700; color: var(--muted); margin-left: 4px; }
 [data-theme="dark"] .sort-pill.active { background: var(--accent); border-color: var(--accent); color: #1C1F14; }
 .rank-table { width: 100%; border-collapse: collapse; }
 .rank-table th {
@@ -1490,6 +1491,7 @@ input:focus, textarea:focus { border-color: var(--army); }
           <li><strong>Sorting:</strong> choose a metric with the pills below. Players tied on that metric are ranked by Score Diff.</li>
         </ul>
       </div>
+      <div class="sort-pills hidden" id="rankGenderPills"></div>
       <div class="sort-pills">
         <button class="sort-pill active" onclick="setSort('points')">By Points</button>
         <button class="sort-pill" onclick="setSort('wins')">By Wins</button>
@@ -4363,9 +4365,29 @@ function toggleRankInfo() {
 }
 function setSort(key) {
   rankSort=key;
-  document.querySelectorAll('.sort-pill').forEach(p=>p.classList.remove('active'));
-  ['points','wins','winpct','ptpct'].forEach((k,i)=>{if(k===key)document.querySelectorAll('.sort-pill')[i]?.classList.add('active');});
+  const pills=document.querySelectorAll('.sort-pill:not(.gpill)');
+  pills.forEach(p=>p.classList.remove('active'));
+  ['points','wins','winpct','ptpct'].forEach((k,i)=>{if(k===key)pills[i]?.classList.add('active');});
   renderRankings();
+}
+// Hybrid nights: All / Men / Women leaderboards. A view filter on this device only
+// (not synced); the stats themselves are unchanged, mixed games count for everyone.
+let rankGender='all';
+function setRankGender(g){ rankGender=g; renderRankings(); }
+window.setRankGender=setRankGender;
+function rankRows(g){
+  const base=players.filter(p=>p.gamesPlayed>0);
+  if(!hybridOn()||g==='all') return base;
+  return base.filter(p=>p.gender===g);
+}
+function renderRankGenderPills(){
+  const el=document.getElementById('rankGenderPills');
+  if(!el) return;
+  el.classList.toggle('hidden', !hybridOn());
+  if(!hybridOn()) return;
+  const untagged=players.filter(p=>p.gamesPlayed>0&&p.gender!=='m'&&p.gender!=='f').length;
+  el.innerHTML=[['all','All'],['m','Men'],['f','Women']].map(([g,t])=>`<button class="sort-pill gpill${rankGender===g?' active':''}" onclick="setRankGender('${g}')">${t}</button>`).join('')
+    +(rankGender!=='all'&&untagged?`<span class="rank-untagged">${untagged} not tagged</span>`:'');
 }
 function renderRankings() {
   if (mm()==='roundrobin' && tournament && tournament.started) {
@@ -4373,8 +4395,11 @@ function renderRankings() {
     return;
   }
   const el=document.getElementById('rankTable');
-  const base=players.filter(p=>p.gamesPlayed>0);
-  if(!base.length){el.innerHTML='<div class="empty-state"><div class="icon">🏆</div>Rankings appear after games are submitted.</div>';return;}
+  renderRankGenderPills();
+  const base=rankRows(rankGender);
+  if(!base.length){el.innerHTML=rankGender!=='all'&&hybridOn()&&players.some(p=>p.gamesPlayed>0)
+    ?`<div class="empty-state"><div class="icon">🏆</div>No ${rankGender==='m'?'men':'women'} have played yet.</div>`
+    :'<div class="empty-state"><div class="icon">🏆</div>Rankings appear after games are submitted.</div>';return;}
   const withStats=base.map(p=>{const tot=p.points+p.pointsAgainst;return{...p,winPct:p.gamesPlayed>0?Math.round(p.wins/p.gamesPlayed*100):0,ptPct:tot>0?Math.round(p.points/tot*100):0,scoreDiff:p.points-p.pointsAgainst};});
   const sorted=[...withStats].sort((a,b)=>{
     if(rankSort==='wins') return b.wins!==a.wins?b.wins-a.wins:b.scoreDiff-a.scoreDiff;
@@ -4695,7 +4720,8 @@ function renderRecapCard() {
   const el = document.getElementById('recapContainer');
   if (!el || !window.PDRecap) return;
   PDRecap.render(el,
-    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime, sessionPausedMs, recapPhoto, recapGroup, recapPhotoFrame },
+    { players, gameHistory, courtDefs, sessionName, sessionStartTime, sessionEndTime, sessionPausedMs, recapPhoto, recapGroup, recapPhotoFrame,
+      hybrid: hybridOn(), mode: { matchmaking: mm() } },
     { viewUrl: window._getViewLink ? window._getViewLink() : '' });
 }
 

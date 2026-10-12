@@ -368,6 +368,7 @@ function showEndedState(s) {
           <li><strong>Sorting:</strong> choose a metric with the pills below. Players tied on that metric are ranked by Score Diff.</li>
         </ul>
       </div>
+      <div class="sort-pills-v" id="vGenderPills" style="display:none"></div>
       <div class="sort-pills-v">
         <button class="sort-pill-v active" onclick="setSort('wins')">By Wins</button>
         <button class="sort-pill-v" onclick="setSort('points')">By Points</button>
@@ -386,9 +387,9 @@ function showEndedState(s) {
   renderViewStandings(s);
   // Sync sort pill active state — pills always render as "wins" after innerHTML swap
   if (rankSort !== 'wins') {
-    document.querySelectorAll('.sort-pill-v').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sort-pill-v:not(.gpill)').forEach(p => p.classList.remove('active'));
     ['wins','points','winpct','ptpct'].forEach((k,i) => {
-      if (k === rankSort) document.querySelectorAll('.sort-pill-v')[i]?.classList.add('active');
+      if (k === rankSort) document.querySelectorAll('.sort-pill-v:not(.gpill)')[i]?.classList.add('active');
     });
   }
 }
@@ -443,6 +444,7 @@ function ensureLayout() {
           <li><strong>Sorting:</strong> choose a metric with the pills below. Players tied on that metric are ranked by Score Diff.</li>
         </ul>
       </div>
+      <div class="sort-pills-v" id="vGenderPills" style="display:none"></div>
       <div class="sort-pills-v">
         <button class="sort-pill-v active" onclick="setSort('wins')">By Wins</button>
         <button class="sort-pill-v" onclick="setSort('points')">By Points</button>
@@ -611,18 +613,34 @@ function renderQueue(s) {
 
 function setSort(key) {
   rankSort=key;
-  document.querySelectorAll('.sort-pill-v').forEach(p=>p.classList.remove('active'));
-  ['wins','points','winpct','ptpct'].forEach((k,i)=>{if(k===key)document.querySelectorAll('.sort-pill-v')[i]?.classList.add('active');});
+  document.querySelectorAll('.sort-pill-v:not(.gpill)').forEach(p=>p.classList.remove('active'));
+  ['wins','points','winpct','ptpct'].forEach((k,i)=>{if(k===key)document.querySelectorAll('.sort-pill-v:not(.gpill)')[i]?.classList.add('active');});
   if(state) renderRankings(state);
 }
 window.setSort=setSort;
 window.toggleRankInfoV = function(){ const p=document.getElementById('rankInfoPanelV'); if(p) p.classList.toggle('open'); };
 
+// Hybrid nights: All / Men / Women leaderboards (mirrors app.html; per phone, not synced).
+let rankGender='all';
+window.setRankGender=function(g){ rankGender=g; if(state) renderRankings(state); };
+function renderGenderPills(s){
+  const el=document.getElementById('vGenderPills');
+  if(!el) return;
+  const on=hybOn(s);
+  el.style.display=on?'':'none';
+  if(!on) return;
+  el.innerHTML=[['all','All'],['m','Men'],['f','Women']].map(([g,t])=>`<button class="sort-pill-v gpill${rankGender===g?' active':''}" onclick="setRankGender('${g}')">${t}</button>`).join('');
+}
+
 function renderRankings(s) {
   const el=document.getElementById('vRankings');
   if(!el) return;
-  const base=(s.players||[]).filter(p=>p.gamesPlayed>0);
-  if(!base.length){el.innerHTML='<div class="empty-v"><div class="icon">🏆</div>No games played yet.</div>';return;}
+  renderGenderPills(s);
+  const played=(s.players||[]).filter(p=>p.gamesPlayed>0);
+  const base=hybOn(s)&&rankGender!=='all' ? played.filter(p=>p.gender===rankGender) : played;
+  if(!base.length){el.innerHTML=played.length
+    ?`<div class="empty-v"><div class="icon">🏆</div>No ${rankGender==='m'?'men':'women'} have played yet.</div>`
+    :'<div class="empty-v"><div class="icon">🏆</div>No games played yet.</div>';return;}
   const withStats=base.map(p=>{const tot=p.points+p.pointsAgainst;return{...p,winPct:p.gamesPlayed>0?Math.round(p.wins/p.gamesPlayed*100):0,ptPct:tot>0?Math.round(p.points/tot*100):0,scoreDiff:p.points-p.pointsAgainst};});
   const sorted=[...withStats].sort((a,b)=>{
     if(rankSort==='wins') return b.wins!==a.wins?b.wins-a.wins:b.scoreDiff-a.scoreDiff;

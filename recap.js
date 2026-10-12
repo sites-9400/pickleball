@@ -119,6 +119,7 @@
       .map(function (p) {
         return {
           name: p.name,
+          gender: p.gender === 'm' || p.gender === 'f' ? p.gender : null,
           gamesPlayed: p.gamesPlayed || 0,
           wins: p.wins || 0,
           losses: p.losses || 0,
@@ -133,6 +134,16 @@
       if (b.diff !== a.diff) return b.diff - a.diff;
       return String(a.name).localeCompare(String(b.name));
     });
+
+    // Hybrid nights (Men's / Women's / Mixed courts; same rule as app.html hybridOn):
+    // a podium + top 5 per gender. Untagged players stay on the full standings only.
+    var mmode = (state.mode && state.mode.matchmaking) || 'waittime';
+    var hybridNight = state.hybrid === true && (mmode === 'random' || mmode === 'balanced' || mmode === 'waittime');
+    var men = roster.filter(function (p) { return p.gender === 'm'; });
+    var women = roster.filter(function (p) { return p.gender === 'f'; });
+    var genderSplit = hybridNight && (men.length || women.length)
+      ? { men: men.slice(0, 5), women: women.slice(0, 5), menTotal: men.length, womenTotal: women.length }
+      : null;
 
     var start = state.sessionStartTime || null;
     var end = state.sessionEndTime || null;
@@ -163,6 +174,7 @@
       frame: (function (f) { return f && [f.z, f.x, f.y].every(function (n) { return typeof n === 'number' && isFinite(n); }) ? [f.z, f.x, f.y].join(',') : ''; })(state.recapPhotoFrame),
       podium: roster.slice(0, 3),
       top10: roster.slice(0, 10),
+      genderSplit: genderSplit,
       totalPlayers: roster.length,
       viewUrl: opts.viewUrl || ''
     };
@@ -287,6 +299,16 @@
       '<span class="pdr-rm">' + p.gamesPlayed + ' GP · ' + ds + '</span></div>';
   }
 
+  // One gender's podium + top 5 (hybrid nights). Empty board -> nothing.
+  function genderBoard(label, list, total, first) {
+    if (!list.length) return '';
+    var more = total > 5 ? ('scan for all ' + total) : 'ranked by wins';
+    return '<div class="pdr-sec"' + (first ? '' : ' style="margin-top:26px"') + '><h3>' + label + ' Podium</h3><span>ranked by wins</span></div>' +
+      '<div class="pdr-podium">' + podCard(list[1], 1) + podCard(list[0], 0) + podCard(list[2], 2) + '</div>' +
+      '<div class="pdr-sec" style="margin-top:18px"><h3>' + label + ' Top ' + list.length + '</h3><span>' + esc(more) + '</span></div>' +
+      '<div class="pdr-top">' + list.map(topRow).join('') + '</div>';
+  }
+
   function render(container, state, opts) {
     opts = opts || {};
     injectCSS();
@@ -317,12 +339,15 @@
           (r.viewUrl ? '<div class="pdr-qr"><div class="pdr-qrcode"></div><small>Scan for full results</small></div>' : '') +
         '</div>' +
         '<div class="pdr-body">' +
-          '<div class="pdr-sec"><h3>Podium</h3><span>ranked by wins</span></div>' +
-          '<div class="pdr-podium">' +
-            podCard(r.podium[1], 1) + podCard(r.podium[0], 0) + podCard(r.podium[2], 2) +
-          '</div>' +
-          '<div class="pdr-sec" style="margin-top:22px"><h3>Top ' + Math.min(10, r.top10.length) + '</h3><span>' + esc(showAll) + '</span></div>' +
-          '<div class="pdr-top">' + r.top10.map(topRow).join('') + '</div>' +
+          (r.genderSplit
+            ? genderBoard("Men's", r.genderSplit.men, r.genderSplit.menTotal, true) +
+              genderBoard("Women's", r.genderSplit.women, r.genderSplit.womenTotal, !r.genderSplit.menTotal)
+            : '<div class="pdr-sec"><h3>Podium</h3><span>ranked by wins</span></div>' +
+              '<div class="pdr-podium">' +
+                podCard(r.podium[1], 1) + podCard(r.podium[0], 0) + podCard(r.podium[2], 2) +
+              '</div>' +
+              '<div class="pdr-sec" style="margin-top:22px"><h3>Top ' + Math.min(10, r.top10.length) + '</h3><span>' + esc(showAll) + '</span></div>' +
+              '<div class="pdr-top">' + r.top10.map(topRow).join('') + '</div>') +
         '</div>' +
         '<div class="pdr-foot"><div>See you next <b>OPEN PLAY</b></div><div class="r"><b>padq.app</b><span>powered by Paddle District</span></div></div>' +
         '<div class="pdr-actions"><button class="pdr-save" type="button">⬇ Save image</button></div>' +
