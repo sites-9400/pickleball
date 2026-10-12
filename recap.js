@@ -233,11 +233,28 @@
     // top 10
     '.pdr-top{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:2px 22px;}',
     '@container (max-width:520px){.pdr-top{grid-template-columns:1fr;}}',
-    // hybrid nights: Men's | Women's side by side on a wider card, one list each
-    '.pdr.pdr-split{max-width:960px;}',
-    '.pdr-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 26px;}',
+    // hybrid nights: Men's | Women's side by side (same 680 card), compact podium, one list each
+    '.pdr-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 20px;}',
     '.pdr-split .pdr-top{grid-template-columns:1fr;margin-top:0;}',
-    '@container (max-width:760px){.pdr-cols{grid-template-columns:minmax(0,1fr);}.pdr-cols>.pdr-col+.pdr-col{margin-top:26px;}}',
+    '.pdr-split .pdr-sec h3{font-size:.8rem;letter-spacing:.12em;margin:4px 0;}',
+    '.pdr-split .pdr-sec span{font-size:.6rem;}',
+    '.pdr-split .pdr-podium{gap:6px;}',
+    '.pdr-split .pdr-pod{padding:9px 4px;border-radius:10px;}',
+    '.pdr-split .pdr-pod.champ{padding-top:12px;padding-bottom:11px;}',
+    '.pdr-split .pdr-medal{font-size:1.1rem;}',
+    '.pdr-split .pdr-pod.champ .pdr-medal{font-size:1.3rem;}',
+    '.pdr-split .pdr-nm{font-size:.84rem;margin-top:3px;}',
+    '.pdr-split .pdr-pod.champ .pdr-nm{font-size:.92rem;}',
+    '.pdr-split .pdr-place{font-size:.5rem;letter-spacing:.08em;}',
+    '.pdr-split .pdr-wins{font-size:1.35rem;margin-top:5px;}',
+    '.pdr-split .pdr-pod.champ .pdr-wins{font-size:1.6rem;}',
+    '.pdr-split .pdr-wins i{font-size:.5rem;margin-top:2px;}',
+    '.pdr-split .pdr-sub{font-size:.62rem;margin-top:4px;}',
+    '.pdr-split .pdr-row{padding:6px 2px;gap:7px;}',
+    '.pdr-split .pdr-rn{font-size:.9rem;}',
+    '.pdr-split .pdr-rw{font-size:1rem;}',
+    '.pdr-split .pdr-rm{font-size:.64rem;}',
+    '@container (max-width:520px){.pdr-cols{grid-template-columns:minmax(0,1fr);}.pdr-cols>.pdr-col+.pdr-col{margin-top:26px;}}',
     '.pdr-row{display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid var(--pdr-line);}',
     '.pdr-rk{font-size:.86rem;font-weight:800;color:var(--pdr-muted);width:20px;text-align:center;flex-shrink:0;}',
     '.pdr-row.medal .pdr-rk{font-size:1.1rem;}',
@@ -264,7 +281,7 @@
     '.pdr-ovl-hint b{color:#ffd66b;}',
     '.pdr-ovl-close{background:rgba(255,255,255,.14);border:none;color:#fff;font-size:1rem;width:36px;height:36px;border-radius:50%;cursor:pointer;}',
     '.pdr-ovl-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 12px;}',
-    '.pdr-ovl-img{display:block;width:100%;max-width:960px;margin:0 auto;border-radius:10px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;}',
+    '.pdr-ovl-img{display:block;width:100%;max-width:680px;margin:0 auto;border-radius:10px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;}',
     '.pdr-ovl-foot{display:flex;gap:10px;padding:10px 14px calc(14px + env(safe-area-inset-bottom));}',
     '.pdr-ovl-foot button{flex:1;border:none;border-radius:9px;padding:13px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;}',
     '.pdr-ovl-share{background:#1f7a3a;color:#fff;}',
@@ -450,29 +467,28 @@
   // Render the card to {file, url}. Captures a detached clone rather than the live
   // card: the card uses container-type:inline-size for its @container rules and
   // html2canvas 1.4.1 mishandles containment (QR came out blank); the clone is
-  // forced to the fixed 680px layout (960px for the side-by-side hybrid card) with
-  // containment off, and drops the button row so the PNG never shows it.
+  // forced to the fixed 680px layout with containment off, and drops the button
+  // row so the PNG never shows it.
   function producePng(card) {
-    var W = /(^|\s)pdr-split(\s|$)/.test(card.className || '') ? 960 : 680;
     var clone = card.cloneNode(true);
     clone.style.containerType = 'normal';
-    clone.style.width = W + 'px';
-    clone.style.maxWidth = W + 'px';
+    clone.style.width = '680px';
+    clone.style.maxWidth = '680px';
     clone.style.margin = '0';
     clone.style.boxShadow = 'none';
     var act = clone.querySelector('.pdr-actions');
     if (act && act.parentNode) act.parentNode.removeChild(act);
     var holder = document.createElement('div');
-    holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:' + W + 'px;pointer-events:none;';
+    holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:680px;pointer-events:none;';
     holder.appendChild(clone);
     document.body.appendChild(holder);
     function cleanup() { if (holder.parentNode) holder.parentNode.removeChild(holder); }
 
-    // Re-frame the photo for the export size (the clone lost the on-screen sizing).
+    // Re-frame the photo for the 680px export size (the clone lost the on-screen sizing).
     var srcHero = card.querySelector('.pdr-hero-photo'), cloneHero = clone.querySelector('.pdr-hero-photo');
     var framed = (srcHero && srcHero.__photo) ? frameHero(cloneHero, srcHero.__photo).catch(function () {}) : Promise.resolve();
     return framed.then(loadH2C).then(function (h2c) {
-      return h2c(clone, { backgroundColor: '#f7f4ea', scale: Math.min(3, (global.devicePixelRatio || 1) * 2), useCORS: true, width: W, windowWidth: W + 40 });
+      return h2c(clone, { backgroundColor: '#f7f4ea', scale: Math.min(3, (global.devicePixelRatio || 1) * 2), useCORS: true, width: 680, windowWidth: 720 });
     }).then(function (canvas) {
       return new Promise(function (resolve, reject) {
         var done = function (blob) {
