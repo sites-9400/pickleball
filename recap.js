@@ -211,6 +211,11 @@
     '.pdr-sec{display:flex;align-items:baseline;justify-content:space-between;margin:2px 0 12px;}',
     '.pdr-sec h3{font-size:.95rem;font-weight:900;letter-spacing:.16em;text-transform:uppercase;}',
     '.pdr-sec span{font-size:.72rem;font-weight:700;letter-spacing:.08em;color:var(--pdr-muted);text-transform:uppercase;}',
+    // centred heading (hybrid podiums): title over the champion, note stays right
+    '.pdr-sec.pdr-c{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;}',
+    '.pdr-sec.pdr-c h3{grid-column:2;text-align:center;}',
+    '.pdr-sec.pdr-c span{justify-self:end;text-align:right;white-space:nowrap;}',
+    '@container (max-width:520px){.pdr-sec.pdr-c span{display:none;}}',
     '.pdr-podium{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr) minmax(0,1fr);gap:10px;align-items:end;}',
     '.pdr-pod{min-width:0;background:var(--pdr-panel);border:1px solid var(--pdr-line);border-radius:13px;padding:14px 8px 13px;text-align:center;}',
     '.pdr-pod.champ{background:linear-gradient(180deg,#fbf3d7,#fff);border-color:#eBd493;box-shadow:0 6px 16px rgba(212,160,23,.16);padding-top:18px;padding-bottom:16px;}',
@@ -228,6 +233,11 @@
     // top 10
     '.pdr-top{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:2px 22px;}',
     '@container (max-width:520px){.pdr-top{grid-template-columns:1fr;}}',
+    // hybrid nights: Men's | Women's side by side on a wider card, one list each
+    '.pdr.pdr-split{max-width:960px;}',
+    '.pdr-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 26px;}',
+    '.pdr-split .pdr-top{grid-template-columns:1fr;margin-top:0;}',
+    '@container (max-width:760px){.pdr-cols{grid-template-columns:minmax(0,1fr);}.pdr-cols>.pdr-col+.pdr-col{margin-top:26px;}}',
     '.pdr-row{display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid var(--pdr-line);}',
     '.pdr-rk{font-size:.86rem;font-weight:800;color:var(--pdr-muted);width:20px;text-align:center;flex-shrink:0;}',
     '.pdr-row.medal .pdr-rk{font-size:1.1rem;}',
@@ -254,7 +264,7 @@
     '.pdr-ovl-hint b{color:#ffd66b;}',
     '.pdr-ovl-close{background:rgba(255,255,255,.14);border:none;color:#fff;font-size:1rem;width:36px;height:36px;border-radius:50%;cursor:pointer;}',
     '.pdr-ovl-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 12px;}',
-    '.pdr-ovl-img{display:block;width:100%;max-width:680px;margin:0 auto;border-radius:10px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;}',
+    '.pdr-ovl-img{display:block;width:100%;max-width:960px;margin:0 auto;border-radius:10px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;}',
     '.pdr-ovl-foot{display:flex;gap:10px;padding:10px 14px calc(14px + env(safe-area-inset-bottom));}',
     '.pdr-ovl-foot button{flex:1;border:none;border-radius:9px;padding:13px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;}',
     '.pdr-ovl-share{background:#1f7a3a;color:#fff;}',
@@ -300,13 +310,14 @@
   }
 
   // One gender's podium + top 5 (hybrid nights). Empty board -> nothing.
-  function genderBoard(label, list, total, first) {
+  function genderBoard(label, list, total) {
     if (!list.length) return '';
     var more = total > 5 ? ('scan for all ' + total) : 'ranked by wins';
-    return '<div class="pdr-sec"' + (first ? '' : ' style="margin-top:26px"') + '><h3>' + label + ' Podium</h3><span>ranked by wins</span></div>' +
+    return '<div class="pdr-col">' +
+      '<div class="pdr-sec pdr-c"><h3>' + label + ' Podium</h3><span>ranked by wins</span></div>' +
       '<div class="pdr-podium">' + podCard(list[1], 1) + podCard(list[0], 0) + podCard(list[2], 2) + '</div>' +
       '<div class="pdr-sec" style="margin-top:18px"><h3>' + label + ' Top ' + list.length + '</h3><span>' + esc(more) + '</span></div>' +
-      '<div class="pdr-top">' + list.map(topRow).join('') + '</div>';
+      '<div class="pdr-top">' + list.map(topRow).join('') + '</div></div>';
   }
 
   function render(container, state, opts) {
@@ -321,9 +332,10 @@
     var meta = [r.timeLabel, r.dateLabel, r.courtLabel].filter(Boolean)
       .map(function (m) { return '<span class="pdr-mp">' + esc(m) + '</span>'; }).join('  ·  ');
     var showAll = r.totalPlayers > 10 ? ('scan for all ' + r.totalPlayers + ' players') : 'ranked by wins';
+    var gs = r.genderSplit, split = !!(gs && gs.men.length && gs.women.length);
 
     var html = '' +
-      '<div class="pdr" id="pdr-card">' +
+      '<div class="pdr' + (split ? ' pdr-split' : '') + '" id="pdr-card">' +
         (r.photo ? '<div class="pdr-hero pdr-hero-photo"' + (r.frame ? ' data-frame="' + r.frame + '"' : '') + ' style="background-image:linear-gradient(180deg,rgba(12,30,18,.18) 0%,rgba(12,30,18,.5) 45%,rgba(12,30,18,.86) 100%),url(\'' + r.photo + '\')">' : '<div class="pdr-hero">') +
           '<div class="pdr-hmain">' +
             (r.groupName ? '<div class="pdr-group">' + esc(r.groupName) + '</div>' : '') +
@@ -339,9 +351,8 @@
           (r.viewUrl ? '<div class="pdr-qr"><div class="pdr-qrcode"></div><small>Scan for full results</small></div>' : '') +
         '</div>' +
         '<div class="pdr-body">' +
-          (r.genderSplit
-            ? genderBoard("Men's", r.genderSplit.men, r.genderSplit.menTotal, true) +
-              genderBoard("Women's", r.genderSplit.women, r.genderSplit.womenTotal, !r.genderSplit.menTotal)
+          (gs
+            ? '<div class="pdr-cols">' + genderBoard("Men's", gs.men, gs.menTotal) + genderBoard("Women's", gs.women, gs.womenTotal) + '</div>'
             : '<div class="pdr-sec"><h3>Podium</h3><span>ranked by wins</span></div>' +
               '<div class="pdr-podium">' +
                 podCard(r.podium[1], 1) + podCard(r.podium[0], 0) + podCard(r.podium[2], 2) +
@@ -439,28 +450,29 @@
   // Render the card to {file, url}. Captures a detached clone rather than the live
   // card: the card uses container-type:inline-size for its @container rules and
   // html2canvas 1.4.1 mishandles containment (QR came out blank); the clone is
-  // forced to the fixed 680px layout with containment off, and drops the button
-  // row so the PNG never shows it.
+  // forced to the fixed 680px layout (960px for the side-by-side hybrid card) with
+  // containment off, and drops the button row so the PNG never shows it.
   function producePng(card) {
+    var W = /(^|\s)pdr-split(\s|$)/.test(card.className || '') ? 960 : 680;
     var clone = card.cloneNode(true);
     clone.style.containerType = 'normal';
-    clone.style.width = '680px';
-    clone.style.maxWidth = '680px';
+    clone.style.width = W + 'px';
+    clone.style.maxWidth = W + 'px';
     clone.style.margin = '0';
     clone.style.boxShadow = 'none';
     var act = clone.querySelector('.pdr-actions');
     if (act && act.parentNode) act.parentNode.removeChild(act);
     var holder = document.createElement('div');
-    holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:680px;pointer-events:none;';
+    holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:' + W + 'px;pointer-events:none;';
     holder.appendChild(clone);
     document.body.appendChild(holder);
     function cleanup() { if (holder.parentNode) holder.parentNode.removeChild(holder); }
 
-    // Re-frame the photo for the 680px export size (the clone lost the on-screen sizing).
+    // Re-frame the photo for the export size (the clone lost the on-screen sizing).
     var srcHero = card.querySelector('.pdr-hero-photo'), cloneHero = clone.querySelector('.pdr-hero-photo');
     var framed = (srcHero && srcHero.__photo) ? frameHero(cloneHero, srcHero.__photo).catch(function () {}) : Promise.resolve();
     return framed.then(loadH2C).then(function (h2c) {
-      return h2c(clone, { backgroundColor: '#f7f4ea', scale: Math.min(3, (global.devicePixelRatio || 1) * 2), useCORS: true, width: 680, windowWidth: 720 });
+      return h2c(clone, { backgroundColor: '#f7f4ea', scale: Math.min(3, (global.devicePixelRatio || 1) * 2), useCORS: true, width: W, windowWidth: W + 40 });
     }).then(function (canvas) {
       return new Promise(function (resolve, reject) {
         var done = function (blob) {

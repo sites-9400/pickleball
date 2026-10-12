@@ -90,3 +90,20 @@ test('admin: gender filter is ignored when hybrid is off', () => {
   const a = app({ hybrid: false });
   assert.equal(a.run(`rankRows('f').length`), 10);
 });
+
+// Organizer mockup (2026-10-12): Men's | Women's side by side, podium title centred
+// over the champion, each top 5 as one list.
+test('recap render: hybrid lays Men\'s and Women\'s out side by side', () => {
+  const h = html(hyb());
+  assert.match(h, /class="pdr pdr-split"/);
+  assert.match(h, /<div class="pdr-cols"><div class="pdr-col">/);
+  assert.match(h, /<div class="pdr-sec pdr-c"><h3>Men's Podium/);
+  assert.match(h, /<div class="pdr-sec pdr-c"><h3>Women's Podium/);
+});
+
+test('recap render: only one gender tagged -> no wide two-column card', () => {
+  const menOnly = roster.map(p => (p.gender === 'f' ? { ...p, gender: undefined } : p));
+  const h = html(hyb({ players: menOnly }));
+  assert.match(h, /Men's Podium/);
+  assert.doesNotMatch(h, /pdr-split/);
+});
