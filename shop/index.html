@@ -344,13 +344,13 @@ const COMING = [{
   blurb: 'New version of the Loco. Same award-winning core, new Space Dust Grit face for more spin that lasts.',
   specs: ['Space Dust Grit face', '16mm dual-density foam core', 'T700 raw carbon + fiberglass', '7.9–8.2 oz', '16.5" × 7.375"', '5.5" handle', 'USAP + UPA approved'],
 }];
-// Balls aren't in the sheet yet: a pre-order card until the batch lands and is priced.
-// `ask` is the Messenger text; without it the card asks to reserve "a <label>".
-const COMING_BALLS = [{
+// Balls aren't in Shop Feed: price and stock come from the POS "Inventory" tab
+// (row "Franklin X-40 balls"). Update qty here when a batch sells down or restocks.
+const BALLS = [{
   brand: 'Franklin', model: 'X-40 Outdoor Pickleballs', color: 'Optic Yellow', img: 'img/franklin-x40-optic.jpg',
+  price: 180, qty: 50,
   blurb: 'The official ball of the US Open, USA Pickleball and the APP Tour. Flies true, spins tight, lasts on concrete.',
   specs: ['USAP approved', '40 machine-drilled holes', 'One-piece build for outdoor courts', '26 g · 74 mm'],
-  ask: "Hi Jude! I'd like to reserve some Franklin X-40 outdoor balls.",
 }];
 
 const GRIPS = {
@@ -468,7 +468,23 @@ function comingCard(p) {
 }
 
 function renderBalls() {
-  document.getElementById('ballGrid').innerHTML = COMING_BALLS.map(comingCard).join('');
+  document.getElementById('ballGrid').innerHTML = BALLS.map(p => {
+    const label = `${p.brand} ${p.model} (${p.color})`;
+    return `<article class="card">
+      <div class="photo">${pic(p.img, label)}${stockBadge(p.qty, 3, false)}</div>
+      <div class="body">
+        <div class="brand">${esc(p.brand)}</div>
+        <div class="name">${esc(p.model)}</div>
+        <div class="color">${esc(p.color)}</div>
+        <p class="blurb">${esc(p.blurb)}</p>
+        <ul class="specs">${p.specs.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
+        <div class="foot">
+          <span class="price">${peso(p.price)} <small style="font-size:.6em;font-weight:600">each</small></span>
+          ${addBtn(product(label, p.price, p.qty, p.img, 3), 'Add to cart')}
+        </div>
+      </div>
+    </article>`;
+  }).join('');
 }
 
 function renderPaddles(list) {
@@ -968,7 +984,7 @@ async function load() {
     }
   }
 }
-renderBalls();  // static pre-order card, no feed needed
+renderBalls();  // static card, stock from POS Inventory, not the feed
 load();
 </script>
 </body>
