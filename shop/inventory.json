@@ -1,28 +1,22 @@
 {
- "updated": "2026-10-06T02:16+00:00",
+ "updated": "2026-11-07T11:22+00:00",
  "paddles": [
-  [
-   "KAMITO DOMINUS",
-   "Rose Gold / Metallic Pink",
-   7900,
-   1
-  ],
-  [
-   "KAMITO DOMINUS",
-   "Ash Silver / Smoky Grey",
-   7900,
-   1
-  ],
-  [
-   "LOCO ",
-   "Hybrid Black",
-   14900,
-   1
-  ],
   [
    "LOCO ",
    "Hybrid Azul",
-   14900,
+   11500,
+   1
+  ],
+  [
+   "LOCO 2",
+   "Blanco",
+   13500,
+   1
+  ],
+  [
+   "LOCO 2",
+   "Blanco",
+   13500,
    1
   ]
  ],
@@ -37,67 +31,73 @@
    "Doughy Grips (Soft and Tacky)",
    "Midnight Fudge (Black)",
    150,
-   12
+   2
   ],
   [
    "Doughy Grips (Soft and Tacky)",
    "Bella Blue (Light Blue)",
    150,
-   12
+   8
   ],
   [
    "Doughy Grips (Soft and Tacky)",
    "Sesame (Gray)",
    150,
-   12
+   6
   ],
   [
    "Doughy Grips (Soft and Tacky)",
    "Butter (Yellow)",
    150,
-   11
+   5
   ],
   [
    "Doughy Grips (Soft and Tacky)",
    "Salted Caramel (Brown)",
    150,
-   11
+   7
   ],
   [
    "Tough Cookie (dry overgrip, sweat-resistant)",
    "Sugar Glaze (White)",
    150,
-   11
+   9
   ],
   [
    "Tough Cookie (dry overgrip, sweat-resistant)",
    "Glowberry Crunch (Pink)",
    150,
-   12
+   5
   ],
   [
    "Tough Cookie (dry overgrip, sweat-resistant)",
    "Frosted Cumb Monster (Light Blue)",
    150,
-   11
+   0
   ],
   [
    "Tough Cookie (dry overgrip, sweat-resistant)",
    "Dark Sesame (Gray)",
    150,
-   10
+   0
   ],
   [
    "Tough Cookie (dry overgrip, sweat-resistant)",
    "Tangy Snap (Orange)",
    150,
-   12
+   10
   ],
   [
    "Tough Cookie (dry overgrip, sweat-resistant)",
    "Blue Velvet (Dark Blue)",
    150,
-   8
+   0
+  ],
+  [
+   "Franklin X-40 balls",
+   "X-40 Holes",
+   180,
+   33
   ]
  ]
 }
