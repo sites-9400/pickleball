@@ -67,6 +67,33 @@ tests drive the real functions.
 ## Deploying
 
 Pushing to `main` deploys via GitHub Actions Pages
-(`.github/workflows/deploy-pages.yml`). Firebase rules are **not** deployed
-automatically: paste `docs/firebase-rules.json` into Firebase Console →
-Realtime Database → Rules whenever it changes.
+(`.github/workflows/deploy-pages.yml`). Bump `CACHE` in `sw.js` on every deploy
+that changes page code.
+
+Firebase rules are **not** deployed by the push. Edit
+`scripts/gen-firebase-rules.mjs`, run `node scripts/gen-firebase-rules.mjs`, then
+deploy `docs/firebase-rules.json` with the firebase CLI (back up the live rules,
+diff, deploy, read back). **Deploy rules before the app** whenever the app starts
+writing a new session key or check-in field, or those writes are rejected.
+
+## Hybrid matchmaking (Men's / Women's / Mixed courts)
+
+Added 2026-10-11 for Jude (spec: `docs/superpowers/specs/2026-10-11-hybrid-matchmaking-design.md`).
+Live tab switch for Numbering / By wait time / Balanced: courts are tagged
+`group: men|women|mixed`, players `gender: m|f` (missing = untagged, Mixed only),
+session `hybrid: true`. Each group runs the session's mode unchanged on its own
+players (`chooseMatchInGroup`), one Up Next per group. Borrowing rules
+(`canBorrow`): a group with a free court may take from a busy group's Up Next, and
+Men's/Women's may take from Mixed's. `node scripts/sim-hybrid.mjs` reruns the
+full-night fairness sim.
+
+Men's / Women's leaderboards (added 2026-10-12, ee59149, SW `pickled-v37`): on
+hybrid nights the admin Rankings tab and the player view get All / Men / Women
+pills (per device, not synced; untagged players appear under All only), and the
+recap (`recap.js` `genderSplit`) shows a Men's and a Women's podium + top 5.
+Tests: `tests/leaderboard-gender-split.test.js`.
+
+Browser-testing note: run Playwright in a context with
+`serviceWorkers: 'block'` and assert the Firebase stub loaded on every page. The
+app's service worker otherwise serves the real Firebase SDK past `page.route`
+stubs (happened twice on 2026-10-11; nothing was written).
