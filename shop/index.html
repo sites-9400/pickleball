@@ -13,7 +13,7 @@
 <meta property="og:description" content="Bread & Butter Loco, Kamito Dominus, cookiegrips. Buy at open play or we ship nationwide.">
 <meta property="og:image" content="https://padq.app/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#4A5C2F">
+<meta name="theme-color" content="#0A3428">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <script>
 // Set the theme before first paint so dark-mode users don't see a white flash.
@@ -22,15 +22,15 @@ try { document.documentElement.dataset.theme = localStorage.getItem('pb_theme') 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{--army:#4A5C2F;--army-light:#637A3D;--accent:#8FB339;--font:'Montserrat',sans-serif;--photo:#FFFFFF;}
-[data-theme="light"]{--bg:#F5F6F0;--surface:#FFFFFF;--ink:#1C1F14;--muted:#6B7254;--line:#D8DDD0;--soft:#EEF1E6;--low:#B5651D;}
-[data-theme="dark"]{--bg:#1A1C14;--surface:#252819;--ink:#EEF0E8;--muted:#8A9470;--line:#3A3F2A;--soft:#2E3220;--low:#E0A15E;}
+:root{--army:#126652;--army-light:#1E8068;--accent:#FFD84D;--font:'Montserrat',sans-serif;--photo:#FFFFFF;}
+[data-theme="light"]{--bg:#F2F6F4;--surface:#FFFFFF;--ink:#0E1F1A;--muted:#5B6F68;--line:#D2DED9;--soft:#E4F1EC;--low:#B5651D;}
+[data-theme="dark"]{--bg:#0F1A17;--surface:#172420;--ink:#E9F1EE;--muted:#86A098;--line:#2A3D36;--soft:#1E2E29;--low:#E0A15E;}
 body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:100vh;transition:background 0.2s;}
 a{color:inherit;}
 .wrap{max-width:1080px;margin:0 auto;padding:0 16px;}
 
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;}
-.top-logo img{height:40px;width:auto;display:block;}
+.top-logo img{height:56px;width:auto;display:block;}
 .top-links{display:flex;align-items:center;gap:10px;}
 .theme-toggle{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:0.85rem;cursor:pointer;font-family:var(--font);}
 .top-home{font-size:0.78rem;font-weight:700;color:var(--muted);text-decoration:none;letter-spacing:0.02em;}
@@ -726,49 +726,49 @@ async function drawSlip(o) {
   }
   const H = 300 + o.lines.length * ROW + 70 + 260 + (rh ? rh + 110 : 0);
   c.width = W; c.height = H;
-  x.fillStyle = '#F5F6F0'; x.fillRect(0, 0, W, H);
-  x.fillStyle = '#4A5C2F'; x.fillRect(0, 0, W, 200);
+  x.fillStyle = '#F2F6F4'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#126652'; x.fillRect(0, 0, W, 200);
   if (logo) { const lh = 110, lw = logo.width * lh / logo.height; x.drawImage(logo, P, 45, lw, lh); }
   x.fillStyle = '#fff'; x.textAlign = 'right';
   x.font = `800 44px ${F}`; x.fillText('ORDER SLIP', W - P, 95);
   x.font = `600 28px ${F}`; x.fillText(o.no, W - P, 140);
   x.textAlign = 'left';
   let y = 260;
-  x.fillStyle = '#6B7254'; x.font = `600 26px ${F}`;
+  x.fillStyle = '#5B6F68'; x.font = `600 26px ${F}`;
   x.fillText(o.at.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }), P, y);
   y += 30;
   o.lines.forEach((l, i) => {
     const top = y + i * ROW;
     x.fillStyle = '#fff'; x.fillRect(P, top + 15, 120, 120);
     if (thumbs[i]) x.drawImage(thumbs[i], P, top + 15, 120, 120);
-    x.fillStyle = '#1C1F14'; x.font = `700 30px ${F}`;
+    x.fillStyle = '#0E1F1A'; x.font = `700 30px ${F}`;
     const name = wrap(l.p.name, W - P * 2 - 160 - 220);
     name.slice(0, 2).forEach((t, j) => x.fillText(t, P + 150, top + 62 + j * 36));
-    x.fillStyle = '#6B7254'; x.font = `600 26px ${F}`;
+    x.fillStyle = '#5B6F68'; x.font = `600 26px ${F}`;
     x.fillText(`${l.n} × ${peso(l.p.price)}`, P + 150, top + 62 + Math.min(name.length, 2) * 36 + 4);
-    x.fillStyle = '#1C1F14'; x.font = `800 32px ${F}`; x.textAlign = 'right';
+    x.fillStyle = '#0E1F1A'; x.font = `800 32px ${F}`; x.textAlign = 'right';
     x.fillText(peso(l.p.price * l.n), W - P, top + 80); x.textAlign = 'left';
-    x.fillStyle = '#D8DDD0'; x.fillRect(P, top + ROW - 1, W - P * 2, 2);
+    x.fillStyle = '#D2DED9'; x.fillRect(P, top + ROW - 1, W - P * 2, 2);
   });
   y += o.lines.length * ROW + 70;
-  x.fillStyle = '#1C1F14'; x.font = `900 40px ${F}`; x.fillText('Total', P, y);
+  x.fillStyle = '#0E1F1A'; x.font = `900 40px ${F}`; x.fillText('Total', P, y);
   x.textAlign = 'right'; x.fillText(peso(o.total), W - P, y); x.textAlign = 'left';
   y += 60;
   if (o.paid) {
-    x.fillStyle = '#4A5C2F'; x.fillRect(P, y, W - P * 2, 150);
+    x.fillStyle = '#126652'; x.fillRect(P, y, W - P * 2, 150);
     x.fillStyle = '#fff'; x.font = `800 34px ${F}`; x.fillText('PAID · waiting for Jude to confirm', P + 30, y + 62);
     x.font = `600 26px ${F}`; x.fillText('Payment screenshot below · m.me/juudeng', P + 30, y + 108);
   } else {
-    x.fillStyle = '#EEF1E6'; x.fillRect(P, y, W - P * 2, 150);
-    x.fillStyle = '#4A5C2F'; x.font = `800 30px ${F}`; x.fillText('NOT PAID YET · Send this to Jude', P + 30, y + 58);
-    x.fillStyle = '#6B7254'; x.font = `600 26px ${F}`;
+    x.fillStyle = '#E4F1EC'; x.fillRect(P, y, W - P * 2, 150);
+    x.fillStyle = '#126652'; x.font = `800 30px ${F}`; x.fillText('NOT PAID YET · Send this to Jude', P + 30, y + 58);
+    x.fillStyle = '#5B6F68'; x.font = `600 26px ${F}`;
     x.fillText('m.me/juudeng · Pay after Jude confirms · GCash 0908 119 1555', P + 30, y + 105);
   }
   if (rh) {
     y += 150 + 70;
-    x.fillStyle = '#6B7254'; x.font = `700 26px ${F}`; x.fillText('PAYMENT SCREENSHOT', P, y);
+    x.fillStyle = '#5B6F68'; x.font = `700 26px ${F}`; x.fillText('PAYMENT SCREENSHOT', P, y);
     const rx = (W - rw) / 2, ry = y + 24;
-    x.fillStyle = '#D8DDD0'; x.fillRect(rx - 2, ry - 2, rw + 4, rh + 4);
+    x.fillStyle = '#D2DED9'; x.fillRect(rx - 2, ry - 2, rw + 4, rh + 4);
     x.drawImage(o.receipt, rx, ry, rw, rh);
   }
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));

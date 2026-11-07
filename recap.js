@@ -183,22 +183,22 @@
   // ---- rendering (browser only) ----------------------------------------
   var CSS = [
     '.pdr{--pdr-forest:#14331e;--pdr-forest2:#1e4a2c;--pdr-cream:#f7f4ea;--pdr-panel:#fff;',
-    '--pdr-gold:#d4a017;--pdr-army:#4a5c2f;--pdr-ink:#20241a;--pdr-muted:#7c806d;--pdr-line:#e8e5d6;',
+    '--pdr-gold:#F2C230;--pdr-army:#126652;--pdr-ink:#0A3428;--pdr-muted:#5B6F68;--pdr-line:#e8e5d6;',
     "font-family:'Montserrat',-apple-system,Segoe UI,Roboto,sans-serif;color:var(--pdr-ink);",
-    'background:var(--pdr-cream);border-radius:16px;overflow:hidden;box-shadow:0 10px 34px rgba(20,30,15,.18);',
+    'background:var(--pdr-cream);border-radius:16px;overflow:hidden;box-shadow:0 10px 34px rgba(10,30,24,.18);',
     'max-width:680px;margin:0 auto;container-type:inline-size;}',
     '.pdr *{box-sizing:border-box;}',
     '.pdr-hmain{padding-right:104px;}', // reserve room for the QR in wide layout
     // hero
     '.pdr-hero{position:relative;background:linear-gradient(150deg,var(--pdr-forest2),var(--pdr-forest) 62%);color:#fff;padding:22px 22px 20px;}',
     '.pdr-hero-photo{background-size:cover;background-position:center;padding-top:120px;text-shadow:0 1px 3px rgba(0,0,0,.45);}',
-    '.pdr-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(143,179,57,.18),transparent 55%);pointer-events:none;}',
+    '.pdr-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(255,216,77,.18),transparent 55%);pointer-events:none;}',
     '.pdr-eyebrow{font-size:.8rem;font-weight:800;letter-spacing:.22em;opacity:.9;text-transform:uppercase;}',
     '.pdr-meta{font-size:.8rem;font-weight:700;letter-spacing:.13em;color:var(--pdr-gold);margin-top:10px;text-transform:uppercase;}',
     '.pdr-mp{white-space:nowrap;}',
     '.pdr-group{font-size:1.15rem;font-weight:800;letter-spacing:.02em;margin-bottom:6px;overflow-wrap:anywhere;}',
     '.pdr-title{font-size:2.5rem;line-height:.95;font-weight:900;letter-spacing:-.01em;margin-top:6px;text-transform:uppercase;}',
-    '.pdr-title span{color:#a9cf5a;}',
+    '.pdr-title span{color:#FFD84D;}',
     '.pdr-statrow{display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;}',
     '.pdr-stat b{font-size:1.8rem;font-weight:900;}',
     '.pdr-stat i{font-style:normal;font-size:.78rem;font-weight:700;letter-spacing:.1em;opacity:.82;text-transform:uppercase;margin-left:5px;}',

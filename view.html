@@ -19,22 +19,22 @@
 <meta name="twitter:description" content="Live scores, courts, and rankings for today's Paddle District open play.">
 <meta name="twitter:image" content="https://padq.app/og-image.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#4A5C2F">
+<meta name="theme-color" content="#0A3428">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Pickled">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{--army:#4A5C2F;--army-light:#637A3D;--accent:#8FB339;--red:#C0392B;--gold:#D4A017;--font:'Montserrat',sans-serif;}
-[data-theme="dark"]{--bg:#13150E;--surface:#1E2115;--surface2:#262B18;--ink:#EEF0E8;--muted:#8A9470;--line:#2E3320;--teamA:#2F4A1C;--teamA-ink:#B5D47E;--teamB:#1C3549;--teamB-ink:#9CCBEA;}
-[data-theme="light"]{--bg:#F5F6F0;--surface:#FFFFFF;--surface2:#F0F2EA;--ink:#1C1F14;--muted:#6B7254;--line:#D8DDD0;--teamA:#E5EFD3;--teamA-ink:#4A5C2F;--teamB:#DCEBF6;--teamB-ink:#2B5C7E;}
+:root{--army:#126652;--army-light:#1E8068;--accent:#FFD84D;--red:#C0392B;--gold:#F2C230;--font:'Montserrat',sans-serif;}
+[data-theme="dark"]{--accent-ink:#FFD84D;--bg:#0D1714;--surface:#16231F;--surface2:#1D2C27;--ink:#E9F1EE;--muted:#86A098;--line:#283934;--teamA:#1F4A3E;--teamA-ink:#9EDCC5;--teamB:#1C3549;--teamB-ink:#9CCBEA;}
+[data-theme="light"]{--accent-ink:#126652;--bg:#F2F6F4;--surface:#FFFFFF;--surface2:#EAF1EE;--ink:#0E1F1A;--muted:#5B6F68;--line:#D2DED9;--teamA:#DDF0E8;--teamA-ink:#126652;--teamB:#DCEBF6;--teamB-ink:#2B5C7E;}
 body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:100vh;padding-bottom:40px;letter-spacing:0.01em;transition:background 0.2s,color 0.2s;}
-header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,0.4);}
+header{background:#758983;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,0.4);}
 .logo{width:36px;height:36px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
 .header-text{flex:1;}
 .header-text h1{font-size:1.05rem;font-weight:800;letter-spacing:0.02em;}
 .header-text p{font-size:0.72rem;font-weight:500;opacity:0.75;margin-top:1px;letter-spacing:0.02em;}
-.live-dot{width:8px;height:8px;border-radius:50%;background:#8FB339;flex-shrink:0;animation:blink 2s infinite;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#FFD84D;flex-shrink:0;animation:blink 2s infinite;}
 .live-dot.offline{background:#C0392B;animation:none;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
 .session-clock-view{font-weight:800;font-size:1rem;letter-spacing:0.06em;background:rgba(0,0,0,0.2);padding:4px 12px;border-radius:20px;}
@@ -52,7 +52,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 .shop-btn:hover{background:rgba(255,255,255,0.22);}
 @media(max-width:600px){.shop-btn span{display:none;}
   header{padding:10px 12px;gap:8px;}
-  header .logo img{height:24px!important;}
+  header .logo img{height:32px!important;}
   .header-text{min-width:0;}
   .header-text h1{font-size:0.95rem;}
   .session-clock-view{font-size:0.82rem;padding:4px 8px;white-space:nowrap;}
@@ -88,7 +88,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 .queue-view-rank{font-weight:800;font-size:0.82rem;color:var(--muted);width:22px;text-align:center;flex-shrink:0;}
 .queue-view-name{flex:1;font-weight:600;font-size:0.88rem;}
 .queue-view-badge{font-size:0.68rem;font-weight:800;letter-spacing:0.04em;padding:3px 9px;border-radius:20px;}
-.badge-on{background:rgba(74,92,47,0.3);color:#8FB339;border:1px solid rgba(143,179,57,0.3);}
+.badge-on{background:rgba(18,102,82,0.3);color:var(--accent-ink);border:1px solid rgba(255,216,77,0.3);}
 .rank-view-table{width:100%;border-collapse:collapse;}
 .rank-view-table th{font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--line);white-space:nowrap;}
 .rank-view-table th:first-child,.rank-view-table th:nth-child(2){text-align:left;}
@@ -114,15 +114,15 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 .player-tag-view{display:inline-flex;align-items:center;gap:7px;font-weight:700;}
 .mini-av{width:24px;height:24px;border-radius:50%;color:white;font-size:0.62rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
 .score-diff-v{font-weight:700;font-size:0.85rem;}
-.score-diff-v.pos{color:#8FB339;}
+.score-diff-v.pos{color:var(--accent-ink);}
 .score-diff-v.neg{color:var(--red);}
 .score-diff-v.zero{color:var(--muted);}
 .mq-card-v{background:var(--surface);border-radius:10px;border:1.5px solid var(--line);overflow:hidden;margin-bottom:8px;}
-.mq-card-v.next{border-color:#8FB339;}
+.mq-card-v.next{border-color:#FFD84D;}
 .mq-header-v{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--line);}
 .mq-label-v{font-size:0.65rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;}
 .mq-badge-v{font-size:0.65rem;font-weight:800;letter-spacing:0.04em;padding:2px 8px;border-radius:20px;}
-.mq-badge-next-v{background:#8FB339;color:#1C1F14;}
+.mq-badge-next-v{background:#FFD84D;color:#0E1F1A;}
 .mq-badge-deck-v{background:var(--surface2);color:var(--muted);border:1px solid var(--line);}
 .mq-teams-v{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;padding:10px 12px;}
 .mq-team-v{text-align:center;border-radius:8px;padding:6px 4px;}
@@ -171,7 +171,7 @@ header{background:var(--army);color:#fff;padding:14px 20px;display:flex;align-it
 </head>
 <body>
 <header>
-  <div class="logo" style="padding:0;overflow:visible;background:transparent;width:auto;height:auto;border-radius:0;"><img src="logo.png" alt="Paddle District" style="height:30px;width:auto;display:block;object-fit:contain;" onerror="this.style.display='none'"></div>
+  <div class="logo" style="padding:0;overflow:visible;background:transparent;width:auto;height:auto;border-radius:0;"><img src="logo.png" alt="Paddle District" style="height:40px;width:auto;display:block;object-fit:contain;" onerror="this.style.display='none'"></div>
   <div class="header-text">
     <h1 id="viewSessionName">Pickleball Open Play</h1>
     <p id="viewSessionDate">Live View · Read Only</p>
@@ -499,7 +499,7 @@ function renderCourts(s) {
         <div style="text-align:center;padding:6px 0 10px">
           <div style="font-size:2rem;font-weight:800;letter-spacing:0.02em;">${c.score1} <span style="color:var(--muted);font-size:1.3rem;">–</span> ${c.score2}</div>
           <div style="font-size:0.78rem;font-weight:500;color:var(--muted);margin-top:4px;">${t1.map(p=>escapeHtml(p?.name||'?')).join(' & ')} vs ${t2.map(p=>escapeHtml(p?.name||'?')).join(' & ')}</div>
-          ${winner?`<div style="font-size:0.78rem;font-weight:800;color:#8FB339;margin-top:6px;letter-spacing:0.03em;">🏆 ${winner}</div>`:'<div style="font-size:0.75rem;color:var(--muted);margin-top:6px;">Tie</div>'}
+          ${winner?`<div style="font-size:0.78rem;font-weight:800;color:var(--accent-ink);margin-top:6px;letter-spacing:0.03em;">🏆 ${winner}</div>`:'<div style="font-size:0.75rem;color:var(--muted);margin-top:6px;">Tie</div>'}
         </div>
       </div></div>`;
     }
@@ -712,7 +712,7 @@ if (!_SESSION_ID) {
     if (!wrap || !box) return;
     box.innerHTML = '';
     new QRCode(box, { text: window.location.href, width: 120, height: 120,
-      colorDark:'#1C1F14', colorLight:'#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
+      colorDark:'#0E1F1A', colorLight:'#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
     wrap.style.display = 'flex';
   })();
 }

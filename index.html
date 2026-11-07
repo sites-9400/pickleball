@@ -19,15 +19,15 @@
 <meta name="twitter:description" content="Run your pickleball open play: live courts, queues, and rankings in one place.">
 <meta name="twitter:image" content="https://padq.app/og-image.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#4A5C2F">
+<meta name="theme-color" content="#0A3428">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Pickled">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{--army:#4A5C2F;--army-light:#637A3D;--accent:#8FB339;--font:'Montserrat',sans-serif;}
-[data-theme="light"]{--bg:#F5F6F0;--surface:#FFFFFF;--ink:#1C1F14;--muted:#6B7254;--line:#D8DDD0;}
-[data-theme="dark"]{--bg:#1A1C14;--surface:#252819;--ink:#EEF0E8;--muted:#8A9470;--line:#3A3F2A;}
+:root{--army:#126652;--army-light:#1E8068;--accent:#FFD84D;--font:'Montserrat',sans-serif;}
+[data-theme="light"]{--link:#126652;--bg:#F2F6F4;--surface:#FFFFFF;--ink:#0E1F1A;--muted:#5B6F68;--line:#D2DED9;}
+[data-theme="dark"]{--link:#FFD84D;--bg:#0F1A17;--surface:#172420;--ink:#E9F1EE;--muted:#86A098;--line:#2A3D36;}
 html,body{height:100%;}
 body{font-family:var(--font);background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;transition:background 0.2s;}
 
@@ -60,7 +60,7 @@ input:focus{border-color:var(--army);}
 .btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
 
 .toggle-text{text-align:center;font-size:0.8rem;font-weight:500;color:var(--muted);margin-top:20px;}
-.toggle-link{color:var(--army);font-weight:700;cursor:pointer;background:none;border:none;font-family:var(--font);font-size:0.8rem;text-decoration:underline;}
+.toggle-link{color:var(--link);font-weight:700;cursor:pointer;background:none;border:none;font-family:var(--font);font-size:0.8rem;text-decoration:underline;}
 
 .error-msg{background:#FDEAE5;border:1.5px solid #E05A3A;border-radius:8px;padding:10px 13px;font-size:0.82rem;font-weight:600;color:#C0392B;margin-bottom:12px;display:none;}
 .error-msg.visible{display:block;}
@@ -87,7 +87,7 @@ input:focus{border-color:var(--army);}
     <img src="logo.png" class="brand-logo" alt="Paddle District" onerror="this.style.display='none'">
     <div class="brand">
       <div class="brand-sub">Pickleball Community</div>
-      <div class="brand-sub" style="margin-top:2px;color:var(--army);">Version 2 - Modes</div>
+      <div class="brand-sub" style="margin-top:2px;color:var(--link);">Version 2 - Modes</div>
     </div>
   </div>
 

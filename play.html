@@ -19,7 +19,7 @@
 <meta name="twitter:description" content="Paddle District pickleball open play: courts, queues, and rankings.">
 <meta name="twitter:image" content="https://padq.app/og-image.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#4A5C2F">
+<meta name="theme-color" content="#0A3428">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Pickled">
 <style>
@@ -29,52 +29,54 @@
 
 /* ===== THEME TOKENS ===== */
 :root {
-  --army:       #4A5C2F;
-  --army-dark:  #38471F;
-  --army-light: #637A3D;
-  --army-pale:  #EEF2E6;
-  --accent:     #8FB339;
-  --accent-dim: #728F2D;
+  --army:       #126652;
+  --army-dark:  #0A3428;
+  --army-light: #1E8068;
+  --army-pale:  #E4F1EC;
+  --accent:     #FFD84D;
+  --accent-dim: #E8BF2E;
   --red:        #C0392B;
-  --gold:       #D4A017;
+  --gold:       #F2C230;
   --radius:     10px;
   --font:       'Montserrat', sans-serif;
 }
 
 [data-theme="light"] {
-  --bg:        #F5F6F0;
+  --accent-ink: #126652;
+  --bg:        #F2F6F4;
   --surface:   #FFFFFF;
-  --surface2:  #F0F2EA;
-  --ink:       #1C1F14;
-  --ink2:      #3A3F2A;
-  --muted:     #6B7254;
-  --line:      #D8DDD0;
+  --surface2:  #EAF1EE;
+  --ink:       #0E1F1A;
+  --ink2:      #2A3D36;
+  --muted:     #5B6F68;
+  --line:      #D2DED9;
   --shadow:    0 2px 12px rgba(0,0,0,0.07);
-  --header-bg: #4A5C2F;
-  --bar-bg:    #38471F;
+  --header-bg: #126652;
+  --bar-bg:    #0A3428;
   --bar-ended: #5A2020;
-  --input-bg:  #F5F6F0;
-  --swap-hover:#EEF2E6;
-  --present-bg:#EEF2E6;
-  --playing-bg:#EEF2E6;
+  --input-bg:  #F2F6F4;
+  --swap-hover:#E4F1EC;
+  --present-bg:#E4F1EC;
+  --playing-bg:#E4F1EC;
 }
 
 [data-theme="dark"] {
-  --bg:        #1A1C14;
-  --surface:   #252819;
-  --surface2:  #2E3220;
-  --ink:       #EEF0E8;
-  --ink2:      #CDD1BE;
-  --muted:     #8A9470;
-  --line:      #3A3F2A;
+  --accent-ink: #FFD84D;
+  --bg:        #0F1A17;
+  --surface:   #172420;
+  --surface2:  #1E2E29;
+  --ink:       #E9F1EE;
+  --ink2:      #C5D3CE;
+  --muted:     #86A098;
+  --line:      #2A3D36;
   --shadow:    0 2px 16px rgba(0,0,0,0.35);
-  --header-bg: #2E3820;
-  --bar-bg:    #243018;
+  --header-bg: #12302A;
+  --bar-bg:    #0A2A21;
   --bar-ended: #3D1818;
-  --input-bg:  #1E2115;
-  --swap-hover:#2E3820;
-  --present-bg:#2A3318;
-  --playing-bg:#2A3318;
+  --input-bg:  #16231F;
+  --swap-hover:#12302A;
+  --present-bg:#143A31;
+  --playing-bg:#143A31;
 }
 
 /* ===== BASE ===== */
@@ -318,7 +320,7 @@ header h1 {
   text-transform: none;
   vertical-align: middle;
 }
-[data-theme="dark"] .mode-badge { background: rgba(143,179,57,0.16); color: var(--accent); }
+[data-theme="dark"] .mode-badge { background: rgba(255,216,77,0.16); color: var(--accent); }
 /* ===== Ladder (King of the Court) ===== */
 .ladder-start{text-align:center;}
 .ladder-start-title{font-size:1.1rem;font-weight:900;margin-bottom:8px;}
@@ -345,7 +347,7 @@ header h1 {
 .ladder-bench-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:0.9rem;font-weight:600;}
 .ladder-bench-item:last-child{border-bottom:none;}
 .ladder-bench-rank{width:22px;height:22px;border-radius:50%;background:var(--army-pale);color:var(--army);font-size:0.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-[data-theme="dark"] .ladder-bench-rank{background:rgba(143,179,57,0.16);color:var(--accent);}
+[data-theme="dark"] .ladder-bench-rank{background:rgba(255,216,77,0.16);color:var(--accent);}
 .ladder-bench-empty{font-size:0.82rem;font-weight:500;color:var(--muted);}
 .ladder-sitting{margin-top:14px;}
 .ladder-sit-name{display:inline-block;background:var(--surface2);border-radius:20px;padding:4px 12px;font-size:0.8rem;font-weight:600;margin:0 6px 6px 0;}
@@ -381,7 +383,7 @@ header h1 {
 .manual-chip{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface2);border:1.5px solid transparent;border-radius:8px;padding:8px 12px;font-family:var(--font);cursor:pointer;transition:border-color 0.12s,background 0.12s;touch-action:none;}
 .manual-chip:hover{border-color:var(--line);}
 .manual-chip.on{background:var(--army-pale);border-color:var(--army);}
-[data-theme="dark"] .manual-chip.on{background:rgba(143,179,57,0.16);border-color:var(--accent);}
+[data-theme="dark"] .manual-chip.on{background:rgba(255,216,77,0.16);border-color:var(--accent);}
 .manual-chip-av{width:28px;height:28px;border-radius:50%;color:#fff;font-size:0.66rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .manual-chip-name{flex:1;min-width:0;font-size:0.9rem;font-weight:600;color:var(--ink);}
 .manual-chip-slot{width:22px;height:22px;border-radius:50%;background:var(--army);color:#fff;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -432,7 +434,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 }
 .btn-primary { background: var(--army); color: white; }
 .btn-primary:hover { background: var(--army-light); }
-.btn-accent { background: var(--accent); color: #1C1F14; }
+.btn-accent { background: var(--accent); color: #0E1F1A; }
 .btn-accent:hover { background: var(--accent-dim); }
 .btn-danger { background: var(--red); color: white; }
 .btn-danger:hover { background: #9b2e23; }
@@ -499,7 +501,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 [data-theme="dark"] .attendance-toggle.here {
   background: var(--accent);
   border-color: var(--accent);
-  color: #1C1F14;
+  color: #0E1F1A;
 }
 .remove-btn {
   background: none; border: none;
@@ -685,7 +687,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   font-size: 0.72rem; font-weight: 900; letter-spacing: 0.04em; flex-shrink: 0;
 }
 .ct-tag.t1 { background: var(--army); color: #fff; }
-.ct-tag.t2 { background: var(--gold); color: #1C1F14; }
+.ct-tag.t2 { background: var(--gold); color: #0E1F1A; }
 .ct-names { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 5px 14px; }
 .ct-name { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; font-size: 1.05rem; font-weight: 600; color: var(--ink); overflow-wrap: break-word; }
 .ct-name-row { display: inline-flex; align-items: center; gap: 5px; }
@@ -700,7 +702,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .edit-score-sep{font-size:1.5rem;font-weight:800;color:var(--muted);align-self:center;padding-top:18px;}
 .es-tag{font-size:0.62rem;font-weight:900;letter-spacing:0.08em;padding:1px 9px;border-radius:5px;}
 .es-tag.t1{background:var(--army);color:#fff;}
-.es-tag.t2{background:var(--gold);color:#1C1F14;}
+.es-tag.t2{background:var(--gold);color:#0E1F1A;}
 .es-input{text-align:center;font-family:var(--font);font-size:1.6rem;font-weight:800;padding:10px 6px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;}
 .es-input:focus{border-color:var(--accent);outline:none;}
 .ct-score {
@@ -743,7 +745,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 }
 .next-match-btn:hover { background: var(--army-pale); }
 [data-theme="dark"] .next-match-btn { border-color: var(--accent); color: var(--accent); }
-[data-theme="dark"] .next-match-btn:hover { background: rgba(143,179,57,0.1); }
+[data-theme="dark"] .next-match-btn:hover { background: rgba(255,216,77,0.1); }
 
 /* ===== MODALS ===== */
 .modal-overlay {
@@ -867,7 +869,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   transition: all 0.15s;
 }
 .sort-pill.active { background: var(--army); border-color: var(--army); color: white; }
-[data-theme="dark"] .sort-pill.active { background: var(--accent); border-color: var(--accent); color: #1C1F14; }
+[data-theme="dark"] .sort-pill.active { background: var(--accent); border-color: var(--accent); color: #0E1F1A; }
 .rank-table { width: 100%; border-collapse: collapse; }
 .rank-table th {
   font-size: 0.68rem;
@@ -992,7 +994,7 @@ input:focus, textarea:focus { border-color: var(--army); }
   letter-spacing: 0.04em;
 }
 .badge-green { background: var(--army-pale); color: var(--army); }
-[data-theme="dark"] .badge-green { background: rgba(143,179,57,0.15); color: var(--accent); }
+[data-theme="dark"] .badge-green { background: rgba(255,216,77,0.15); color: var(--accent); }
 .badge-red { background: rgba(192,57,43,0.12); color: var(--red); }
 .badge-gold { background: rgba(212,160,23,0.15); color: var(--gold); }
 .history-item {
@@ -1049,7 +1051,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .mq-card-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--line);}
 .mq-card-header-left{font-size:0.68rem;font-weight:700;color:var(--muted);letter-spacing:0.04em;}
 .mq-badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:0.68rem;font-weight:800;letter-spacing:0.04em;}
-.mq-badge-next{background:var(--accent);color:#1C1F14;}
+.mq-badge-next{background:var(--accent);color:#0E1F1A;}
 .mq-badge-deck{background:var(--surface2);color:var(--muted);border:1px solid var(--line);}
 .mq-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;padding:10px 12px;}
 .mq-team{text-align:center;}
@@ -1088,19 +1090,19 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ls-chip{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;flex-shrink:0;}
 .ls-rank{font-size:0.95rem;font-weight:900;color:var(--muted);font-variant-numeric:tabular-nums;}
 .ls-rank.g1{color:var(--gold);}
-.ls-rank.g2{color:var(--accent-dim);}
+.ls-rank.g2{color:var(--accent-ink);}
 .ls-info{min-width:0;}
 .ls-nm{font-size:0.82rem;font-weight:800;color:var(--ink);white-space:nowrap;}
 .ls-stat{font-size:0.66rem;font-weight:700;color:var(--muted);margin-top:1px;font-variant-numeric:tabular-nums;}
 /* Artifact-style court cards */
 .court-grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,400px));gap:12px;justify-content:start;}
 .court-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);padding:0;}
-.court-header{background:#20241a;color:#fff;display:flex;align-items:center;gap:8px;padding:9px 11px;border:none;border-radius:0;}
+.court-header{background:#0A3428;color:#fff;display:flex;align-items:center;gap:8px;padding:9px 11px;border:none;border-radius:0;}
 .court-name-input{background:transparent!important;border:none!important;color:#fff!important;font-weight:800;font-size:0.86rem;padding:0;flex:0 1 auto;width:auto;max-width:130px;letter-spacing:0.01em;}
 .court-timer{color:#fff;font-variant-numeric:tabular-nums;font-weight:800;font-size:0.74rem;margin-left:auto;background:transparent;padding:0;}
 .court-timer.warn{background:transparent!important;color:#E9C46A;}
-.court-round{color:#b9c39a;font-size:0.58rem;font-weight:800;background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:10px;letter-spacing:0.03em;}
-.remove-court-btn{color:#9aa37e;background:transparent;border:none;font-size:0.9rem;cursor:pointer;padding:0 2px;}
+.court-round{color:#A8C6BC;font-size:0.58rem;font-weight:800;background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:10px;letter-spacing:0.03em;}
+.remove-court-btn{color:#8FB1A5;background:transparent;border:none;font-size:0.9rem;cursor:pointer;padding:0 2px;}
 .remove-court-btn:hover{color:#fff;}
 .court-body{padding:0;}
 .ct-teams{display:flex;align-items:stretch;}
@@ -1123,7 +1125,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 .ct-score::-webkit-outer-spin-button,.ct-score::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 .ct-score:focus{border-color:var(--army);}
 .ct-dash{color:var(--muted);font-weight:800;}
-.ct-submit{flex:1;height:36px;background:var(--accent);color:#1C1F14;border:none;border-radius:7px;font-weight:800;font-size:0.78rem;cursor:pointer;font-family:inherit;letter-spacing:0.02em;}
+.ct-submit{flex:1;height:36px;background:var(--accent);color:#0E1F1A;border:none;border-radius:7px;font-weight:800;font-size:0.78rem;cursor:pointer;font-family:inherit;letter-spacing:0.02em;}
 .ct-submit:hover{background:var(--accent-dim);}
 .ct-cancel{display:block;width:calc(100% - 20px);margin:0 10px 10px;padding:8px;background:none;border:1.5px solid var(--line);border-radius:7px;color:var(--red);font-weight:700;font-size:0.75rem;cursor:pointer;font-family:inherit;}
 .ct-cancel:hover{border-color:var(--red);background:rgba(192,57,43,0.06);}
@@ -1137,13 +1139,13 @@ input:focus, textarea:focus { border-color: var(--army); }
 .queue-panel{background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;}
 .queue-panel > .card-title, .queue-panel > p{display:none!important;}
 .mm-grid{display:flex;flex-direction:column;gap:12px;align-items:stretch;}
-.mm-queue{flex:1 1 260px;max-width:400px;background:#20241a;border-radius:12px;padding:10px 12px 6px;box-shadow:var(--shadow);}
+.mm-queue{flex:1 1 260px;max-width:400px;background:#0A3428;border-radius:12px;padding:10px 12px 6px;box-shadow:var(--shadow);}
 .mm-qhead{font-size:0.7rem;font-weight:900;letter-spacing:0.06em;text-transform:uppercase;color:#fff;margin-bottom:4px;}
 .mm-qhead span{color:var(--accent);}
 .mm-queue .queue-item{border-color:rgba(255,255,255,0.06)!important;background:transparent;padding:5px 2px;}
 .mm-queue .queue-rank{color:var(--accent)!important;font-weight:900;}
-.mm-queue .queue-name{color:#EEF0E8!important;}
-.mm-queue .queue-idle{color:#9aa37e!important;font-size:0.64rem;}
+.mm-queue .queue-name{color:#E9F1EE!important;}
+.mm-queue .queue-idle{color:#8FB1A5!important;font-size:0.64rem;}
 .mm-queue .queue-idle.long{color:#E9C46A!important;}
 .mm-queue .mini-avatar{width:22px;height:22px;font-size:0.58rem;}
 .mm-upnext{flex:1;min-width:250px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,300px));gap:12px;align-content:start;order:-1;}
@@ -1170,7 +1172,7 @@ input:focus, textarea:focus { border-color: var(--army); }
 
 <header>
   <a href="dashboard.html" onclick="return confirmLeave()" style="color:white;text-decoration:none;font-size:1.2rem;padding:4px 6px;flex-shrink:0;font-weight:700;" title="Dashboard">←</a>
-  <div class="logo" style="padding:0;overflow:visible;background:transparent;width:auto;height:auto;border-radius:0;"><img src="logo.png" alt="Paddle District" style="height:26px;width:auto;display:block;object-fit:contain;" onerror="this.style.display='none'"></div>
+  <div class="logo" style="padding:0;overflow:visible;background:transparent;width:auto;height:auto;border-radius:0;"><img src="logo.png" alt="Paddle District" style="height:34px;width:auto;display:block;object-fit:contain;" onerror="this.style.display='none'"></div>
   <h1 id="headerSessionName">Paddle District</h1>
   <span class="session-badge" id="sessionBadge">0 players</span>
   <div class="sync-dot" id="syncDot" title="Sync status"></div>
@@ -2105,7 +2107,7 @@ function _genCheckinQR(){
   if(el.dataset.qrUrl === url) return; // URL unchanged; skip rebuild (avoids flicker on every renderPlayers)
   el.innerHTML='';
   new QRCode(el, { text: url, width:120, height:120,
-    colorDark:'#1C1F14', colorLight:'#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
+    colorDark:'#0E1F1A', colorLight:'#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
   el.dataset.qrUrl = url;
 }
 function toggleCheckinOpen(){
@@ -3963,7 +3965,7 @@ function _genQR(url) {
     el.innerHTML = '';
     _qrInstances[t.qr] = new QRCode(el, {
       text: url, width: t.size, height: t.size,
-      colorDark: '#1C1F14', colorLight: '#FFFFFF',
+      colorDark: '#0E1F1A', colorLight: '#FFFFFF',
       correctLevel: QRCode.CorrectLevel.M
     });
   });
